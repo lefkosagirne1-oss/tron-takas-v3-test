@@ -78,18 +78,18 @@ async function registerAndOffer(f,{fee=500,payer=1,amountA=parseEther("3.75"),am
   return id;
 }
 
-test("participant-driven 100 native ↔ 50000 token: 5% A fee and exact settlement",async()=>{
+test("participant-selected native ↔ token: 5% A fee and exact settlement",async()=>{
   const f=await fixture();const {swap,token,a,b,owner,one,provider}=f;
   await registerAndOffer(f);
   const abefore=await token.balanceOf(await a.getAddress());
-  await one(swap.connect(a).deposit(1,{value:parseEther("100")}));
+  await one(swap.connect(a).deposit(1,{value:parseEther("3.75")}));
   await one(swap.connect(b).deposit(1));
   const rawBalance=async addr=>BigInt(await f.node.request({method:"eth_getBalance",params:[addr,"latest"]}));
   const beforeB=await rawBalance(await b.getAddress());
   const beforeFee=await rawBalance(await owner.getAddress());
   await one(swap.finalize(1));
-  assert.equal((await token.balanceOf(await a.getAddress()))-abefore,parseEther("50000"));
-  assert.equal((await rawBalance(await b.getAddress()))-beforeB,parseEther("95"));
+  assert.equal((await token.balanceOf(await a.getAddress()))-abefore,parseEther("91.2"));
+  assert.equal((await rawBalance(await b.getAddress()))-beforeB,parseEther("3.5625"));
   assert.ok((await rawBalance(await owner.getAddress()))>beforeFee, "manager receives fee after transaction gas");
   assert.equal(await provider.getBalance(await swap.getAddress()),0n);
   assert.equal((await swap.getSwap(1)).completed,true);
@@ -108,7 +108,7 @@ test("both parties can withdraw after settlement deadline if manager does not fi
   const before=await token.balanceOf(await b.getAddress());
   await one(swap.connect(a).refund(1));
   await one(swap.connect(b).refund(1));
-  assert.equal(await token.balanceOf(await b.getAddress()),before+parseEther("50000"));
+  assert.equal(await token.balanceOf(await b.getAddress()),before+parseEther("91.2"));
   assert.equal(await provider.getBalance(await swap.getAddress()),0n);
   await assert.rejects(one(swap.connect(a).refund(1)));
 });
