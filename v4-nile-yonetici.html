@@ -60,6 +60,27 @@ const addr=x=>{let v=value(x);if(/^0x[0-9a-f]{40}$/i.test(v))return tw.address.f
 const status=(id,msg)=>{$(id).textContent=msg};
 const url=(contract,id,role)=>{const u=new URL("v4-nile-katilimci.html",location.href);u.searchParams.set("contract",contract);u.searchParams.set("id",id);u.searchParams.set("role",role);return u.href};
 const decode=r=>{if(r[0]&&typeof r[0]==="object"&&r.partyA===undefined)r=r[0];const out={};fields.forEach((name,i)=>out[name]=r[name]??r[i]);return out};
+
+// Read the exact 22 ABI words directly from Nile; do not trust TronWeb's
+// nested tuple display for security-sensitive participant validation.
+async function readSwapRaw(id){
+ const response=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+  method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({owner_address:tw.address.toHex(owner),contract_address:tw.address.toHex(liveAddress),
+   function_selector:"getSwap(uint256)",parameter:BigInt(id).toString(16).padStart(64,"0"),visible:false})
+ });
+ if(!response.ok)throw Error("Ham zincir okuması başarısız: HTTP "+response.status);
+ const data=await response.json(),raw=data.constant_result?.[0];
+ if(!data.result?.result||!raw||raw.length!==fields.length*64||!/^[a-f0-9]+$/i.test(raw))
+  throw Error("Ham getSwap verisi doğrulanamadı. İşlem yapma.");
+ const words=raw.match(/.{64}/g),out={};
+ fields.forEach((field,i)=>{
+  const n=BigInt("0x"+words[i]);
+  out[field]=i<4?(n===0n?zero:tw.address.fromHex("41"+words[i].slice(-40))):
+   i>=11?(n===1n?true:n===0n?false:(()=>{throw Error("Geçersiz durum bayrağı")})()):n.toString();
+ });
+ return out;
+}
 const now=()=>BigInt(Math.floor(Date.now()/1000));
 function reset(){for(const id of ["create","read","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
 async function connect(){
@@ -279,13 +300,13 @@ async function read(){
  if(!c)throw Error("Sözleşmeyi doğrula.");
  const id=$("dealId").value.trim();
  if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası gir.");
- const s=decode(await c.getSwap(id).call());current=s;
+ const s=await readSwapRaw(id);current=s;
  const [a,b]=[addr(s.partyA),addr(s.partyB)];
  const funded=yes(s.depositedA)&&yes(s.depositedB);
  const accepted=yes(s.acceptedA)&&yes(s.acceptedB);
  const deadline=BigInt(value(s.settlementDeadline));
  readyForFinal=funded&&accepted&&deadline>now()&&!yes(s.completed)&&!yes(s.cancelled);
- $("confirm").disabled=true; // Fail closed: on-chain raw slot validation required before wallet locking.
+ $("confirm").disabled=yes(s.walletsConfirmed)||yes(s.cancelled)||yes(s.completed)||a===tw.address.fromHex(zero)||b===tw.address.fromHex(zero)||a===b;
  $("finalize").disabled=!readyForFinal;
  const state=[
  "TAKAS #"+id,
