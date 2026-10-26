@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import solc from "solc";
 const contractSource=fs.readFileSync("contracts/TakasV4Draft.sol","utf8");
 const input={
@@ -21,7 +22,7 @@ const artifact={
  network:"nile",
  compiler:"0.8.31",
  optimizerRuns:200,
- sourceSha256:null,
+ sourceSha256:createHash("sha256").update(contractSource,"utf8").digest("hex"),
  abi:c.abi,
  bytecode:c.evm.bytecode.object,
  deployedBytecode:c.evm.deployedBytecode.object
