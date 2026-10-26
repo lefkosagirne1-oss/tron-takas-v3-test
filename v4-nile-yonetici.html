@@ -383,7 +383,7 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
-try{const a=localStorage.getItem("takas-v4-nile-address");if(a)$("contractAddress").value=a;
+try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";if(!$("dealId").value)$("dealId").value="1";
  const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
 }catch{}
 </script><script>
