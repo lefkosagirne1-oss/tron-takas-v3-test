@@ -43,7 +43,7 @@ contract TakasV4Draft {
         bool completed;
         bool cancelled;
     }
-    mapping(uint256 => Swap) public swaps;
+    mapping(uint256 => Swap) private swaps;
 
     event InviteCreated(uint256 indexed id, uint16 feeBps, uint8 feePayer);
     event ParticipantRequested(uint256 indexed id, uint8 role, address wallet);
