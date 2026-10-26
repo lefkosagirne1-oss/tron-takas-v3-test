@@ -30,24 +30,31 @@ footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
 <header><div class="identity"><div class="logo">T</div><div><div class="brand">TAKAS</div><div class="caption">Dijital varlıklar için kontrollü takas</div></div></div>
 <h1>Güvenli takas yönetimi</h1><p>Her iki taraf kendi varlığını seçer. İşlem koşulları ortak ekranda doğrulanır.</p>
 <div class="warning"><strong>V4 arayüz önizlemesi.</strong> Bu ekran gerçek cüzdan bağlantısı, token transferi veya zincir teyidi yapmaz. Aşağıdaki örnekler gerçek işlem değildir.</div></header>
-<nav aria-label="Ekran önizlemeleri"><button class="active" data-role="owner">Yönetici</button><button data-role="a">Ali</button><button data-role="b">Veli</button></nav>
+<nav aria-label="Ekran önizlemeleri"><button class="active" data-role="owner">Yönetici</button><button data-role="a">Taraf A</button><button data-role="b">Taraf B</button></nav>
 <section id="owner" class="panel"><div class="row"><h2>Yeni takas daveti</h2><span class="tag">YÖNETİCİ</span></div>
 <p>Sadece hizmet bedelini belirleyin. Gönderilecek token ve tutarları katılımcılar kendileri seçecektir.</p>
 <label for="payer">Platform hizmet bedeli hangi taraftan tahsil edilir?</label>
 <select id="payer"><option value="a">A tarafının göndereceği varlıktan</option><option value="b">B tarafının göndereceği varlıktan</option><option value="none">Hizmet bedeli uygulanmaz</option></select>
 <label for="percent">Hizmet bedeli oranı (%)</label><input id="percent" type="number" min="0" max="10" step="0.1" value="5">
 <div class="statusLine small"><strong>Ücretlendirme ilkesi</strong><div>Platform hizmet bedeli, yalnızca başarılı takasın sonunda ilgili varlıktan mahsup edilir. TRON ağında oluşabilecek Energy/Bandwidth giderleri bu bedelden ayrıdır.</div></div>
-<button class="full" id="make">Davet koşullarını önizle</button>
-<div class="small" id="managerResult">Davet bağlantısı oluşturma henüz geliştirme aşamasında.</div>
+<button class="full" id="make">Örnek davet bağlantılarını oluştur</button>
+<div class="small" id="managerResult">Henüz bağlantı hazırlanmamış.</div>
+<div id="invites" hidden><div class="sep"></div><h3>Davet bağlantıları · Önizleme</h3>
+<p class="small">İki taraf için ayrı bağlantı. Bu adresler yalnızca ekran önizlemesini açar; teklifleri kaydetmez veya zincire işlem göndermez.</p>
+<label for="inviteA">Taraf A bağlantısı</label><input id="inviteA" readonly aria-label="Taraf A davet bağlantısı">
+<button class="outline full" type="button" data-copy="inviteA">Taraf A bağlantısını kopyala</button>
+<label for="inviteB">Taraf B bağlantısı</label><input id="inviteB" readonly aria-label="Taraf B davet bağlantısı">
+<button class="outline full" type="button" data-copy="inviteB">Taraf B bağlantısını kopyala</button>
+<p id="copyStatus" class="small" role="status"></p></div>
 </section>
-<section id="a" class="panel" hidden><div class="row"><h2>Ali · İşlem ekranı</h2><span class="tag">TARAF A</span></div>
+<section id="a" class="panel" hidden><div class="row"><h2>Taraf A · İşlem ekranı</h2><span class="tag">TARAF A</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
 <label for="assetA">Göndereceğiniz dijital varlık</label><select id="assetA"><option>TRX</option><option>FRHN</option><option>USDT</option></select>
 <label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" value="100">
 <p id="feeNoteA" class="small"></p>
 <button id="offerA" class="full">Takas koşullarını incele</button>
 <p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
-<section id="b" class="panel" hidden><div class="row"><h2>Veli · İşlem ekranı</h2><span class="tag">TARAF B</span></div>
+<section id="b" class="panel" hidden><div class="row"><h2>Taraf B · İşlem ekranı</h2><span class="tag">TARAF B</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
 <label for="assetB">Göndereceğiniz dijital varlık</label><select id="assetB"><option>FRHN</option><option>TRX</option><option>USDT</option></select>
 <label for="amountB">Gönderim miktarı</label><input id="amountB" type="number" min="0" step="any" inputmode="decimal" value="50000">
@@ -56,8 +63,8 @@ footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
 <p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
 <section class="panel" id="overview"><div class="row"><h2>İşlem detayları</h2><span class="tag">ÖRNEK VERİ</span></div>
 <div class="flow">
-<div class="side"><div class="name">A TARAFI · ALİ</div><div class="value" id="sideA">100 TRX</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div>
-<div class="side"><div class="name">B TARAFI · VELİ</div><div class="value" id="sideB">50.000 FRHN</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div></div>
+<div class="side"><div class="name">TARAF A</div><div class="value" id="sideA">100 TRX</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div>
+<div class="side"><div class="name">TARAF B</div><div class="value" id="sideB">50.000 FRHN</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div></div>
 <div class="statusLine"><strong id="headline">İşlem henüz oluşturulmadı</strong><p class="small" id="subHeadline">Yönetici onayı ancak her iki tarafın teklifi ve yatırımı zincirde doğrulandıktan sonra istenebilir.</p></div>
 <div class="sep"></div><h3>Ücret ve net varlık özeti</h3>
 <div class="summary"><div><span class="muted">Platform hizmet bedeli</span><b id="feeAmount">5 TRX</b></div>
@@ -90,8 +97,38 @@ function render(){
  $("subHeadline").textContent="Örnek değerlerdir. Henüz zincire yatırılan token yok; yönetici son onayı beklenmiyor.";
  return true;
 }
-$("make").addEventListener("click",()=>{if(!render())return;$("managerResult").textContent="Hizmet bedeli koşulları önizlendi. Gerçek bağlantı üretilmedi ve hiçbir işlem imzalanmadı.";});
+function applyInviteFromUrl(){
+ const params=new URLSearchParams(location.search), role=params.get("role");
+ if(role!=="a"&&role!=="b")return;
+ const payer=params.get("payer"),pct=params.get("rate");
+ if(["a","b","none"].includes(payer))$("payer").value=payer;
+ if(pct!==null&&pct!==""&&Number.isFinite(Number(pct))&&Number(pct)>=0&&Number(pct)<=10)$("percent").value=pct;
+ // The receiver can view terms but cannot change the organizer's preview rate.
+ $("payer").disabled=true;$("percent").readOnly=true;
+ $("feeNote"+role.toUpperCase()).textContent="Davet koşulları görüntüleniyor.";
+ show(role);render();
+}
+$("make").addEventListener("click",()=>{
+ if(!render())return;
+ const sessionId=Array.from(crypto.getRandomValues(new Uint8Array(12)),v=>v.toString(16).padStart(2,"0")).join("");
+ for(const role of ["a","b"]){
+  const u=new URL(location.href);
+  u.search="";u.hash="";
+  u.searchParams.set("preview","1");u.searchParams.set("ref",sessionId);
+  u.searchParams.set("role",role);u.searchParams.set("payer",$("payer").value);u.searchParams.set("rate",$("percent").value);
+  $("invite"+role.toUpperCase()).value=u.href;
+ }
+ $("invites").hidden=false;
+ $("managerResult").textContent="İki bağlantı önizlemesi hazır. Gerçek takas daveti değildir; cüzdan veya zincir bağlantısı yok.";
+ $("copyStatus").textContent="Bağlantıları ayrı ayrı kopyalayıp örnek ekranları açabilirsiniz.";
+});
+for(const button of document.querySelectorAll("[data-copy]"))button.addEventListener("click",async()=>{
+ const target=$(button.dataset.copy);
+ try{await navigator.clipboard.writeText(target.value);$("copyStatus").textContent="Bağlantı kopyalandı.";}
+ catch{target.focus();target.select();$("copyStatus").textContent="Adres seçildi. Telefonun kopyala seçeneğini kullanın.";}
+});
 for(const id of ["offerA","offerB"])$(id).addEventListener("click",()=>{if(render())$("overview").scrollIntoView({behavior:"smooth",block:"start"})});
 for(const id of ["payer","percent","assetA","assetB","amountA","amountB"])$(id).addEventListener("input",render);
+applyInviteFromUrl();
 render();
 </script></body></html>
