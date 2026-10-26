@@ -84,12 +84,13 @@ test("participant-driven 100 native ↔ 50000 token: 5% A fee and exact settleme
   const abefore=await token.balanceOf(await a.getAddress());
   await one(swap.connect(a).deposit(1,{value:parseEther("100")}));
   await one(swap.connect(b).deposit(1));
-  const beforeB=await provider.getBalance(await b.getAddress());
-  const beforeFee=await provider.getBalance(await owner.getAddress());
+  const rawBalance=async addr=>BigInt(await f.node.request({method:"eth_getBalance",params:[addr,"latest"]}));
+  const beforeB=await rawBalance(await b.getAddress());
+  const beforeFee=await rawBalance(await owner.getAddress());
   await one(swap.finalize(1));
   assert.equal((await token.balanceOf(await a.getAddress()))-abefore,parseEther("50000"));
-  assert.equal((await provider.getBalance(await b.getAddress()))-beforeB,parseEther("95"));
-  assert.ok((await provider.getBalance(await owner.getAddress()))>beforeFee, "manager receives fee after transaction gas");
+  assert.equal((await rawBalance(await b.getAddress()))-beforeB,parseEther("95"));
+  assert.ok((await rawBalance(await owner.getAddress()))>beforeFee, "manager receives fee after transaction gas");
   assert.equal(await provider.getBalance(await swap.getAddress()),0n);
   assert.equal((await swap.getSwap(1)).completed,true);
   await assert.rejects(one(swap.finalize(1)));
@@ -153,6 +154,7 @@ test("service fee zero and participant wallet rules",async()=>{
   await assert.rejects(one(swap.connect(a).requestRole(1,2)));
   await assert.rejects(one(swap.confirmParticipants(1)));
   await one(swap.connect(b).requestRole(1,2));
-  await one(swap.confirmParticipants(1));
+  assert.equal((await swap.getSwap(1)).partyB,await b.getAddress());
+  await one(swap.confirmParticipants(1,{gasLimit:500000}));
   await assert.rejects(one(swap.connect(other).requestRole(1,1)));
 });
