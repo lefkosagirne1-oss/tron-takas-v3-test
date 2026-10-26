@@ -33,6 +33,8 @@ pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
 
 .quickLinks{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.quickLinks a{background:#244a78;color:white;border-radius:9px;text-decoration:none;padding:12px;font-weight:600}
 @media(max-width:680px){.quickLinks{display:grid;grid-template-columns:1fr}.quickLinks a{text-align:center;padding:15px}}
+details.extraInfo{margin:12px 0;border:1px solid #35506d;border-radius:12px}details.extraInfo summary{padding:16px;cursor:pointer;font-weight:600}details.extraInfo section{border:0;margin:0;padding:12px}#nextStep{font-weight:600;color:#fff;background:#203c5f;padding:14px;border-radius:10px}#actionPanel button:not(.secondary){font-weight:700}button[hidden]{display:none!important}
+@media(max-width:680px){.grid{gap:4px}details.extraInfo section{padding:12px!important}#actionPanel{scroll-margin-top:12px}}
 </style></head>
 <body><h1>Takas V3 · İşlem Detayı</h1>
 <nav class="quickLinks"><a href="#actions">İşlem düğmelerine git</a><a id="managerLink" href="./takas-v3-yonetici-islem.html#finalSection">Yönetici son onayı</a></nav>
@@ -47,17 +49,18 @@ pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
 <section><h2>Taraf A</h2><pre id="cardA">Bilgi bekleniyor</pre></section>
 <section><h2>Taraf B</h2><pre id="cardB">Bilgi bekleniyor</pre></section>
 </div>
-<section><h2>Komisyon ve net tutarlar</h2><pre id="terms">Sözleşme verisi bekleniyor.</pre></section>
-<section><h2>Durum ve süreler</h2><pre id="state">Sözleşme verisi bekleniyor.</pre></section>
-<section>
-<h2 id="actions">Sizin işlemleriniz</h2>
+<details class="extraInfo"><summary>Komisyon ve net tutarlar</summary><section><h2>Komisyon ve net tutarlar</h2><pre id="terms">Sözleşme verisi bekleniyor.</pre></section></details>
+<details class="extraInfo"><summary>Tüm süreler ve zincir durumu</summary><section><h2>Durum ve süreler</h2><pre id="state">Sözleşme verisi bekleniyor.</pre></section></details>
+<section id="actionPanel">
+<h2 id="actions">Sıradaki işleminiz</h2>
+<p id="nextStep" role="status">Takas numarasıyla bilgileri yükleyin. Cüzdan bağlantısı gerekebilir.</p>
 <p>TRC20 yatırmadan önce token onayı (approve) gerekebilir. Yatırma, onay ve iade ancak ilgili koşullarda etkinleşir. Her düğme için TronLink ayrıca imza ister.</p>
 <button id="approve" disabled>Token harcama izni ver</button>
 <button id="deposit" disabled>Varlığımı yatır</button>
 <button id="accept" disabled>Takası onayla</button>
 <button id="refund" class="secondary" disabled>Süresi dolan varlığımı iade et</button>
 <pre id="actionResult" role="status">İşlem başlatılmadı.</pre>
-<button id="refresh" class="secondary">Zincir durumunu yenile</button>
+<button id="refresh" class="secondary">Durumu güncelle</button>
 <p><small>İki tarafın onayından sonra yöneticinin de 5 dakikalık pencere bitmeden son onayı vermesi gerekir. Aksi hâlde taraflar süre sonunda kendi yatırımlarını iade alabilir.</small></p>
 </section>
 <script>
@@ -73,7 +76,7 @@ const tokenABI=[
 ];
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","commissionAmount","commissionRecipient","commissionPayer","depositDeadline","approvalDeadline","depositedA","depositedB","approvedA","approvedB","ownerApproved","refundedA","refundedB","completed"];
 let tw=null,c=null,wallet="",deal=null,preview=null,assets=null,role="",id="",allowance=0n,busy=false;
-function disable(){for(const k of ["approve","deposit","accept","refund"])$(k).disabled=true;}
+function disable(){for(const k of ["approve","deposit","accept","refund"]){$(k).disabled=true;$(k).hidden=true;}}
 function resultText(v){return v?.toString?.()??String(v)}
 function truth(v){return v===true||v==="true"||v===1||v==="1"}
 function num(v){return BigInt(resultText(v))}
@@ -186,6 +189,27 @@ async function render(){
  $("deposit").disabled=busy||!canDeposit||Boolean(myAsset?.token&&allowance<amount);
  $("accept").disabled=busy||!who||deal.completed||approved||refunded||!(deal.depositedA&&deal.depositedB)||num(deal.approvalDeadline)===0n||approvalExpired;
  $("refund").disabled=busy||!who||deal.completed||!deposited||refunded||!(depositExpired||approvalExpired);
+ // Only show the next eligible action; keep original contract and transaction guards.
+ const canRefund=!$("refund").disabled;
+ const canAccept=!$("accept").disabled;
+ const canDepositNow=!$("deposit").disabled;
+ const canApproveNow=!$("approve").disabled;
+ const next=canRefund?"refund":canAccept?"accept":canDepositNow?"deposit":canApproveNow?"approve":null;
+ for(const key of ["approve","deposit","accept","refund"])$(key).hidden=key!==next;
+ let hint;
+ if(deal.completed)hint="Takas tamamlandı. Varlıklar tarafların cüzdanlarına gönderildi.";
+ else if(refunded)hint="Bu takastaki iadeniz tamamlandı.";
+ else if(canRefund)hint="Süre doldu. Yatırdığınız varlığı iade alabilirsiniz.";
+ else if(!who)hint="Bu takasta kayıtlı taraf cüzdanını TronLink'te seçin ve 'Cüzdanı doğrula' düğmesine basın.";
+ else if(canAccept)hint="İki taraf yatırdı. Onay süresi dolmadan takası onaylayın.";
+ else if(canDepositNow)hint="Sizin sıranız: "+fmt(amount,myAsset.decimals)+" "+myAsset.label+" yatırın.";
+ else if(canApproveNow)hint="Yatırmadan önce yalnızca "+fmt(amount,myAsset.decimals)+" "+myAsset.label+" için token izni verin.";
+ else if(!deposited&&depositExpired)hint="Yatırma süresi dolmuş. Bu işlem için artık yatırma yapılamaz.";
+ else if(deposited&&!deal.depositedA||deposited&&!deal.depositedB)hint="Yatırdınız. Diğer tarafın yatırmasını bekleyin.";
+ else if(approved)hint="Onayınız alındı. Diğer taraf ve yönetici son onayı bekleniyor.";
+ else if(approvalExpired)hint="Onay süresi doldu. Varlığınız yatırılmışsa iade seçeneğini kontrol edin.";
+ else hint="Zincirde sıradaki aşama bekleniyor. Durumu güncelleyin.";
+ $("nextStep").textContent=hint;
 }
 async function signedAction(action){
  if(busy||!role||!deal||!c)throw Error("Önce takası ve cüzdanınızı doğrulayın.");
