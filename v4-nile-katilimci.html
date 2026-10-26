@@ -198,6 +198,7 @@ $("wallet").onclick=async()=>{
    if(!injected.ready)try{injected.ready=true}catch{}
   }
   await setup(true);
+  $("joinStatus").textContent="Cüzdan bağlandı: "+wallet+". Zincir durumu okunuyor.";
   await read();
   $("joinStatus").textContent="Cüzdan bağlantısı yenilendi. Katılım durumunu zincirden kontrol edin.";
  }catch(e){
