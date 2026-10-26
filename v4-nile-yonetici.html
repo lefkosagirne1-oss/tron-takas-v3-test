@@ -241,10 +241,31 @@ $("create").onclick=async()=>{
  if(!confirm("Nile test ağı: %"+pct+" hizmet bedeli kuralıyla yeni davet oluşturulsun mu? Bu işlem cüzdan imzası ister."))return;
  $("create").disabled=true;
  try{
-  const result=await c.createInvite(Math.round(pct*100),payer).send({feeLimit:60000000,shouldPollResponse:true,keepTxID:true});
-  const tx=Array.isArray(result)?result[0]:result;
-  status("inviteStatus","Davet zincire gönderildi, henüz kesinleşmedi.\nİşlem: "+tx+"\nZincir doğrulaması yapılıyor…");
-  const info=await tw.trx.getTransactionInfo(tx);
+  const nextBefore=BigInt(value(await c.nextId().call()));
+  const args=[{type:"uint16",value:Math.round(pct*100)},{type:"uint8",value:payer}];
+  const built=await tw.transactionBuilder.triggerSmartContract(liveAddress,"createInvite(uint16,uint8)",{feeLimit:60000000,callValue:0},args,owner);
+  if(!built?.result?.result||!built.transaction?.raw_data)throw Error("İşlem taslağı hazırlanamadı.");
+  let unsigned=built.transaction;
+  // Extend the standard short node expiration before the TronLink confirmation screen opens.
+  unsigned=await tw.transactionBuilder.extendExpiration(unsigned,600);
+  const expires=Number(unsigned?.raw_data?.expiration);
+  if(!Number.isFinite(expires)||expires-Date.now()<120000)throw Error("İşlem süresi yeterli değil; imza istenmedi.");
+  const signed=await tw.trx.sign(unsigned);
+  if(!signed?.signature?.length)throw Error("TronLink imzası alınamadı.");
+  const tx=signed.txID;
+  const sent=await tw.trx.sendRawTransaction(signed);
+  if(sent?.result!==true){
+   const nextAfter=BigInt(value(await c.nextId().call()));
+   if(nextAfter>nextBefore)throw Error("Davet zincirde oluşmuş olabilir; tekrar imzalama. Son davet: "+(nextAfter-1n));
+   throw Error("Ağ işlemi kabul etmedi: "+JSON.stringify(sent).slice(0,250));
+  }
+  status("inviteStatus","Davet zincire gönderildi, henüz kesinleşmedi.\\nİşlem: "+tx+"\\nZincir doğrulaması yapılıyor…");
+  let info;
+  for(let i=0;i<8;i++){
+   info=await tw.trx.getTransactionInfo(tx);
+   if(info?.receipt?.result)break;
+   await new Promise(resolve=>setTimeout(resolve,2000));
+  }
   if(info?.receipt?.result!=="SUCCESS")throw Error("Henüz başarı doğrulanmadı. İşlemi TronLink'te kontrol et; yeniden oluşturma.");
   const next=BigInt(value(await c.nextId().call())),id=(next-1n).toString();
   const swap=decode(await c.getSwap(id).call());
