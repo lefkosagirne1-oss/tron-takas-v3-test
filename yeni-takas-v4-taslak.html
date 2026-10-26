@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1423">
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1423"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Takas · Güvenli Varlık Değişimi — V4 Tasarım</title>
 <style>
 :root{color-scheme:dark;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#091321;color:#edf5ff}
@@ -49,14 +49,14 @@ footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
 </section>
 <section id="a" class="panel" hidden><div class="row"><h2>Taraf A · İşlem ekranı</h2><span class="tag">TARAF A</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
-<label for="assetA">Göndereceğiniz dijital varlık</label><select id="assetA"><option>TRX</option><option>FRHN</option><option>USDT</option></select>
-<label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" placeholder="Miktarı girin">
+<label for="assetA">Göndereceğiniz dijital varlık</label><select id="assetA" required><option value="" selected disabled>Token seçiniz</option><option value="TRX">TRX</option><option value="FRHN">FRHN (test)</option><option value="USDT">USDT</option><option value="custom">TRC20 token adresi</option></select>
+<label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" placeholder="Örn. 100" autocomplete="off">
 <p id="feeNoteA" class="small"></p>
 <button id="offerA" class="full">Takas koşullarını incele</button>
 <p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
 <section id="b" class="panel" hidden><div class="row"><h2>Taraf B · İşlem ekranı</h2><span class="tag">TARAF B</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
-<label for="assetB">Göndereceğiniz dijital varlık</label><select id="assetB"><option>FRHN</option><option>TRX</option><option>USDT</option></select>
+<label for="assetB">Göndereceğiniz dijital varlık</label><select id="assetB" required><option value="" selected disabled>Token seçiniz</option><option value="TRX">TRX</option><option value="FRHN">FRHN (test)</option><option value="USDT">USDT</option><option value="custom">TRC20 token adresi</option></select>
 <label for="amountB">Gönderim miktarı</label><input id="amountB" type="number" min="0" step="any" inputmode="decimal" placeholder="Miktarı girin">
 <p id="feeNoteB" class="small"></p>
 <button id="offerB" class="full">Takas koşullarını incele</button>
@@ -81,10 +81,11 @@ function show(role){if(window.invitedRole&&role!==window.invitedRole)return;for(
 for(const el of document.querySelectorAll("[data-role]"))el.addEventListener("click",()=>show(el.dataset.role));
 function render(){
  const a=Number($("amountA").value),b=Number($("amountB").value),pct=Number($("percent").value),payer=$("payer").value;
- const valid=[a,b,pct].every(Number.isFinite)&&a>0&&b>0&&pct>=0&&pct<=10;
- if(!valid){$("sideA").textContent=$("amountA").value?$("amountA").value+" "+$("assetA").value:"Teklif verilmedi";$("sideB").textContent=$("amountB").value?$("amountB").value+" "+$("assetB").value:"Teklif verilmedi";$("feeAmount").textContent="Teklifler bekleniyor";$("netA").textContent="—";$("netB").textContent="—";$("managerFee").textContent="—";$("headline").textContent="Katılımcı teklifleri bekleniyor";$("subHeadline").textContent="Her iki taraf teklif girmeden net tutarlar hesaplanamaz. Bu sayfa teklifleri paylaşmaz veya kaydetmez.";return false}
+ const valid=[a,b,pct].every(Number.isFinite)&&$("amountA").value!==""&&$("amountB").value!==""&&a>0&&b>0&&pct>=0&&pct<=10;
+ if(!valid){$("feeNoteA").textContent="Platform hizmet bedeli oranı davet koşullarında belirlenir; tahsilat yalnızca başarılı işlemde uygulanır.";$("feeNoteB").textContent="Platform hizmet bedeli oranı davet koşullarında belirlenir; tahsilat yalnızca başarılı işlemde uygulanır.";$("sideA").textContent=$("amountA").value?$("amountA").value+" "+$("assetA").value:"Teklif verilmedi";$("sideB").textContent=$("amountB").value?$("amountB").value+" "+$("assetB").value:"Teklif verilmedi";$("feeAmount").textContent="Teklifler bekleniyor";$("netA").textContent="—";$("netB").textContent="—";$("managerFee").textContent="—";$("headline").textContent="Katılımcı teklifleri bekleniyor";$("subHeadline").textContent="Her iki taraf teklif girmeden net tutarlar hesaplanamaz. Bu sayfa teklifleri paylaşmaz veya kaydetmez.";return false}
  const fa=payer==="a"?a*pct/100:0,fb=payer==="b"?b*pct/100:0;
  const assetA=$("assetA").value,assetB=$("assetB").value;
+ if(!assetA||!assetB||assetA==="custom"||assetB==="custom"){$("headline").textContent="Tarafların token seçimi bekleniyor";$("subHeadline").textContent="Token bilgileri katılımcılar tarafından girilmelidir. Bu ekran yalnızca önizlemedir.";return false}
  if(assetA===assetB){$("headline").textContent="Farklı dijital varlıklar seçin";$("subHeadline").textContent="Bu önizleme farklı varlıkların takası içindir.";return false}
  $("sideA").textContent=fmt(a)+" "+assetA;$("sideB").textContent=fmt(b)+" "+assetB;
  $("feeAmount").textContent=payer==="none"?"Uygulanmıyor":fmt(fa||fb)+" "+(fa?assetA:assetB)+" (%"+fmt(pct)+")";
@@ -120,7 +121,7 @@ $("make").addEventListener("click",()=>{
  for(const role of ["a","b"]){
   const u=new URL(location.href);
   u.search="";u.hash="";
-  u.searchParams.set("preview","1");u.searchParams.set("ref",sessionId);
+  u.searchParams.set("preview","2");u.searchParams.set("v","20261026c");u.searchParams.set("ref",sessionId);
   u.searchParams.set("role",role);u.searchParams.set("payer",$("payer").value);u.searchParams.set("rate",$("percent").value);
   $("invite"+role.toUpperCase()).value=u.href;
  }
