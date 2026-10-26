@@ -92,8 +92,13 @@ function tokenInfo(side){
  return {address,decimals,label:"Token "+address.slice(0,8)+"…"};
 }
 async function connect(){
- const provider=window.tron; const tw=provider?.tronWeb;
- if(!provider?.isTronLink||!tw?.ready)throw Error("TronLink bağlı değil");
+ const provider=window.tron;
+ let tw=provider?.tronWeb||window.tronWeb;
+ if(!tw?.ready && window.tronLink?.request){
+  try{await window.tronLink.request({method:"tron_requestAccounts"});}catch(e){throw Error("TronLink bağlantı izni verilmedi: "+(e?.message||e));}
+  tw=window.tron?.tronWeb||window.tronWeb;
+ }
+ if(!tw?.ready)throw Error("TronLink bu siteye bağlı değil. TronLink üzerinden siteye Connect izni verin.");
  const host=String(tw.fullNode?.host||tw.fullNode?.url||"");
  if(!host.toLowerCase().includes("nile"))throw Error("Nile ağı seçili değil");
  const wallet=tw.defaultAddress?.base58;
