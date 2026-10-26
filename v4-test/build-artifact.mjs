@@ -6,6 +6,7 @@ const input={
  sources:{"TakasV4Draft.sol":{content:contractSource}},
  settings:{
   optimizer:{enabled:true,runs:200},
+  evmVersion:"paris",
   viaIR:true,
   outputSelection:{"*":{"*":["abi","evm.bytecode.object","evm.deployedBytecode.object"]}}
  }
