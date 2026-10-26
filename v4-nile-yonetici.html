@@ -308,7 +308,7 @@ async function read(){
  const accepted=yes(s.acceptedA)&&yes(s.acceptedB);
  const deadline=BigInt(value(s.settlementDeadline));
  readyForFinal=funded&&accepted&&deadline>now()&&!yes(s.completed)&&!yes(s.cancelled);
- $("confirm").disabled=yes(s.walletsConfirmed)||yes(s.cancelled)||yes(s.completed)||a===tw.address.fromHex(zero)||b===tw.address.fromHex(zero)||a===b;
+ $("confirm").disabled=yes(s.walletsConfirmed)||yes(s.cancelled)||yes(s.completed)||(a===zero||a===tw.address.fromHex(zero))||(b===zero||b===tw.address.fromHex(zero))||a===b;
  $("finalize").disabled=!readyForFinal;
  const state=[
  "TAKAS #"+id,
