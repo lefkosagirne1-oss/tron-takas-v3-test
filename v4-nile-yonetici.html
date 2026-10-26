@@ -45,7 +45,7 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 const $=id=>document.getElementById(id);
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
-let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="cbadb7160c597044066220300646e1144577ef4bc6068e00efefe22cabfdc68";
+let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="f0898285f24bb6b4cbcbb4d3d24348d1466e8457cfa783a8edc13dfc8d7e6239";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 const value=x=>String(x?.toString?.()??x??"");
 const yes=x=>x===true||value(x)==="true"||value(x)==="1";
@@ -164,6 +164,7 @@ $("signDeploy").onclick=async()=>{
  }
  try{
   lastDeploymentTx=tx.txID;
+  try{localStorage.setItem("takas-v4-last-deploy-tx",lastDeploymentTx)}catch{}
   const signed=await tw.trx.sign(tx);
   if(!signed?.signature?.length)throw Error("TronLink işlemi imzalamadı.");
   const sent=await tw.trx.sendRawTransaction(signed);
@@ -249,5 +250,7 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
-try{const a=localStorage.getItem("takas-v4-nile-address");if(a)$("contractAddress").value=a}catch{}
+try{const a=localStorage.getItem("takas-v4-nile-address");if(a)$("contractAddress").value=a;
+ const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
+}catch{}
 </script></body></html>
