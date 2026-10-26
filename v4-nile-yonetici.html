@@ -182,7 +182,7 @@ $("estimateDeploy").onclick=async()=>{
   const from=tw.address.toHex(owner);
   const data=tx?.raw_data?.contract?.[0]?.parameter?.value?.new_contract?.bytecode;
   if(!data)throw Error("Taslakta sözleşme bytecode bulunamadı.");
-  const node=String(tw.fullNode?.host||tw.fullNode?.url||"").replace(/\\/$/,"");
+  const node=String(tw.fullNode?.host||tw.fullNode?.url||"").replace(/\/$/,"");
   if(!node.includes("nile"))throw Error("Nile bağlantısı gerekli.");
   const response=await fetch(node+"/wallet/estimateenergy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({owner_address:from,contract_address:from,visible:false,function_selector:"",parameter:data,call_value:0})});
   const j=await response.json();
