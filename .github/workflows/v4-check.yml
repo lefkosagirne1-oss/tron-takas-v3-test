@@ -1,0 +1,29 @@
+name: V4 escrow draft checks
+on:
+  push:
+    paths:
+      - "contracts/TakasV4Draft.sol"
+      - "v4-test/**"
+      - ".github/workflows/v4-check.yml"
+  pull_request:
+    paths:
+      - "contracts/TakasV4Draft.sol"
+      - "v4-test/**"
+      - ".github/workflows/v4-check.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Compile and exercise V4 escrow
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install isolated test dependencies
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts solc@0.8.31 ganache@7.9.2 ethers@6
+      - name: Compile Solidity and run transaction regression tests
+        run: node --test v4-test/contract.test.mjs
