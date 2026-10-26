@@ -54,7 +54,8 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
 </section>
 <section><h2>3 · Yatırımları kontrol et ve son onayı ver</h2>
-<label for="dealId">Takas numarası</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
+<button id="loadHistory" class="light" type="button" disabled>Takaslarımı listele (ücretsiz)</button><div id="historyList"></div><pre id="historyStatus">Takaslarını görmek için listele butonuna bas.</pre>
+<label for="dealId">Takas numarası (isteğe bağlı)</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
@@ -150,7 +151,7 @@ async function verify(){
  if(chainOwner!==owner)throw Error("Sözleşmenin yönetici cüzdanı eşleşmiyor.");
  tw=window.tron?.tronWeb||window.tronWeb;c=found;liveAddress=address;
  try{localStorage.setItem("takas-v4-nile-address",address)}catch{}
- for(const id of ["create","read","recoverLinks"])$(id).disabled=false;
+ for(const id of ["create","read","recoverLinks","loadHistory"])$(id).disabled=false;
  status("inviteStatus","Sözleşme doğrulandı. Hizmet bedelini seçip yeni takas bağlantısı oluşturabilirsin.");
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
@@ -354,20 +355,46 @@ async function read(){
  status("dealStatus",state);
  return s;
 }
+async function showExistingLinks(id){
+ if(!c)throw Error("Önce sözleşmeyi doğrula.");
+ if(!/^[1-9][0-9]*$/.test(String(id)))throw Error("Geçerli takas numarası gerekli.");
+ const next=BigInt(value(await c.nextId().call()));
+ if(BigInt(id)>=next)throw Error("Bu numarada zincirde oluşturulmuş takas yok.");
+ const swap=await readSwapRaw(id);
+ $("dealId").value=String(id);
+ $("linkA").value=url(liveAddress,id,1);$("linkB").value=url(liveAddress,id,2);
+ $("links").hidden=false;
+ status("inviteStatus","TAKAS #"+id+" bağlantıları hazır. Yeni işlem yapılmadı.");
+ await read();
+ return swap;
+}
 $("recoverLinks").onclick=async()=>{
+ try{await showExistingLinks($("dealId").value.trim())}
+ catch(e){status("inviteStatus","BAĞLANTILAR GETİRİLEMEDİ: "+(e?.message||e))}
+};
+$("loadHistory").onclick=async()=>{
+ const btn=$("loadHistory");btn.disabled=true;
+ const list=$("historyList");list.replaceChildren();
+ status("historyStatus","Takaslar zincirden okunuyor…");
  try{
   if(!c)throw Error("Önce sözleşmeyi doğrula.");
-  const id=$("dealId").value.trim();
-  if(!/^[1-9]\\d*$/.test(id))throw Error("Önce 3. bölümde takas numarasını gir (ör. 2).");
   const next=BigInt(value(await c.nextId().call()));
-  if(BigInt(id)>=next)throw Error("Bu numarada zincirde oluşturulmuş takas yok.");
-  const swap=await readSwapRaw(id);
-  if(yes(swap.completed)||yes(swap.cancelled))throw Error("Bu takas tamamlanmış veya iptal edilmiş.");
-  $("linkA").value=url(liveAddress,id,1);
-  $("linkB").value=url(liveAddress,id,2);
-  $("links").hidden=false;
-  status("inviteStatus","TAKAS #"+id+" için mevcut zincir kaydından davet bağlantıları getirildi. Yeni işlem yapılmadı, TRX harcanmadı.");
- }catch(e){status("inviteStatus","BAĞLANTILAR GETİRİLEMEDİ: "+(e?.message||e))}
+  if(next<=1n){status("historyStatus","Henüz takas oluşturulmamış.");return}
+  const total=next-1n;
+  const start=total>30n?total-29n:1n;
+  let count=0;
+  for(let id=total;id>=start;id--){
+   const swap=await readSwapRaw(id.toString());
+   const done=yes(swap.completed),cancelled=yes(swap.cancelled);
+   const deposited=yes(swap.depositedA)&&yes(swap.depositedB);
+   const label="Takas #"+id+" · "+(done?"Tamamlandı":cancelled?"İptal edildi":deposited?"Son onay bekliyor":"Devam ediyor");
+   const button=document.createElement("button");button.type="button";button.className="light";button.textContent=label;
+   button.onclick=async()=>{try{await showExistingLinks(id.toString());status("historyStatus","Takas #"+id+" seçildi; A/B bağlantıları 2. bölümde hazır.")}catch(e){status("historyStatus","HATA: "+(e?.message||e))}};
+   list.appendChild(button);count++;
+  }
+  status("historyStatus",count+" takas listelendi."+(start>1n?" En son 30 takas gösteriliyor.":"")+" Bir takasa dokunarak bağlantılarını aç.");
+ }catch(e){status("historyStatus","LİSTE OKUNAMADI: "+(e?.message||e))}
+ finally{btn.disabled=false}
 };
 $("read").onclick=async()=>{status("dealStatus","Zincirden okunuyor…");try{await read()}catch(e){$("finalize").disabled=true;$("confirm").disabled=true;status("dealStatus","HATA: "+(e?.message||e))}};
 $("precheck").onclick=async()=>{
@@ -443,7 +470,7 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
-try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";if(!$("dealId").value)$("dealId").value="1";
+try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
  const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
 }catch{}
 </script>
