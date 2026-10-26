@@ -150,9 +150,10 @@ async function verify(){
  tw=window.tron?.tronWeb||window.tronWeb;c=found;liveAddress=address;
  try{localStorage.setItem("takas-v4-nile-address",address)}catch{}
  for(const id of ["create","read"])$(id).disabled=false;
+ status("inviteStatus","Sözleşme doğrulandı. Hizmet bedelini seçip yeni takas bağlantısı oluşturabilirsin.");
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
-$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify();status("walletStatus","CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+owner)}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
+$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify();status("walletStatus","CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+owner)}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));status("inviteStatus","Sözleşme doğrulanamadı: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
 $("deployAck").onchange=()=>{$("deploy").disabled=true};
 $("diagnose").onclick=async()=>{
