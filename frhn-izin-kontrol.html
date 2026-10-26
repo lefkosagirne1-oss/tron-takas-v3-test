@@ -2,13 +2,14 @@
 <html lang="tr"><head><meta charset="utf-8"><title>FRHN izin kontrolü</title></head>
 <body style="font:18px sans-serif;max-width:720px;margin:2rem auto;padding:1rem">
 <h1>FRHN izin kontrolü (Nile test ağı)</h1>
-<p>Bu sayfa yalnızca okuma yapar. Cüzdandan işlem veya imza istemez.</p>
+<p>Önce zincirdeki izni okuyun. Yalnızca isterseniz 100 FRHN için test ağı izni hazırlayın. İzin vermek token yatırmak değildir.</p>
 <p>Veli: TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF</p>
 <p>Token: TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx</p>
 <p>İzin verilecek sözleşme: TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm</p>
-<button id="check">Zincirde mevcut izni oku</button><pre id="result">Kontrol yapılmadı.</pre>
+<button id="check">Zincirde mevcut izni oku</button> <button id="approve" disabled>100 FRHN izni hazırla</button><pre id="result">Kontrol yapılmadı.</pre>
 <script>
-const ABI=[{name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]}];
+const ABI=[{name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]},{name:"approve",type:"function",stateMutability:"nonpayable",inputs:[{type:"address"},{type:"uint256"}],outputs:[{type:"bool"}]}];
+let selectedContract=null;const permissionButton=document.getElementById("approve");
 document.getElementById("check").onclick=async()=>{
  const out=document.getElementById("result");out.textContent="Zincir okunuyor...";
  try{
@@ -17,7 +18,21 @@ document.getElementById("check").onclick=async()=>{
  if(!String(tw.fullNode?.host||tw.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink Nile ağına alınmalı.");
  const c=await tw.contract(ABI,"TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx");
  const amount=BigInt(String(await c.allowance("TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF","TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm").call()));
+ selectedContract=tw.ready&&tw.defaultAddress?.base58==="TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF"?c:null;
+ permissionButton.disabled=!selectedContract||amount>=100n*10n**18n;
  out.textContent="İzin (ham): "+amount+"\n100 FRHN için yeterli: "+(amount>=100n*10n**18n?"EVET":"HAYIR");
- }catch(e){out.textContent="Hata: "+e.message}
+ }catch(e){selectedContract=null;permissionButton.disabled=true;out.textContent="Hata: "+e.message}
+};
+permissionButton.onclick=async()=>{
+ if(!selectedContract)return;
+ const w=window.tron?.tronWeb||window.tronWeb;
+ if(!w?.ready||w.defaultAddress?.base58!=="TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF")return;
+ if(!confirm("Nile üzerinde Takas V3 sözleşmesine yalnızca 100 FRHN için harcama izni verilsin mi? Bu işlem ağ kaynak ücreti gerektirebilir."))return;
+ permissionButton.disabled=true;
+ const out=document.getElementById("result");
+ try{
+ const transaction=await selectedContract.approve("TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm","100000000000000000000").send({feeLimit:30000000});
+ out.textContent="İşlem gönderildi, henüz kesinleşmedi. İşlem kimliği: "+transaction+"\\nYeniden izin verme; önce zincirde mevcut izni oku.";
+ }catch(e){out.textContent="İşlem hatası: "+(e?.message||e)+"\\nTekrar denemeden önce zincir iznini kontrol et.";}
 };
 </script></body></html>
