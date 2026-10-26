@@ -246,5 +246,10 @@ const q=new URLSearchParams(location.search).get("id");
 if(q&&/^[1-9]\d*$/.test(q)){
  $("dealId").value=q;
  $("managerLink").href="./takas-v3-yonetici-islem.html?id="+encodeURIComponent(q)+"#finalSection";
+ $("connection").textContent="Takas #"+q+" zincirden yükleniyor...";
+ read().catch(e=>{
+  deal=null;disable();
+  $("connection").textContent="Takas otomatik okunamadı: "+(e?.message||e)+"\nTronLink tarayıcısında Nile ağıyla tekrar açın.";
+ });
 }
 </script></body></html>
