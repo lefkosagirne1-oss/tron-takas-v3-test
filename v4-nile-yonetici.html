@@ -43,6 +43,16 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="signDeploy" disabled hidden>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
+<section id="overview"><h2>Takas özeti · tek ekran</h2>
+<p class="note">Bu alan zincirden okunan mevcut takası özetler. Yeni işlem oluşturmaz, imza istemez.</p>
+<pre id="overviewStatus">Cüzdan bağlandıktan sonra takas numarasını seçip durumunu görüntüle.</pre>
+<button id="overviewRefresh" class="light" type="button" disabled>Seçili takası ücretsiz yenile</button>
+<div id="overviewLinks" hidden>
+<button id="overviewCopyA" class="light" type="button">Taraf A davetini kopyala</button>
+<button id="overviewCopyB" class="light" type="button">Taraf B davetini kopyala</button>
+</div>
+<pre id="overviewTimer">Son onay sayacı henüz başlamadı.</pre>
+</section>
 <section><h2>2 · Yeni takas oluştur</h2>
 <p class="note">Ali ve Veli gönderecekleri varlıkları ve miktarları kendileri seçer. Sen yalnızca hizmet bedelini belirlersin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
@@ -482,7 +492,10 @@ $("finalize").onclick=async()=>{
  }catch(e){status("actionStatus","HATA / BELİRSİZ İŞLEM: "+(e?.message||e))}
  finally{$("finalize").disabled=true}
 };
-setInterval(updateFinalCountdown,1000);
+setInterval(()=>{updateFinalCountdown();status("overviewTimer",$("finalCountdown").textContent)},1000);
+$("overviewRefresh").onclick=()=> $("read").click();
+$("overviewCopyA").onclick=()=> $("linkA").value?navigator.clipboard.writeText($("linkA").value).then(()=>status("inviteStatus","Taraf A bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
+$("overviewCopyB").onclick=()=> $("linkB").value?navigator.clipboard.writeText($("linkB").value).then(()=>status("inviteStatus","Taraf B bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
 try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
  const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
