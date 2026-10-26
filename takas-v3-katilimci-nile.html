@@ -157,7 +157,7 @@ async function render(){
  allowance=0n;
  const myAsset=who==="A"?assets.a:assets.b,amount=who==="A"?num(deal.amountA):num(deal.amountB);
  const deposited=who==="A"?deal.depositedA:deal.depositedB,approved=who==="A"?deal.approvedA:deal.approvedB,refunded=who==="A"?deal.refundedA:deal.refundedB;
- if(who&&myAsset.token&&wallet){try{allowance=num(await myAsset.token.allowance(wallet,V3).call())}catch(e){$("actionResult").textContent="Token izni okunamadı: "+(e?.message||e)}}
+ if(who&&myAsset.token&&wallet){try{allowance=num(await myAsset.token.allowance(wallet,V3).call());$("actionResult").textContent="Zincirde token izni: "+fmt(allowance,myAsset.decimals)+" "+myAsset.label+" | Gerekli: "+fmt(amount,myAsset.decimals)+" "+myAsset.label+" | İzin yeterli: "+(allowance>=amount?"EVET":"HAYIR");}catch(e){$("actionResult").textContent="Token izni okunamadı: "+(e?.message||e)}}
  const canDeposit=Boolean(who&&!deal.completed&&!refunded&&!deposited&&!depositExpired&&now<num(deal.depositDeadline));
  $("approve").disabled=busy||!canDeposit||!myAsset?.token||allowance>=amount;
  $("deposit").disabled=busy||!canDeposit||Boolean(myAsset?.token&&allowance<amount);
