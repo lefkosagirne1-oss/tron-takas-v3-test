@@ -264,6 +264,16 @@ $("create").onclick=async()=>{
  $("create").disabled=true;
  try{
   const nextBefore=BigInt(value(await c.nextId().call()));
+  const simulation=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({owner_address:tw.address.toHex(owner),contract_address:tw.address.toHex(liveAddress),
+    function_selector:"createInvite(uint16,uint8)",
+    parameter:BigInt(Math.round(pct*100)).toString(16).padStart(64,"0")+BigInt(payer).toString(16).padStart(64,"0"),visible:false})
+  });
+  if(!simulation.ok)throw Error("Ücretsiz davet ön kontrolü HTTP "+simulation.status);
+  const simulated=await simulation.json();
+  if(!simulated.result?.result||simulated.result?.code||simulated.result?.message)
+   throw Error("Ücretsiz davet ön kontrolü reddetti: "+(simulated.result?.message||simulated.result?.code||"Bilinmeyen neden"));
   const args=[{type:"uint16",value:Math.round(pct*100)},{type:"uint8",value:payer}];
   const built=await tw.transactionBuilder.triggerSmartContract(liveAddress,"createInvite(uint16,uint8)",{feeLimit:60000000,callValue:0},args,owner);
   if(!built?.result?.result||!built.transaction?.raw_data)throw Error("İşlem taslağı hazırlanamadı.");
