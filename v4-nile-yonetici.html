@@ -60,12 +60,12 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="finalize" disabled>Takas işlemini onayla</button>
 <pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
 </section>
-<button class="setup-toggle" id="toggleSetup" type="button">Teknik kurulum (yalnızca gerektiğinde)</button>
+
 <small>Gerçek transferler zincir üzerinde doğrulanır. URL'deki rol bilgisi yetki sağlamaz. Tarafların kimlikleri ayrıca kontrol edilmelidir.</small>
 <script>
 const $=id=>document.getElementById(id);
 window.addEventListener("error",e=>{const el=document.getElementById("walletStatus");if(el)el.textContent="SAYFA KODU HATASI: "+(e.message||"Bilinmeyen hata")+" (satır "+(e.lineno||"?")+")";});
-$("toggleSetup").onclick=()=>{document.body.classList.toggle("advanced");$("toggleSetup").textContent=document.body.classList.contains("advanced")?"Teknik kurulumu gizle":"Teknik kurulum (yalnızca gerektiğinde)"};
+
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
 let artifactMatchesSource=false;
