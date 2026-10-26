@@ -148,12 +148,12 @@ async function read(){
  const expired=(depEnd>0n&&!fully&&now>=depEnd)||(end>0n&&now>=end);
  const mine=role==="1"?"A":role==="2"?"B":"";
  const deposited=mine&&flag(deal["deposited"+mine]),refunded=mine&&flag(deal["refunded"+mine]);
+ const isRegistered=!!mine,invited=role===roleParam;
+ const settled=flag(deal.completed),cancelled=flag(deal.cancelled);
  // Hide steps already completed; keep the on-chain status and refresh visible.
  $("joinSection").hidden=!!(wallet&&isRegistered);
  $("proposalSection").hidden=!!(mine&&flag(deal["proposed"+mine]));
  $("actionSection").hidden=!isRegistered||!flag(deal.walletsConfirmed)||settled;
- const isRegistered=!!mine,invited=role===roleParam;
- const settled=flag(deal.completed),cancelled=flag(deal.cancelled);
  const canPropose=isRegistered&&invited&&flag(deal.walletsConfirmed)&&!cancelled&&!settled&&depEnd===0n&&now<bigint(deal.offerDeadline);
  const emptySlot=(address(deal[roleParam==="1"?"partyA":"partyB"])===ZERO||address(deal[roleParam==="1"?"partyA":"partyB"])===tw.address.fromHex(ZERO));
  const alreadyOther=wallet===address(deal[roleParam==="1"?"partyB":"partyA"]);
