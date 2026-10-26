@@ -100,7 +100,7 @@ test("participant-selected native ↔ token: 5% A fee and exact settlement",asyn
 test("both parties can withdraw after settlement deadline if manager does not finalize",async()=>{
   const f=await fixture();const {swap,a,b,provider,token,one}=f;
   await registerAndOffer(f);
-  await one(swap.connect(a).deposit(1,{value:parseEther("100")}));
+  await one(swap.connect(a).deposit(1,{value:parseEther("3.75")}));
   await one(swap.connect(b).deposit(1));
   await provider.send("evm_increaseTime",[31*60]);
   await provider.send("evm_mine",[]);
@@ -135,7 +135,7 @@ test("changed offer resets both approvals; unauthorized settlement blocked",asyn
 test("deposit timeout: single depositor receives full refund with no fee",async()=>{
   const f=await fixture();const {swap,a,b,owner,provider,one}=f;
   await registerAndOffer(f);
-  await one(swap.connect(a).deposit(1,{value:parseEther("100")}));
+  await one(swap.connect(a).deposit(1,{value:parseEther("3.75")}));
   await provider.send("evm_increaseTime",[16*60]);
   await provider.send("evm_mine",[]);
   const managerBefore=await provider.getBalance(await owner.getAddress());
