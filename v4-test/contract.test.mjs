@@ -15,9 +15,13 @@ contract MockToken {
     mapping(address=>mapping(address=>uint256)) public allowance;
     function mint(address to, uint256 value) external {balanceOf[to]+=value;}
     function approve(address spender,uint256 value) external returns(bool) {allowance[msg.sender][spender]=value;return true;}
+    bool public outgoingFeeEnabled;
+    function setOutgoingFeeEnabled(bool yes) external {outgoingFeeEnabled=yes;}
     function transfer(address to,uint256 value) external returns(bool) {
         require(balanceOf[msg.sender]>=value,"balance");
-        balanceOf[msg.sender]-=value;balanceOf[to]+=value;return true;
+        balanceOf[msg.sender]-=value;
+        uint256 sent=(outgoingFeeEnabled && value>0) ? value-1 : value;
+        balanceOf[to]+=sent;return true;
     }
     function transferFrom(address from,address to,uint256 value) external returns(bool) {
         require(balanceOf[from]>=value&&allowance[from][msg.sender]>=value,"allowance/balance");
@@ -192,3 +196,46 @@ for(const sample of [
   assert.equal((await swap.getSwap(1)).completed,true);
  });
 }
+
+test("TRC20 ↔ TRC20 with participant chosen token addresses and B service fee", async()=>{
+ const f=await fixture();const {swap,token,owner,a,b,one}=f;
+ const otherToken=await new ContractFactory(artifacts.token.abi,artifacts.token.bytecode,owner).deploy();
+ await otherToken.waitForDeployment();
+ const sentByA=parseEther("8.125"), sentByB=parseEther("17.75");
+ await one(swap.createInvite(300,2));
+ await one(swap.connect(a).requestRole(1,1));
+ await one(swap.connect(b).requestRole(1,2));
+ await one(swap.confirmParticipants(1));
+ await one(swap.connect(a).propose(1,await otherToken.getAddress(),sentByA));
+ await one(swap.connect(b).propose(1,await token.getAddress(),sentByB));
+ await one(otherToken.mint(await a.getAddress(),sentByA));
+ await one(token.mint(await b.getAddress(),sentByB));
+ await one(otherToken.connect(a).approve(await swap.getAddress(),sentByA));
+ await one(token.connect(b).approve(await swap.getAddress(),sentByB));
+ await one(swap.connect(a).acceptTerms(1));
+ await one(swap.connect(b).acceptTerms(1));
+ await one(swap.connect(a).deposit(1));
+ await one(swap.connect(b).deposit(1));
+ await one(swap.finalize(1));
+ const fee=sentByB*300n/10000n;
+ assert.equal(await token.balanceOf(await owner.getAddress()),fee);
+ assert.equal(await token.balanceOf(await a.getAddress()),sentByB-fee);
+ assert.equal(await otherToken.balanceOf(await b.getAddress()),sentByA);
+ assert.equal((await swap.getSwap(1)).completed,true);
+});
+
+test("outgoing taxed token cannot silently short-change a recipient",async()=>{
+ const f=await fixture();const {swap,token,a,b,one}=f;
+ const amountA=parseEther("1.25"),amountB=parseEther("11.50");
+ await registerAndOffer(f,{fee:500,payer:1,amountA,amountB});
+ await one(swap.connect(a).deposit(1,{value:amountA}));
+ await one(swap.connect(b).deposit(1));
+ await one(token.setOutgoingFeeEnabled(true));
+ await assert.rejects(one(swap.finalize(1,{gasLimit:800000})));
+ assert.equal((await swap.getSwap(1)).completed,false);
+ assert.equal(await token.balanceOf(await swap.getAddress()),amountB);
+ await one(token.setOutgoingFeeEnabled(false));
+ await one(swap.finalize(1,{gasLimit:800000}));
+ assert.equal(await token.balanceOf(await a.getAddress()),amountB);
+ assert.equal((await swap.getSwap(1)).completed,true);
+});
