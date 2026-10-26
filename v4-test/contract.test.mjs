@@ -107,7 +107,8 @@ test("both parties can withdraw after settlement deadline if manager does not fi
   await registerAndOffer(f);
   await one(swap.connect(a).deposit(1,{value:parseEther("3.75")}));
   await one(swap.connect(b).deposit(1));
-  await provider.send("evm_increaseTime",[31*60]);
+  assert.equal(await swap.SETTLEMENT_WINDOW(),300n);
+  await provider.send("evm_increaseTime",[6*60]);
   await provider.send("evm_mine",[]);
   await assert.rejects(one(swap.finalize(1)));
   const before=await token.balanceOf(await b.getAddress());
