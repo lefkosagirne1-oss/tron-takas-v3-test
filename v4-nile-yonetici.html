@@ -63,15 +63,18 @@ const now=()=>BigInt(Math.floor(Date.now()/1000));
 function reset(){for(const id of ["create","read","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
 async function connect(){
  const p=window.tronLink||window.tron;
- let w=window.tron?.tronWeb||window.tronWeb;
- if(!w?.defaultAddress?.base58&&p?.request)await p.request({method:"tron_requestAccounts"});
- w=window.tron?.tronWeb||window.tronWeb;
- if(!w?.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
+ let w=window.tron?.tronWeb||window.tronWeb||window.tronLink?.tronWeb;
+ if(p?.request){
+  try{await p.request({method:"tron_requestAccounts"});}catch(e){
+   if(!w?.defaultAddress?.base58)throw Error("TronLink bağlantı izni verilmedi: "+(e?.message||e));
+  }
+ }
+ w=window.tron?.tronWeb||window.tronWeb||window.tronLink?.tronWeb||w;
+ if(!w?.defaultAddress?.base58)throw Error("TronLink cüzdanı bulunamadı. Sayfayı TronLink Discover içinde aç.");
+ if(w.defaultAddress.base58!==owner)throw Error("Farklı cüzdan seçili: "+w.defaultAddress.base58+". Yönetici cüzdanını seç.");
  const node=String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase();
- if(!node.includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
- if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. Yönetici hesabını seç.");
- if(!w.isAddress(owner))throw Error("Yönetici adresi geçersiz.");
- w.setAddress(owner);
+ if(node&&!node.includes("nile"))throw Error("Nile Testnet ağına geç. Mevcut ağ: "+node);
+ if(typeof w.setAddress==="function")w.setAddress(owner);
  tw=w;
  status("walletStatus","CÜZDAN BAĞLANDI\\n"+owner);
  $("deploy").disabled=true;
