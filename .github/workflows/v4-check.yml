@@ -12,6 +12,9 @@ on:
       - ".github/workflows/v4-check.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Compile and exercise V4 escrow
@@ -27,3 +30,16 @@ jobs:
           npm install --no-save --no-package-lock --ignore-scripts solc@0.8.31 ganache@7.9.2 ethers@6
       - name: Compile Solidity and run transaction regression tests
         run: node --test v4-test/contract.test.mjs
+      - name: Generate Nile deployment artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: node v4-test/build-artifact.mjs
+      - name: Publish verified deployment artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v4-deploy-artifact.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Build V4 contract ABI/bytecode after passing regression tests"
+            git push
+          fi
