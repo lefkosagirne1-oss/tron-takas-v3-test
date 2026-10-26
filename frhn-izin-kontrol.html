@@ -6,7 +6,7 @@
 <p>Veli: TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF</p>
 <p>Token: TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx</p>
 <p>İzin verilecek sözleşme: TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm</p>
-<button id="check">Zincirde mevcut izni oku</button> <button id="approve" disabled>100 FRHN izni hazırla</button><pre id="result">Kontrol yapılmadı.</pre>
+<button id="check">Zincirde mevcut izni oku</button> <button id="clock">Nile saatini kontrol et</button> <button id="approve" disabled>100 FRHN izni hazırla</button><pre id="result">Kontrol yapılmadı.</pre>
 <script>
 const ABI=[{name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]},{name:"approve",type:"function",stateMutability:"nonpayable",inputs:[{type:"address"},{type:"uint256"}],outputs:[{type:"bool"}]}];
 let selectedContract=null;const permissionButton=document.getElementById("approve");
@@ -34,5 +34,29 @@ permissionButton.onclick=async()=>{
  const transaction=await selectedContract.approve("TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm","100000000000000000000").send({feeLimit:30000000});
  out.textContent="İşlem gönderildi, henüz kesinleşmedi. İşlem kimliği: "+transaction+"\\nYeniden izin verme; önce zincirde mevcut izni oku.";
  }catch(e){out.textContent="İşlem hatası: "+(e?.message||e)+"\\nTekrar denemeden önce zincir iznini kontrol et.";}
+};
+
+document.getElementById("clock").onclick=async()=>{
+ const out=document.getElementById("result");
+ out.textContent="Nile son blok zamanı okunuyor...";
+ try {
+  const tw=window.tron?.tronWeb||window.tronWeb;
+  if(!tw?.trx)throw Error("TronLink erişilemiyor");
+  const host=String(tw.fullNode?.host||tw.fullNode?.url||"");
+  if(!host.toLowerCase().includes("nile"))throw Error("Nile test ağı seçili değil");
+  const start=Date.now();
+  const block=await tw.trx.getCurrentBlock();
+  const end=Date.now();
+  const chain=Number(block?.block_header?.raw_data?.timestamp);
+  if(!Number.isFinite(chain))throw Error("Blok zamanı okunamadı");
+  const midpoint=(start+end)/2;
+  const difference=Math.round((midpoint-chain)/1000);
+  const stamp=t=>new Date(t).toLocaleString("tr-TR",{timeZone:"Europe/Istanbul"});
+  out.textContent="Bilgisayar saati: "+stamp(midpoint)+
+   "\\nNile son blok saati: "+stamp(chain)+
+   "\\nBilgisayar eksi son blok: "+difference+" saniye"+
+   "\\nYanıt süresi: "+(end-start)+" ms"+
+   "\\nNot: Blok zamanı, ağın mevcut saatinden birkaç saniye geride olabilir.";
+ }catch(e){out.textContent="Saat kontrol hatası: "+(e?.message||e)}
 };
 </script></body></html>
