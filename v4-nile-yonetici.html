@@ -29,8 +29,8 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
 <section><h2>2 · Yeni takas bağlantısı</h2>
 <p class="note">Token isimleri, miktarları ve cüzdan adreslerini sen girmeyeceksin; yalnızca hizmet bedelini belirleyeceksin.</p>
-<label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option><option value="0">Hizmet bedeli yok</option></select>
-<label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="5">
+<label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
+<label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="0">
 <button id="create" disabled>Takas bağlantısı oluştur</button>
 <pre id="inviteStatus">Önce V4 sözleşmesini doğrula.</pre>
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
