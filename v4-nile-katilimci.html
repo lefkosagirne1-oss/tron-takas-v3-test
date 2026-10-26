@@ -56,7 +56,7 @@ const isNative=v=>{const s=value(v).replace(/^0x/,"");return s===ZERO||s==="0000
 function disable(){for(const id of ["accept","allow","deposit","refund"]){$(id).disabled=true;$(id).hidden=true}}
 function decode(v){if(v?.[0]&&typeof v[0]==="object"&&v.partyA===undefined)v=v[0];const d={};fields.forEach((f,i)=>d[f]=v[f]??v[i]);return d}
 function units(s,dp){if(!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(s))throw Error("Pozitif miktar gir.");let [i,f=""]=s.split(".");if(f.length>dp)throw Error("Token ondalık sınırı aşıldı.");const amount=BigInt(i)*10n**BigInt(dp)+BigInt((f.padEnd(dp,"0"))||"0");if(amount<=0n)throw Error("Miktar sıfır olamaz.");return amount}
-function display(v,dp){const x=bigint(v).toString().padStart(dp+1,"0");const f=dp?x.slice(-dp).replace(/0+$/,""):"";return x.slice(0,-dp)+(f?"."+f:"")}
+function display(v,dp){const x=bigint(v).toString().padStart(dp+1,"0");const f=dp?x.slice(-dp).replace(/0+$/,""):"";return (dp?x.slice(0,-dp):x)+(f?"."+f:"")}
 const tokenABI=[
 {name:"decimals",inputs:[],outputs:[{type:"uint8"}],type:"function",stateMutability:"view"},
 {name:"symbol",inputs:[],outputs:[{type:"string"}],type:"function",stateMutability:"view"},
