@@ -39,7 +39,7 @@ pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
 <section><h2>İlk test: HD USDT #2 ↔ HD USDT #1</h2>
 <p><strong>Taraf A:</strong> HD USDT #2, 1 test TRX gönderir. <strong>Taraf B:</strong> HD USDT #1, 100 FRHN test tokeni gönderir. Yönetici: HD USDT #4. İlk denemede komisyon yok.</p>
 <button id="preset" type="button">Test alanlarını otomatik doldur</button>
-<p><small>HD USDT #2'nin tam cüzdan adresi hâlâ gerekli. Adresi tahmin ederek doldurmuyoruz. Düğme işlem oluşturmaz veya imza istemez.</small></p>
+<p><small>Test cüzdanları için kayıtlı adresler doldurulur. Her işlemde adresleri kontrol edin. Bu düğme imza istemez.</small></p>
 </section>
 <button id="connect">1 · Nile ve yönetici yetkisini doğrula</button>
 <pre id="status" role="status">Bağlantı henüz kontrol edilmedi.</pre>
@@ -337,8 +337,8 @@ window.addEventListener("pagehide",saveDraft);
 if(!restoreDraft())$("preset").click();
 const requestedFinalId=new URLSearchParams(location.search).get("id");
 let rememberedId="";try{rememberedId=localStorage.getItem("takasv3-last-deal")||"";}catch{}
-if(/^[1-9]\\d*$/.test(requestedFinalId||""))$("finalId").value=requestedFinalId;
-else if(/^[1-9]\\d*$/.test(rememberedId))$("finalId").value=rememberedId;
+if(/^[1-9]\d*$/.test(requestedFinalId||""))$("finalId").value=requestedFinalId;
+else if(/^[1-9]\d*$/.test(rememberedId))$("finalId").value=rememberedId;
 $("ack").checked=false;
 $("finalAck").checked=false;
 update();
