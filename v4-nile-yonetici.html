@@ -63,42 +63,40 @@ const now=()=>BigInt(Math.floor(Date.now()/1000));
 function reset(){for(const id of ["create","read","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
 async function connect(){
  const p=window.tronLink||window.tron;
- let w=window.tron?.tronWeb||window.tronWeb||window.tronLink?.tronWeb;
- if(p?.request){
-  try{await p.request({method:"tron_requestAccounts"});}catch(e){
-   if(!w?.defaultAddress?.base58)throw Error("TronLink bağlantı izni verilmedi: "+(e?.message||e));
-  }
- }
- w=window.tron?.tronWeb||window.tronWeb||window.tronLink?.tronWeb||w;
- if(!w?.defaultAddress?.base58)throw Error("TronLink cüzdanı bulunamadı. Sayfayı TronLink Discover içinde aç.");
- if(w.defaultAddress.base58!==owner)throw Error("Farklı cüzdan seçili: "+w.defaultAddress.base58+". Yönetici cüzdanını seç.");
- const node=String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase();
- if(node&&!node.includes("nile"))throw Error("Nile Testnet ağına geç. Mevcut ağ: "+node);
- if(typeof w.setAddress==="function")w.setAddress(owner);
+ let w=window.tron?.tronWeb||window.tronWeb;
+ if(!w?.ready&&p?.request)await p.request({method:"tron_requestAccounts"});
+ w=window.tron?.tronWeb||window.tronWeb;
+ if(!w?.ready||!w.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
+ if(!String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
+ if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. iPhone Wallet-3 cüzdanını seç.");
+ // TronLink sometimes exposes a valid base58 account without a valid
+ // defaultAddress.hex; contract().new uses the issuer/default address internally.
+ // Set the address explicitly before any deployment transaction is constructed.
+ if(!w.isAddress(owner))throw Error("Yönetici adresi geçersiz.");
+ w.setAddress(owner);
+ if(!w.defaultAddress?.hex || !w.isAddress(w.defaultAddress.hex))throw Error("TronWeb dağıtım gönderen adresini hazırlayamadı.");
+ if(w.defaultAddress.base58!==owner)throw Error("Dağıtım gönderen adresi yöneticiyle eşleşmiyor.");
  tw=w;
- status("walletStatus","CÜZDAN BAĞLANDI\\n"+owner);
- $("deploy").disabled=true;
- $("signDeploy").disabled=true;
- $("estimateDeploy").disabled=true;
- try{
-  const r=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});
-  if(!r.ok)throw Error("Derleme dosyası bulunamadı.");
-  artifact=await r.json();
-  if(artifact.contractName!=="TakasV4Draft"||!artifact.bytecode||!Array.isArray(artifact.abi))throw Error("Derleme dosyası geçersiz.");
-  const sourceResponse=await fetch("./contracts/TakasV4Draft.sol",{cache:"no-store"});
-  artifactMatchesSource=false;
-  if(sourceResponse.ok&&globalThis.crypto?.subtle){
-   const digest=await crypto.subtle.digest("SHA-256",await sourceResponse.arrayBuffer());
-   const sourceHash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,"0")).join("");
-   artifactMatchesSource=/^[a-f0-9]{64}$/.test(artifact.sourceSha256||"")&&sourceHash===artifact.sourceSha256;
-  }
-  $("deploy").disabled=!artifactMatchesSource||!$("deployAck").checked;
-  if(!artifactMatchesSource)status("deployStatus","Teknik kurulum: V4 kaynak dosyası doğrulanamadı; dağıtım kapalı.");
- }catch(e){artifactMatchesSource=false;status("deployStatus","Teknik kurulum: "+(e?.message||e));}
- try{
-  const saved=localStorage.getItem("takas-v4-nile-address");
-  if(saved&&tw.isAddress(saved)&&artifact?.abi){$("contractAddress").value=saved;await verify();}
- }catch(e){status("deployStatus","Kayıtlı sözleşme doğrulanamadı: "+(e?.message||e));}
+ const r=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});if(!r.ok)throw Error("V4 derleme dosyası henüz yayınlanmadı.");
+ artifact=await r.json();
+ if(artifact.contractName!=="TakasV4Draft"||!artifact.bytecode||!Array.isArray(artifact.abi))throw Error("V4 derleme dosyası geçersiz.");
+ // Wallet verification is independent of artifact freshness.
+ // Deployment must still verify the compiled artifact against current source.
+ const sourceResponse=await fetch("./contracts/TakasV4Draft.sol",{cache:"no-store"});
+ artifactMatchesSource=false;
+ if(sourceResponse.ok && crypto?.subtle){
+  const sourceBytes=await sourceResponse.arrayBuffer();
+  const digest=await crypto.subtle.digest("SHA-256",sourceBytes);
+  const sourceHash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,"0")).join("");
+  artifactMatchesSource=/^[a-f0-9]{64}$/.test(artifact.sourceSha256||"")&&sourceHash===artifact.sourceSha256;
+ }
+ if(!artifactMatchesSource){
+  status("walletStatus","NILE YÖNETİCİ CÜZDANI DOĞRULANDI\\nCüzdan: "+owner+"\\nUYARI: V4 derlemesi güncel değil. Dağıtım kapalı.");
+  $("deploy").disabled=true;
+  return;
+ }
+ status("walletStatus","NILE YÖNETİCİ BAĞLANTISI DOĞRULANDI\nCüzdan: "+owner+"\nV4 ABI ve bytecode doğrulandı.");
+ $("deploy").disabled=!$("deployAck").checked;
 }
 async function verify(){
  reset();
