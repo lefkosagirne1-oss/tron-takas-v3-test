@@ -66,6 +66,7 @@ const contractAddress=params.get("contract")||"",dealId=params.get("id")||"",rol
 const ZERO="410000000000000000000000000000000000000000";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 let tw=null,c=null,wallet="",deal=null,role="",assets={},pending=false,allowance=0n;
+let expiryRefreshKey="",expiryRefreshPending=false;
 const value=v=>String(v?.toString?.()??v??"");
 const flag=v=>v===true||value(v)==="true"||value(v)==="1";
 const bigint=v=>BigInt(value(v));
@@ -129,7 +130,14 @@ function updateCountdown(){
  const remaining=end>now?Number(end-now):0;
  const mm=String(Math.floor(remaining/60)).padStart(2,"0"),ss=String(remaining%60).padStart(2,"0");
  const label=settlement>0n?"Yönetici son onayı":"Varlık yatırma";
- el.textContent=remaining>0?label+" için kalan süre: "+mm+":"+ss:label+" süresi doldu. Güncel zincir durumunu kontrol edin.";
+ el.textContent=remaining>0?label+" için kalan süre: "+mm+":"+ss:label+" süresi doldu. Güncel zincir durumu kontrol ediliyor.";
+ if(remaining===0&&c&&!pending&&!expiryRefreshPending){
+  const key=dealId+":"+end.toString()+":"+(settlement>0n?"settlement":"deposit");
+  if(expiryRefreshKey!==key){
+   expiryRefreshKey=key;expiryRefreshPending=true;
+   read().catch(e=>{$("txStatus").textContent="Süre doldu; otomatik durum okuması başarısız: "+(e?.message||e)+". Durumu güncelle düğmesini kullanın."}).finally(()=>{expiryRefreshPending=false});
+  }
+ }
 }
 async function read(){
  disable();
