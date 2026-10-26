@@ -8,7 +8,7 @@ header{padding:12px 0 20px}h1{font-size:28px;margin:0 0 8px}h2{font-size:19px;ma
 a.action{display:block;min-height:54px;background:#467ce5;color:#fff;text-align:center;text-decoration:none;border-radius:10px;padding:16px;font-weight:700;margin:12px 0}
 a.alt{background:#28496c}
 input{display:block;width:100%;border:1px solid #55749b;background:#081728;color:#fff;border-radius:10px;font-size:18px;padding:15px}
-small{color:#9cb2d0}.steps{font-size:14px;line-height:1.7}
+summary{cursor:pointer;font-weight:650;padding:8px 0}small{color:#9cb2d0}.steps{font-size:14px;line-height:1.7}
 </style></head><body>
 <header><h1>Takas</h1><p>Nile test ağı · Telefon uyumlu işlem ekranı</p><small>Gerçek para göndermeyin. Bu sürüm test amaçlıdır.</small></header>
 <div class="card"><h2>Yönetici</h2><p>Yeni takas oluştur veya açık takasın son onayına git.</p>
@@ -18,7 +18,7 @@ small{color:#9cb2d0}.steps{font-size:14px;line-height:1.7}
 <div class="card"><h2>Katılımcı</h2><p>Size verilen takas bağlantısını açın veya takas numarası girin.</p>
 <label for="participantId">Takas numarası</label><input id="participantId" inputmode="numeric" placeholder="Örn. 3" autocomplete="off">
 <a class="action" id="participantGo" href="./takas-v3-katilimci-nile.html">Takasımı aç</a></div>
-<div class="card"><h2>İşlem sırası</h2><p class="steps">1. Yönetici takası oluşturur.<br>2. İki taraf yatırır.<br>3. İki taraf onaylar.<br>4. Yönetici süre dolmadan son onayı verir.<br>İşlem tamamlanmazsa şartlar oluştuğunda katılımcılar iade alabilir.</p><a class="action alt" href="./frhn-izin-kontrol.html">Test FRHN iznini kontrol et</a></div>
+<details class="card"><summary>İşlem adımları ve test araçları</summary><p class="steps">Yönetici takası oluşturur; iki taraf yatırır ve onaylar; yönetici 5 dakikalık süre dolmadan son imzayı verir. Süre dolarsa şartları sağlayan katılımcı iade alabilir.</p><a class="action alt" href="./frhn-izin-kontrol.html">FRHN test iznini kontrol et</a></details>
 <script>
 const a=document.getElementById("participantId"),b=document.getElementById("managerId");
 const p=document.getElementById("participantGo"),m=document.getElementById("finalGo");
