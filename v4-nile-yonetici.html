@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#091321">
-<title>TAKAS V4 · Nile Yönetici</title>
+<title>Güvenli Takas · Yönetici Paneli</title>
 <style>
 :root{color-scheme:dark;background:#0a1424;color:#f1f5ff;font:16px/1.5 system-ui}*{box-sizing:border-box}body{max-width:660px;margin:0 auto;padding:16px}
 h1{font-size:25px;margin:14px 0 6px}h2{font-size:19px;margin:0 0 10px}p{color:#b6c8df}
@@ -11,8 +11,24 @@ label{font-size:14px;font-weight:600;display:block}pre{white-space:pre-wrap;over
 .note{font-size:13px;color:#c3d2e4}.warn{border-color:#ad874b;background:#30281b;color:#f1d49b;padding:13px;border-radius:12px}
 code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{color:#acc3de}
 
-section.setup{display:none}body.advanced section.setup{display:block}.setup-toggle{background:transparent;border:1px solid #567296;color:#c3d2e4;font-size:13px;min-height:42px}</style></head><body>
-<h1>TAKAS · Yönetici</h1><p>Nile Testnet · V4 canlı test hazırlığı</p>
+section.setup{display:none}body.advanced section.setup{display:block}.setup-toggle{background:transparent;border:1px solid #567296;color:#c3d2e4;font-size:13px;min-height:42px}
+/* Clean mobile-first manager presentation; on-chain logic unchanged. */
+:root{color-scheme:dark;background:#080f1b;color:#edf5ff;font:16px/1.55 system-ui,-apple-system,sans-serif}
+body{max-width:720px;padding:clamp(14px,4vw,28px)}
+h1{font-size:clamp(29px,6vw,38px);letter-spacing:-.045em;font-weight:800;margin:22px 0 2px}
+h2{font-size:18px;letter-spacing:-.015em;margin-bottom:13px}
+body>p{margin:0 0 22px;color:#a9c0d9}
+section{background:linear-gradient(155deg,#172a42,#112137);border:1px solid #2e4967;border-radius:20px;padding:clamp(17px,4vw,25px);box-shadow:0 12px 30px #0002;margin:16px 0}
+button{border-radius:13px;background:#477bea;transition:filter .15s;font-weight:700}
+button:active{filter:brightness(1.16)}
+button.light{background:#2b496c}
+input,select{border-radius:12px}
+pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
+.warn{border-radius:14px;line-height:1.55}
+#finalize{background:#19866c}
+#links:not([hidden]){padding-top:8px}
+</style></head><body>
+<h1>Güvenli Takas</h1><p>Yönetici Paneli · Takas oluştur, bağlantıları paylaş, yatırımları takip et.</p>
 <div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
 <section><h2>1 · Cüzdanım</h2>
 <button id="connect" onclick="document.getElementById('walletStatus').textContent='Bağlantı isteği alındı; TronLink kontrol ediliyor…'">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
@@ -27,8 +43,8 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <button id="signDeploy" disabled hidden>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
-<section><h2>2 · Yeni takas bağlantısı</h2>
-<p class="note">Token isimleri, miktarları ve cüzdan adreslerini sen girmeyeceksin; yalnızca hizmet bedelini belirleyeceksin.</p>
+<section><h2>2 · Yeni takas oluştur</h2>
+<p class="note">Ali ve Veli gönderecekleri varlıkları ve miktarları kendileri seçer. Sen yalnızca hizmet bedelini belirlersin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
 <label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="0">
 <button id="create" disabled>Takas bağlantısı oluştur</button>
@@ -36,7 +52,7 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
 </section>
-<section><h2>3 · Takas takibi ve son onay</h2>
+<section><h2>3 · Yatırımları kontrol et ve son onayı ver</h2>
 <label for="dealId">Takas numarası</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
