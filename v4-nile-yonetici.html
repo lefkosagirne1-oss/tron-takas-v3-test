@@ -21,10 +21,10 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <label for="contractAddress">V4 Nile sözleşme adresi</label><input id="contractAddress" placeholder="Sözleşme kurulunca burada görünecek" autocomplete="off">
 <button id="verifyContract" class="light">Mevcut sözleşmeyi doğrula</button>
 <label><input type="checkbox" id="deployAck" style="width:auto;min-height:auto;margin-right:8px">Nile test ağında yeni V4 sözleşmesinin dağıtım maliyetini onaylıyorum.</label>
-<button id="deploy" disabled>Ücretsiz dağıtım taslağını hazırla</button>
-<button id="estimateDeploy" class="light" disabled>Dağıtım Energy maliyetini ücretsiz tahmin et</button>
+<button id="deploy" disabled hidden>Ücretsiz dağıtım taslağını hazırla</button>
+<button id="estimateDeploy" class="light" disabled hidden>Dağıtım Energy maliyetini ücretsiz tahmin et</button>
 <pre id="energyEstimate">Henüz Energy tahmini yapılmadı.</pre>
-<button id="signDeploy" disabled>Dağıtımı TronLink ile imzala</button>
+<button id="signDeploy" disabled hidden>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
 <section><h2>2 · Yeni takas bağlantısı</h2>
@@ -119,7 +119,7 @@ async function connect(){
   return;
  }
  status("walletStatus","NILE YÖNETİCİ BAĞLANTISI DOĞRULANDI\nCüzdan: "+owner+"\nV4 ABI ve bytecode doğrulandı.");
- $("deploy").disabled=!$("deployAck").checked;
+ $("deploy").disabled=true;
 }
 async function verify(){
  reset();
@@ -138,7 +138,7 @@ async function verify(){
 }
 $("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify()}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
-$("deployAck").onchange=()=>{$("deploy").disabled=!tw||!artifactMatchesSource||!$("deployAck").checked};
+$("deployAck").onchange=()=>{$("deploy").disabled=true};
 $("diagnose").onclick=async()=>{
  status("diagnosis","Nile blok zamanı ve gönderim durumu okunuyor…");
  try{
@@ -331,8 +331,9 @@ $("precheck").onclick=async()=>{
  $("precheckStatus").textContent="Nile üzerinde ücretsiz kontrol yapılıyor…";
  try{
   if(!c)throw Error("Önce sözleşmeyi doğrula.");
-  const id=$("dealId").value.trim();
-  if(!/^[1-9]\d*$/.test(id))throw Error("Takas numarası geçersiz.");
+  const id=($("dealId").value.trim()||"1");
+  if(!/^[1-9][0-9]*$/.test(id))throw Error("Takas numarası geçersiz: "+JSON.stringify(id));
+  $("dealId").value=id;
   const state=await readSwapRaw(id);
   if(state.partyA===zero||state.partyB===zero||state.partyA===state.partyB)
    throw Error("İki ayrı katılımcı cüzdanı henüz kayıtlı değil.");
@@ -426,7 +427,7 @@ try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").v
     }catch{}
    }
    const dep=document.getElementById("deploy"),ack=document.getElementById("deployAck");
-   if(dep)dep.disabled=!(typeof artifactMatchesSource!=="undefined"&&artifactMatchesSource&&ack?.checked);
+   if(dep)dep.disabled=true;
   }catch(e){out.textContent="BAĞLANTI HATASI: "+(e?.message||e);}
  },true);
 })();
