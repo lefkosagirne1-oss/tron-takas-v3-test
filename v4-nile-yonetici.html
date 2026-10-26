@@ -428,6 +428,10 @@ try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").v
    }
    const dep=document.getElementById("deploy"),ack=document.getElementById("deployAck");
    if(dep)dep.disabled=true;
+   if(typeof verify==="function"&&typeof tw!=="undefined"&&tw){
+    try{await verify();out.textContent="CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+address;}
+    catch(e){out.textContent="CÜZDAN BAĞLANDI\\n"+address+"\\nSÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e);}
+   }
   }catch(e){out.textContent="BAĞLANTI HATASI: "+(e?.message||e);}
  },true);
 })();
