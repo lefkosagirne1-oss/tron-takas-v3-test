@@ -11,8 +11,31 @@ button{border:0;background:#5685ec;color:#fff;border-radius:9px;padding:12px 16p
 button:disabled{opacity:.4;cursor:not-allowed}button.secondary{background:#425570}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;padding:14px;border-radius:9px;background:#091629}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.muted{color:#bed0e7}.warn{border-color:#9e8158}
 @media(max-width:650px){.grid{grid-template-columns:1fr}}
+
+/* Telefon uyumu: mevcut blokzincir işlem mantığı değiştirilmedi. */
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{width:100%;overflow-x:hidden}
+button,a,input,select{touch-action:manipulation}
+button{min-height:48px}
+pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:680px){
+ body{margin:0 auto!important;padding:8px!important;font-size:16px}
+ main{padding:12px!important;border-radius:0!important;border-left:0!important;border-right:0!important}
+ section{padding:13px!important;margin:10px 0!important}
+ h1{font-size:23px!important}h2{font-size:18px!important}
+ input,select{font-size:16px!important;min-height:48px}
+ button{font-size:16px!important;display:block;width:100%;margin:8px 0!important;min-height:54px;padding:14px 10px!important}
+ .switch{display:flex!important}.switch input{width:22px;min-height:22px;flex-shrink:0}
+ pre{padding:10px!important;font-size:12px!important;line-height:1.5!important}
+ .grid{grid-template-columns:minmax(0,1fr)!important}
+ [hidden]{display:none!important}
+}
+
+.quickLinks{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.quickLinks a{background:#244a78;color:white;border-radius:9px;text-decoration:none;padding:12px;font-weight:600}
+@media(max-width:680px){.quickLinks{display:grid;grid-template-columns:1fr}.quickLinks a{text-align:center;padding:15px}}
 </style></head>
 <body><h1>Takas V3 · İşlem Detayı</h1>
+<nav class="quickLinks"><a href="#actions">İşlem düğmelerine git</a><a id="managerLink" href="./takas-v3-yonetici-islem.html#finalSection">Yönetici son onayı</a></nav>
 <p>TRON Nile test ağı · Bu sayfa zincirdeki takası görüntüler. Yalnızca sözleşmede kayıtlı taraf kendi yatırma, onay veya iade işlemini imzalayabilir.</p>
 <section class="warn"><strong>Testnet uyarısı</strong><p>Gerçek varlık göndermeyin. İşlem bilgilerini cüzdan onayı vermeden önce doğrulayın. İşlem ücreti ve TRC20 token onayı ayrı zincir işlemleridir.</p></section>
 <section>
@@ -27,7 +50,7 @@ button:disabled{opacity:.4;cursor:not-allowed}button.secondary{background:#42557
 <section><h2>Komisyon ve net tutarlar</h2><pre id="terms">Sözleşme verisi bekleniyor.</pre></section>
 <section><h2>Durum ve süreler</h2><pre id="state">Sözleşme verisi bekleniyor.</pre></section>
 <section>
-<h2>Sizin işlemleriniz</h2>
+<h2 id="actions">Sizin işlemleriniz</h2>
 <p>TRC20 yatırmadan önce token onayı (approve) gerekebilir. Yatırma, onay ve iade ancak ilgili koşullarda etkinleşir. Her düğme için TronLink ayrıca imza ister.</p>
 <button id="approve" disabled>Token harcama izni ver</button>
 <button id="deposit" disabled>Varlığımı yatır</button>
