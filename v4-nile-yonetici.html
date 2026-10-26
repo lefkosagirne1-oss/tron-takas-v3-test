@@ -45,6 +45,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
 <section id="overview"><h2>Takas özeti · tek ekran</h2>
 <p class="note">Bu alan zincirden okunan mevcut takası özetler. Yeni işlem oluşturmaz, imza istemez.</p>
+<label for="overviewDealId">Takas numarası</label><input id="overviewDealId" inputmode="numeric" value="5" placeholder="Örn. 5"><button id="overviewLoad" class="light" type="button">Takası ücretsiz görüntüle</button>
 <pre id="overviewStatus">Cüzdan bağlandıktan sonra takas numarasını seçip durumunu görüntüle.</pre>
 <button id="overviewRefresh" class="light" type="button" disabled>Seçili takası ücretsiz yenile</button>
 <div id="overviewLinks" hidden>
@@ -493,7 +494,8 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 setInterval(()=>{updateFinalCountdown();status("overviewTimer",$("finalCountdown").textContent)},1000);
-$("overviewRefresh").onclick=()=> $("read").click();
+$("overviewLoad").onclick=async()=>{const id=$("overviewDealId").value.trim();if(!/^[1-9]\\d*$/.test(id)){status("overviewStatus","Geçerli takas numarası gir.");return}try{status("overviewStatus","Zincirden okunuyor…");await showExistingLinks(id)}catch(e){status("overviewStatus","Takas okunamadı: "+(e?.message||e))}};
+$("overviewRefresh").onclick=()=> $("overviewLoad").click();
 $("overviewCopyA").onclick=()=> $("linkA").value?navigator.clipboard.writeText($("linkA").value).then(()=>status("inviteStatus","Taraf A bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 $("overviewCopyB").onclick=()=> $("linkB").value?navigator.clipboard.writeText($("linkB").value).then(()=>status("inviteStatus","Taraf B bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
