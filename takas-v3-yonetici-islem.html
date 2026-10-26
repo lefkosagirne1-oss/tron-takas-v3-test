@@ -1,0 +1,299 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Takas V3 · Gerçek Yönetici Paneli (Nile)</title>
+<style>
+:root{background:#0c1423;color:#eaf2ff;color-scheme:dark;font:16px system-ui}*{box-sizing:border-box}
+body{max-width:940px;padding:16px;margin:22px auto}main{background:#142137;border:1px solid #30445f;border-radius:17px;padding:22px}
+h1{font-size:27px}h2{font-size:20px}.muted,p,small{color:#c4d1e4;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+section{background:#0c192b;border:1px solid #34506d;border-radius:13px;padding:15px;margin:14px 0}
+label{display:block;margin:12px 0 5px;font-size:14px}input,select{width:100%;border:1px solid #506989;border-radius:8px;background:#091523;color:#fff;padding:11px;font:inherit}
+button{border:0;background:#5687f1;color:white;border-radius:9px;padding:12px 17px;font:inherit;cursor:pointer;margin:7px 7px 7px 0}
+button:disabled{opacity:.45;cursor:not-allowed}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;background:#071322;padding:13px;border-radius:9px}
+.warning{border-color:#977c4d}.switch{display:flex;gap:9px;align-items:flex-start}.switch input{width:auto;margin-top:5px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<h1>Takas V3 · Yönetici Paneli</h1>
+<p>Nile Testnet · Yalnızca sözleşme yöneticisi takas oluşturabilir. Bu, gerçek zincire bağlı <strong>deneme</strong> panelidir. Mainnet işlemleri için kullanmayın.</p>
+<section><h2>İlk test: HD USDT #2 ↔ HD USDT #1</h2>
+<p><strong>Taraf A:</strong> HD USDT #2, 1 test TRX gönderir. <strong>Taraf B:</strong> HD USDT #1, 100 FRHN test tokeni gönderir. Yönetici: HD USDT #4. İlk denemede komisyon yok.</p>
+<button id="preset" type="button">Test alanlarını otomatik doldur</button>
+<p><small>HD USDT #2'nin tam cüzdan adresi hâlâ gerekli. Adresi tahmin ederek doldurmuyoruz. Düğme işlem oluşturmaz veya imza istemez.</small></p>
+</section>
+<button id="connect">1 · Nile ve yönetici yetkisini doğrula</button>
+<pre id="status" role="status">Bağlantı henüz kontrol edilmedi.</pre>
+<div class="grid">
+<section><h2>Taraf A</h2>
+<label>Cüzdan adresi</label><input id="partyA" placeholder="T..." autocomplete="off">
+<label>Gönderilecek varlık</label><select id="typeA"><option value="TRX">TRX</option><option value="TOKEN">TRC20 token</option></select>
+<div id="tokenFieldsA" hidden><label>Token sözleşme adresi</label><input id="tokenA" placeholder="T..." autocomplete="off"><label>Token ondalık sayısı (decimals)</label><input id="decimalsA" type="number" min="0" max="18" value="6"></div>
+<label>Gönderilecek miktar</label><input id="amountA" inputmode="decimal" value="1">
+</section>
+<section><h2>Taraf B</h2>
+<label>Cüzdan adresi</label><input id="partyB" placeholder="T..." autocomplete="off">
+<label>Gönderilecek varlık</label><select id="typeB"><option value="TOKEN">TRC20 token</option><option value="TRX">TRX</option></select>
+<div id="tokenFieldsB"><label>Token sözleşme adresi</label><input id="tokenB" placeholder="T..." autocomplete="off"><label>Token ondalık sayısı (decimals)</label><input id="decimalsB" type="number" min="0" max="18" value="6"></div>
+<label>Gönderilecek miktar</label><input id="amountB" inputmode="decimal" value="100">
+</section>
+</div>
+<section><h2>İşleme özel komisyon</h2>
+<label>Komisyonu ödeyen</label><select id="payer"><option value="0">Komisyon yok</option><option value="1">Taraf A</option><option value="2">Taraf B</option></select>
+<label>Komisyon miktarı (ödeyen tarafın gönderdiği varlık cinsinden)</label><input id="fee" inputmode="decimal" value="0">
+<label>Komisyon alacak cüzdan</label><input id="recipient" placeholder="T..." autocomplete="off">
+</section>
+<section><h2>İşlem önizlemesi</h2>
+<p>Yatırma süresi <strong>15 dakika</strong>. Her iki taraf yatırınca <strong>5 dakika</strong> onay ve yöneticinin son onayı için süre başlar. İade süresi aşımında mümkündür. Farklı varlık miktarları arasında kur kontrolü yoktur.</p>
+<button id="preview">2 · Tutarları doğrula ve önizle</button>
+<pre id="summary">Henüz önizleme yok.</pre>
+</section>
+<section class="warning"><h2>İmzalı işlem — yalnızca hazırken</h2>
+<p><strong>Önemli:</strong> Takas oluşturulduğu anda 15 dakikalık sayaç başlar. İki tarafın cüzdanı ve yatırılacak test varlıkları hazır olmadan bu düğmeyi kullanmayın.</p>
+<label class="switch"><input type="checkbox" id="ack"> İki tarafın da hazır olduğunu, bilgileri kontrol ettiğimi ve gerçek Nile test işlemi göndereceğimi onaylıyorum.</label>
+<button id="create" disabled>3 · TronLink'te takas oluşturma imzasını iste</button>
+<pre id="result" role="status">Zincire takas gönderilmedi.</pre><button id="verify" disabled>4 · Takası zincirden doğrula ve bağlantı oluştur</button><p id="shareLink"></p>
+</section>
+<section class="warning"><h2>Yönetici son onayı</h2>
+<p>Her iki katılımcı yatırıp onayladıktan sonra, 5 dakikalık süre dolmadan yönetici son onayı vermelidir. İşlem tamamlanmazsa süre sonunda katılımcılar kendi yatırımlarını iade edebilir.</p>
+<label for="finalId">Takas numarası</label><input id="finalId" inputmode="numeric" placeholder="Örnek: 1" autocomplete="off">
+<button id="finalRead">Son onay koşullarını zincirden oku</button>
+<pre id="finalStatus">Henüz son onay kontrolü yapılmadı.</pre>
+<label class="switch"><input type="checkbox" id="finalAck">Bu takası sonuçlandırmak için son imzayı vermeyi onaylıyorum.</label>
+<button id="finalSign" disabled>TronLink ile yönetici son onayını imzala</button>
+</section></main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const contractAddress="TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm";
+const requiredOwner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
+const zeroHex="410000000000000000000000000000000000000000";
+let tronWeb=null, contract=null, ownerWallet=null, checked=null, abi=null, pendingTx=null, pendingArgs=null;
+function update(){checked=null;$("create").disabled=true;}
+function toUnits(raw,decimals){
+ const v=String(raw).trim().replace(",",".");
+ if(!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(v))throw Error("Geçersiz miktar: "+v);
+ const n=Number(decimals);if(!Number.isInteger(n)||n<0||n>18)throw Error("Ondalık sayısı 0-18 aralığında olmalı");
+ const [whole,part=""]=v.split(".");
+ if(part.length>n)throw Error("Miktarda fazla ondalık basamak var ("+v+")");
+ const units=BigInt(whole+"".concat(part.padEnd(n,"0")));
+ if(units<=0n)throw Error("Miktar sıfır olamaz");
+ return units;
+}
+function displayUnits(amount,decimals){
+ const n=BigInt(amount),d=Number(decimals),str=n.toString().padStart(d+1,"0");
+ return d?str.slice(0,-d)+"."+str.slice(-d).replace(/0+$/,"").replace(/\.$/,""):str;
+}
+function tokenInfo(side){
+ const kind=$("type"+side).value;
+ if(kind==="TRX")return {address:tronWeb.address.fromHex(zeroHex),decimals:6,label:"TRX"};
+ const address=$("token"+side).value.trim();
+ if(!tronWeb.isAddress(address))throw Error(side+" token sözleşme adresi geçersiz");
+ const decimals=Number($("decimals"+side).value);
+ if(!Number.isInteger(decimals)||decimals<0||decimals>18)throw Error(side+" token decimals geçersiz");
+ return {address,decimals,label:"Token "+address.slice(0,8)+"…"};
+}
+async function connect(){
+ const provider=window.tron; const tw=provider?.tronWeb;
+ if(!provider?.isTronLink||!tw?.ready)throw Error("TronLink bağlı değil");
+ const host=String(tw.fullNode?.host||tw.fullNode?.url||"");
+ if(!host.toLowerCase().includes("nile"))throw Error("Nile ağı seçili değil");
+ const wallet=tw.defaultAddress?.base58;
+ if(wallet!==requiredOwner)throw Error("Bu cüzdan sözleşmenin yöneticisi değil");
+ const artifactResponse=await fetch("./v3-deploy-artifact.json",{cache:"no-store"});
+ if(!artifactResponse.ok)throw Error("V3 ABI dosyası bulunamadı");
+ const artifact=await artifactResponse.json();
+ if(artifact.contractName!=="TakasV3"||!Array.isArray(artifact.abi))throw Error("V3 ABI hatalı");
+ const chain=await tw.trx.getContract(contractAddress);
+ if(chain?.name!=="TakasV3")throw Error("Sözleşme adı zincirde doğrulanamadı");
+ const c=await tw.contract(artifact.abi,contractAddress);
+ const ownerHex=String(await c.owner().call());
+ const owner=tw.address.fromHex(ownerHex.startsWith("0x")?ownerHex.slice(2):ownerHex);
+ if(owner!==wallet)throw Error("Sözleşme yönetici adresi cüzdanla eşleşmiyor");
+ tronWeb=tw;contract=c;ownerWallet=wallet;abi=artifact.abi;update();
+ const next=String(await c.nextDealId().call());
+ $("status").textContent="NILE BAĞLANTISI DOĞRULANDI\nYönetici: "+wallet+"\nTakas V3: "+contractAddress+"\nSonraki takas: "+next+"\nHenüz işlem imzalanmadı.";
+}
+$("preset").addEventListener("click",()=>{
+ $("partyA").value="TCHtTrBZCKUzFzteTKTsspMsGWBXh6H1sR";
+ $("partyB").value="TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF";
+ $("typeA").value="TRX";
+ $("typeB").value="TOKEN";
+ $("tokenB").value="TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx";
+ $("decimalsB").value="18";
+ $("amountA").value="1";
+ $("amountB").value="100";
+ $("payer").value="0";
+ $("fee").value="0";
+ $("recipient").value="";
+ $("tokenFieldsA").hidden=true;
+ $("tokenFieldsB").hidden=false;
+ $("ack").checked=false;
+ update();
+ $("summary").textContent="Test cüzdanları ve miktarları dolduruldu. Yönetici kontrolünü yapınca önizleme de doğrulanacak. Henüz işlem oluşturulmadı.";
+ saveDraft();
+});
+$("connect").addEventListener("click",async()=>{
+ $("status").textContent="Kontrol yapılıyor...";
+ try{await connect();if($("partyA").value&&$("partyB").value){await preview();$("status").textContent+="\nTest tutarlarının önizlemesi de doğrulandı.";}}catch(e){tronWeb=null;contract=null;update();$("status").textContent="DURDURULDU: "+(e?.message||e);}
+});
+for(const side of ["A","B"]) $("type"+side).addEventListener("change",()=>{
+ $("tokenFields"+side).hidden=$("type"+side).value==="TRX";update();
+});
+for(const input of document.querySelectorAll("input,select")) {
+ if(input.id==="ack"||input.id==="finalAck"||input.id==="finalId")continue;
+ input.addEventListener("input",update);
+}
+$("ack").addEventListener("change",()=>{$("create").disabled=!checked||!$("ack").checked;});
+async function preview(){
+ if(!tronWeb||!contract)throw Error("Önce yönetici cüzdanını doğrula");
+ if(tronWeb.defaultAddress?.base58!==ownerWallet)throw Error("Cüzdan değişti; tekrar bağlan");
+ const a=$("partyA").value.trim(), b=$("partyB").value.trim();
+ if(!tronWeb.isAddress(a)||!tronWeb.isAddress(b)||a===b)throw Error("Taraf A/B geçerli ve birbirinden farklı cüzdanlar olmalı");
+ const tA=tokenInfo("A"),tB=tokenInfo("B");
+ if(tA.address===tB.address)throw Error("İki varlık farklı olmalı");
+ // Confirm TRC20 decimals from Nile instead of trusting the form alone.
+ const decimalABI=[{"name":"decimals","type":"function","stateMutability":"view","inputs":[],"outputs":[{"type":"uint8"}]}];
+ for(const [side,t] of [["A",tA],["B",tB]]){
+   if($("type"+side).value==="TOKEN"){
+     const tokenContract=await tronWeb.contract(decimalABI,t.address);
+     const chainDecimals=Number(String(await tokenContract.decimals().call()));
+     if(!Number.isInteger(chainDecimals)||chainDecimals!==t.decimals)throw Error(side+" token ondalık değeri Nile sözleşmesiyle eşleşmiyor (zincir: "+chainDecimals+")");
+   }
+ }
+ const amountA=toUnits($("amountA").value,tA.decimals),amountB=toUnits($("amountB").value,tB.decimals);
+ const payer=Number($("payer").value);
+ const fee=payer===0?0n:toUnits($("fee").value,payer===1?tA.decimals:tB.decimals);
+ const recipient=$("recipient").value.trim();
+ if(payer!==0&&(!tronWeb.isAddress(recipient)||fee>=(payer===1?amountA:amountB)))throw Error("Komisyon cüzdanı geçerli, komisyon ödeyenin miktarından küçük olmalı");
+ const args=[a,b,tA.address,amountA.toString(),tB.address,amountB.toString(),payer,fee.toString(),payer===0?tronWeb.address.fromHex(zeroHex):recipient];
+ $("summary").textContent=[
+   "A yatıracak: "+displayUnits(amountA,tA.decimals)+" "+tA.label,
+   "B yatıracak: "+displayUnits(amountB,tB.decimals)+" "+tB.label,
+   "Komisyon: "+(payer===0?"YOK":displayUnits(fee,payer===1?tA.decimals:tB.decimals)+" "+(payer===1?tA.label:tB.label)+" / "+(payer===1?"A":"B")),
+   "A alacak: "+displayUnits(amountB-(payer===2?fee:0n),tB.decimals)+" "+tB.label,
+   "B alacak: "+displayUnits(amountA-(payer===1?fee:0n),tA.decimals)+" "+tA.label,
+   "İşlem oluşturulunca 15 dakika başlar. Kur karşılaştırması yapılmaz.",
+   "Bu aşamada yalnızca yerel önizleme yapıldı."
+ ].join("\n");
+ checked={args,ownerWallet,contractAddress};
+ $("create").disabled=!$("ack").checked;
+}
+$("preview").addEventListener("click",async()=>{
+ try{update();$("summary").textContent="Token ayrıntıları Nile üzerinden doğrulanıyor…";await preview()}catch(e){update();$("summary").textContent="ÖNİZLEME HATASI: "+(e?.message||e);}
+});
+$("create").addEventListener("click",async()=>{
+ if(!checked||!$("ack").checked||!contract)return;
+ $("create").disabled=true;
+ try{
+  const args=checked.args;
+  await preview();
+  if(args.join("|")!==checked.args.join("|"))throw Error("Veriler değişti; yeniden önizleme yap");
+  if(!confirm("Nile üzerinde gerçek takas oluşturulsun mu? 15 dakika yatırma süresi hemen başlayacak. TronLink imzası istenecek."))return;
+  $("result").textContent="TronLink imzası bekleniyor. Onay verirseniz takas oluşturulur.";
+  const txid=await contract.createDeal(...args).send({feeLimit:60000000,shouldPollResponse:false});
+  pendingTx=txid;pendingArgs=args;
+  $("verify").disabled=false;
+  $("shareLink").textContent="";
+  $("result").textContent="İŞLEM NILE AĞINA GÖNDERİLDİ (KESİNLEŞMESİ HENÜZ DOĞRULANMADI)\\nİşlem ID: "+txid+"\\nZincirden doğrulamadan katılımcılara bağlantı gönderme.";
+  checked=null;
+ }catch(e){$("result").textContent="İŞLEM TAMAMLANAMADI VEYA DURUM BELİRSİZ: "+(e?.message||e)+"\nİşlem imzalanmış olabilir, zincir sonucunu kontrol etmeden tekrar göndermeyin.";}
+ finally{$("create").disabled=true;}
+});
+$("verify").addEventListener("click",async()=>{
+ if(!pendingTx||!pendingArgs)return;
+ $("verify").disabled=true;
+ try{
+  if(!tronWeb||tronWeb.defaultAddress?.base58!==ownerWallet)throw Error("Yönetici cüzdanı değişti");
+  const info=await tronWeb.trx.getTransactionInfo(pendingTx);
+  if(!info?.id)throw Error("İşlem henüz blokta bulunamadı; sonra tekrar kontrol et.");
+  if(info.receipt?.result!=="SUCCESS")throw Error("Takas oluşturma başarılı değil: "+(info.receipt?.result||"belirsiz"));
+  const next=BigInt(String(await contract.nextDealId().call()));
+  if(next<=1n)throw Error("Takas kaydı bulunamadı.");
+  const dealId=(next-1n).toString();
+  const stored=await contract.getDeal(dealId).call();
+  const data=stored?.partyA!==undefined?stored:(stored?.[0]&&typeof stored[0]==="object"?stored[0]:stored);
+  const normalize=v=>{
+   const x=String(v);
+   return /^41[0-9a-f]{40}$/i.test(x)?tronWeb.address.fromHex(x):/^0x[0-9a-f]{40}$/i.test(x)?tronWeb.address.fromHex("41"+x.slice(2)):x;
+  };
+  if(normalize(data.partyA??data[0])!==pendingArgs[0]||normalize(data.partyB??data[1])!==pendingArgs[1])
+    throw Error("Son takasın tarafları uyuşmadı; bağlantı üretilmedi.");
+  if(BigInt(String(data.amountA??data[4]))!==BigInt(pendingArgs[3])||BigInt(String(data.amountB??data[5]))!==BigInt(pendingArgs[5]))
+    throw Error("Son takasın miktarları uyuşmadı.");
+  const url=new URL("takas-v3-katilimci-nile.html",location.href);
+  url.searchParams.set("id",dealId);
+  $("shareLink").textContent="KATILIMCI BAĞLANTISI: "+url.href;
+  $("result").textContent="ZİNCİRDE TAKAS OLUŞTURULDU / SUCCESS\\nTakas numarası: "+dealId+"\\nİşlem ID: "+pendingTx+"\\nTaraflar kendi cüzdanlarıyla katılabilir.";
+  pendingTx=null;pendingArgs=null;
+ }catch(e){$("result").textContent="DOĞRULAMA HENÜZ TAMAMLANMADI: "+(e?.message||e)+"\\nİkinci takası oluşturma.";}
+ finally{$("verify").disabled=!pendingTx;}
+});
+
+let finalReady=null,finalBusy=false;
+function resetFinal(){finalReady=null;$("finalSign").disabled=true;}
+$("finalId").addEventListener("input",resetFinal);
+$("finalAck").addEventListener("change",()=>{$("finalSign").disabled=!finalReady||!$("finalAck").checked||finalBusy;});
+function stateFlag(v){return v===true||v===1||v==="true"||v==="1";}
+async function finalCheck(){
+ resetFinal();
+ if(!contract||!tronWeb||tronWeb.defaultAddress?.base58!==ownerWallet)throw Error("Önce yönetici cüzdanını doğrula");
+ const dealId=$("finalId").value.trim();
+ if(!/^[1-9][0-9]*$/.test(dealId))throw Error("Pozitif takas numarası girin");
+ const result=await contract.getDeal(dealId).call();
+ const d=result?.partyA!==undefined?result:(result?.[0]&&typeof result[0]==="object"?result[0]:result);
+ const flag=(field,index)=>stateFlag(d[field]??d[index]);
+ const timestamp=BigInt(String(d.approvalDeadline??d[10]));
+ const now=BigInt(Math.floor(Date.now()/1000));
+ if(flag("completed",18))throw Error("Bu takas zaten tamamlanmış");
+ if(!flag("depositedA",11)||!flag("depositedB",12))throw Error("İki taraf da henüz yatırmadı");
+ if(!flag("approvedA",13)||!flag("approvedB",14))throw Error("İki taraf da henüz onaylamadı");
+ if(timestamp<=now||timestamp===0n)throw Error("5 dakikalık onay süresi sona ermiş");
+ finalReady=dealId;
+ $("finalSign").disabled=!$("finalAck").checked;
+ $("finalStatus").textContent="ZİNCİR KONTROLÜ TAMAMLANDI\\nTakas #"+dealId+"\\nİki taraf yatırdı ve onayladı.\\nSon onay bitişi: "+new Date(Number(timestamp)*1000).toLocaleString("tr-TR")+"\\nYönetici imzası bekleniyor.";
+}
+$("finalRead").addEventListener("click",async()=>{
+ $("finalStatus").textContent="Zincirden kontrol ediliyor…";
+ try{await finalCheck()}catch(e){resetFinal();$("finalStatus").textContent="SON ONAY HAZIR DEĞİL: "+(e?.message||e);}
+});
+$("finalSign").addEventListener("click",async()=>{
+ if(!finalReady||finalBusy||!$("finalAck").checked)return;
+ finalBusy=true;$("finalSign").disabled=true;
+ const idToSign=finalReady;
+ try{
+  await finalCheck();
+  if(finalReady!==idToSign)throw Error("Takas değişti");
+  if(!confirm("Nile Testnet · Takas #"+idToSign+" için yönetici son onay imzası istenecek. İki tarafın varlıkları takas edilecek. Devam edilsin mi?"))return;
+  const txid=await contract.ownerApproveSwap(idToSign).send({feeLimit:60000000,shouldPollResponse:false});
+  $("finalStatus").textContent="YÖNETİCİ SON ONAYI AĞA GÖNDERİLDİ; SONUÇ HENÜZ DOĞRULANMADI\\nİşlem ID: "+txid+"\\nTekrar imzalamadan önce zincir kaydını kontrol edin.";
+  resetFinal();
+ }catch(e){resetFinal();$("finalStatus").textContent="SON ONAY TAMAMLANAMADI VEYA DURUM BELİRSİZ: "+(e?.message||e);}
+ finally{finalBusy=false;$("finalSign").disabled=true;}
+});
+
+const draftKey="takasv3-nile-draft-v1";
+const draftFields=["partyA","partyB","typeA","typeB","tokenA","tokenB","decimalsA","decimalsB","amountA","amountB","payer","fee","recipient"];
+function saveDraft(){
+ try{
+  const draft={};
+  for(const field of draftFields)draft[field]=$(field).value;
+  sessionStorage.setItem(draftKey,JSON.stringify(draft));
+ }catch{}
+}
+function restoreDraft(){
+ try{
+  const saved=sessionStorage.getItem(draftKey);
+  if(!saved)return false;
+  const draft=JSON.parse(saved);
+  for(const field of draftFields)if(typeof draft[field]==="string")$(field).value=draft[field];
+  $("tokenFieldsA").hidden=$("typeA").value==="TRX";
+  $("tokenFieldsB").hidden=$("typeB").value==="TRX";
+  return true;
+ }catch{return false}
+}
+for(const field of draftFields)$(field).addEventListener("input",saveDraft);
+window.addEventListener("pagehide",saveDraft);
+if(!restoreDraft())$("preset").click();
+$("ack").checked=false;
+$("finalAck").checked=false;
+update();
+</script></body></html>
