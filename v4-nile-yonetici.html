@@ -100,7 +100,7 @@ $("diagnose").onclick=async()=>{
  try{
   const w=tw||window.tron?.tronWeb||window.tronWeb;
   if(!w?.trx)throw Error("TronLink Discover üzerinden aç.");
-  const block=await w.trx.getNowBlock();
+  const block=await w.trx.getCurrentBlock();
   const chainMs=Number(block?.block_header?.raw_data?.timestamp);
   if(!Number.isFinite(chainMs)||chainMs<=0)throw Error("Nile blok saati okunamadı.");
   const deviceMs=Date.now(),offsetSec=Math.round((deviceMs-chainMs)/1000);
@@ -139,7 +139,7 @@ $("deploy").onclick=async()=>{
   const from=unsigned?.raw_data?.contract?.[0]?.parameter?.value?.owner_address||"";
   if(String(from).toLowerCase()!==issuer.toLowerCase())throw Error("İmzasız işlemin gönderen adresi uyuşmadı.");
   if(!unsigned?.txID||!unsigned?.raw_data_hex)throw Error("İmzasız işlem oluşturulamadı.");
-  const exp=Number(unsigned?.raw_data?.expiration),block=await tw.trx.getNowBlock(),chainTime=Number(block?.block_header?.raw_data?.timestamp);
+  const exp=Number(unsigned?.raw_data?.expiration),block=await tw.trx.getCurrentBlock(),chainTime=Number(block?.block_header?.raw_data?.timestamp);
   if(!Number.isFinite(exp)||!Number.isFinite(chainTime)||exp-chainTime<60000)throw Error("İşlemin geçerlilik süresi çok kısa veya süresi dolmuş. Telefon ve Nile saatini kontrol et.");
   preparedDeployment=unsigned;
   status("deployStatus","İMZASIZ İŞLEM HAZIR — HENÜZ ÜCRET ALINMADI VE İMZA VERİLMEDİ\\n"+
