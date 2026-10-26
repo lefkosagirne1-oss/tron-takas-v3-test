@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#091321">
+<title>TAKAS V4 · Nile Yönetici</title>
+<style>
+:root{color-scheme:dark;background:#0a1424;color:#f1f5ff;font:16px/1.5 system-ui}*{box-sizing:border-box}body{max-width:660px;margin:0 auto;padding:16px}
+h1{font-size:25px;margin:14px 0 6px}h2{font-size:19px;margin:0 0 10px}p{color:#b6c8df}
+section{background:#17263e;border:1px solid #34516f;border-radius:16px;padding:17px;margin:16px 0}
+button,input,select{width:100%;min-height:54px;padding:12px;font:inherit;border-radius:11px}button{border:0;background:#477be4;color:#fff;font-weight:700;margin:8px 0;cursor:pointer}button:disabled{opacity:.45}
+input,select{background:#0c1b30;color:#fff;border:1px solid #567296;margin:5px 0 12px}
+label{font-size:14px;font-weight:600;display:block}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:9px;background:#091627;font-size:13px;line-height:1.6}
+.note{font-size:13px;color:#c3d2e4}.warn{border-color:#ad874b;background:#30281b;color:#f1d49b;padding:13px;border-radius:12px}
+code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{color:#acc3de}
+</style></head><body>
+<h1>TAKAS · Yönetici</h1><p>Nile Testnet · V4 canlı test hazırlığı</p>
+<div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
+<section><h2>1 · Cüzdan ve ağ</h2>
+<button id="connect">Yönetici TronLink cüzdanını doğrula</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
+<section><h2>2 · V4 sözleşmesi</h2>
+<p class="note">Henüz V4 Nile adresi yoksa sözleşmeyi yönetici cüzdanından bir defa dağıtmak gerekir. Bu düğme gerçek test ağı işlemi imzalatır.</p>
+<label for="contractAddress">V4 Nile sözleşme adresi</label><input id="contractAddress" placeholder="Sözleşme kurulunca burada görünecek" autocomplete="off">
+<button id="verifyContract" class="light">Mevcut sözleşmeyi doğrula</button>
+<label><input type="checkbox" id="deployAck" style="width:auto;min-height:auto;margin-right:8px">Nile test ağında yeni V4 sözleşmesinin dağıtım maliyetini onaylıyorum.</label>
+<button id="deploy" disabled>Sözleşmeyi Nile ağına dağıt</button><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
+<section><h2>3 · Yeni takas daveti</h2>
+<p class="note">Token isimleri, miktarları ve cüzdan adreslerini sen girmeyeceksin; yalnızca hizmet bedelini belirleyeceksin.</p>
+<label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option><option value="0">Hizmet bedeli yok</option></select>
+<label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="5">
+<button id="create" disabled>Gerçek Nile davetini oluştur</button>
+<pre id="inviteStatus">Önce V4 sözleşmesini doğrula.</pre>
+<div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
+<label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
+</section>
+<section><h2>4 · Takas takibi ve son onay</h2>
+<label for="dealId">Takas numarası</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
+<button id="read" class="light" disabled>Zincirdeki teklifleri ve yatırımları kontrol et</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
+<button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
+<button id="finalize" disabled>Yönetici son onayı · Takası tamamla</button>
+<pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
+</section>
+<small>Gerçek transferler zincir üzerinde doğrulanır. URL'deki rol bilgisi yetki sağlamaz. Tarafların kimlikleri ayrıca kontrol edilmelidir.</small>
+<script>
+const $=id=>document.getElementById(id);
+const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
+const zero="410000000000000000000000000000000000000000";
+let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false;
+const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
+const value=x=>String(x?.toString?.()??x??"");
+const yes=x=>x===true||value(x)==="true"||value(x)==="1";
+const addr=x=>{let v=value(x);if(/^0x[0-9a-f]{40}$/i.test(v))return tw.address.fromHex("41"+v.slice(2));if(/^41[0-9a-f]{40}$/i.test(v))return tw.address.fromHex(v);return v};
+const status=(id,msg)=>{$(id).textContent=msg};
+const url=(contract,id,role)=>{const u=new URL("v4-nile-katilimci.html",location.href);u.searchParams.set("contract",contract);u.searchParams.set("id",id);u.searchParams.set("role",role);return u.href};
+const decode=r=>{if(r[0]&&typeof r[0]==="object"&&r.partyA===undefined)r=r[0];const out={};fields.forEach((name,i)=>out[name]=r[name]??r[i]);return out};
+const now=()=>BigInt(Math.floor(Date.now()/1000));
+function reset(){for(const id of ["create","read","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
+async function connect(){
+ const p=window.tronLink||window.tron;
+ let w=window.tron?.tronWeb||window.tronWeb;
+ if(!w?.ready&&p?.request)await p.request({method:"tron_requestAccounts"});
+ w=window.tron?.tronWeb||window.tronWeb;
+ if(!w?.ready||!w.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
+ if(!String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
+ if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. iPhone Wallet-3 cüzdanını seç.");
+ tw=w;
+ const r=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});if(!r.ok)throw Error("V4 derleme dosyası henüz yayınlanmadı.");
+ artifact=await r.json();
+ if(artifact.contractName!=="TakasV4Draft"||!artifact.bytecode||!Array.isArray(artifact.abi))throw Error("V4 derleme dosyası geçersiz.");
+ status("walletStatus","NILE YÖNETİCİ BAĞLANTISI DOĞRULANDI\nCüzdan: "+owner+"\nV4 ABI ve bytecode doğrulandı.");
+ $("deploy").disabled=!$("deployAck").checked;
+}
+async function verify(){
+ reset();
+ if(!tw||tw.defaultAddress.base58!==owner)throw Error("Önce yönetici cüzdanını doğrula.");
+ const address=$("contractAddress").value.trim();
+ if(!tw.isAddress(address))throw Error("Geçerli V4 sözleşme adresi gerekli.");
+ const chain=await tw.trx.getContract(address);
+ if(chain.name!=="TakasV4Draft")throw Error("Bu adreste V4 sözleşmesi doğrulanmadı.");
+ const found=await tw.contract(artifact.abi,address);
+ const chainOwner=addr(await found.manager().call());
+ if(chainOwner!==owner)throw Error("Sözleşmenin yönetici cüzdanı eşleşmiyor.");
+ tw=window.tron?.tronWeb||window.tronWeb;c=found;liveAddress=address;
+ try{localStorage.setItem("takas-v4-nile-address",address)}catch{}
+ for(const id of ["create","read"])$(id).disabled=false;
+ status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
+}
+$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect()}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
+$("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
+$("deployAck").onchange=()=>{$("deploy").disabled=!tw||!$("deployAck").checked};
+$("deploy").onclick=async()=>{
+ if(!tw||!artifact||!$("deployAck").checked)return;
+ if(!confirm("NILE TESTNET: Yeni V4 sözleşmesini zincire dağıtmak için TronLink imzası ve test TRX maliyeti gerekir. Devam edilsin mi?"))return;
+ $("deploy").disabled=true;status("deployStatus","TronLink sözleşme dağıtımı bekleniyor…");
+ try{
+  if(tw.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değişmiş.");
+  const deployed=await tw.contract().new({abi:artifact.abi,bytecode:artifact.bytecode,feeLimit:1000000000,callValue:0,userFeePercentage:100,originEnergyLimit:10000000,name:"TakasV4Draft"});
+  if(!deployed?.address)throw Error("Dağıtım adresi doğrulanamadı; yeniden imzalamadan önce işlemlerini kontrol et.");
+  const address=tw.address.fromHex(deployed.address);
+  $("contractAddress").value=address;
+  status("deployStatus","Dağıtım işlemi gönderildi. Adres: "+address+"\nSözleşme zincirden ayrıca doğrulanmalı.");
+  await verify();
+ }catch(e){status("deployStatus","DAĞITIM BELİRSİZ/BAŞARISIZ: "+(e?.message||e)+"\nİkinci kez imzalamadan önce TronLink işlemlerini kontrol et.")}
+ finally{$("deploy").disabled=false;}
+};
+$("create").onclick=async()=>{
+ if(!c||tw.defaultAddress.base58!==owner)return;
+ const pct=Number($("rate").value),payer=Number($("payer").value);
+ if(!Number.isFinite(pct)||pct<0||pct>10||!Number.isInteger(pct*100)){status("inviteStatus","Hizmet bedeli 0–10 arasında, en fazla iki ondalıklı olmalı.");return}
+ if((pct===0)!==(payer===0)){status("inviteStatus","Komisyon yoksa ücret ödeyen seçeneğini de 'Hizmet bedeli yok' yap.");return}
+ if(!confirm("Nile test ağı: %"+pct+" hizmet bedeli kuralıyla yeni davet oluşturulsun mu? Bu işlem cüzdan imzası ister."))return;
+ $("create").disabled=true;
+ try{
+  const tx=await c.createInvite(Math.round(pct*100),payer).send({feeLimit:60000000,shouldPollResponse:false});
+  status("inviteStatus","Davet zincire gönderildi, henüz kesinleşmedi.\nİşlem: "+tx+"\nZincir doğrulaması yapılıyor…");
+  const info=await tw.trx.getTransactionInfo(tx);
+  if(info?.receipt?.result!=="SUCCESS")throw Error("Henüz başarı doğrulanmadı. İşlemi TronLink'te kontrol et; yeniden oluşturma.");
+  const next=BigInt(value(await c.nextId().call())),id=(next-1n).toString();
+  const swap=decode(await c.getSwap(id).call());
+  if(Number(value(swap.feeBps))!==Math.round(pct*100)||Number(value(swap.feePayer))!==payer)throw Error("Son davet zincirden doğrulanamadı; tekrar imzalama.");
+  $("dealId").value=id;$("linkA").value=url(liveAddress,id,1);$("linkB").value=url(liveAddress,id,2);$("links").hidden=false;
+  status("inviteStatus","NILE ZİNCİRİNDE DAVET #"+id+" OLUŞTU\nTaraf A ve B bağlantıları ayrı hazır. Henüz para yatırılmadı.");
+ }catch(e){status("inviteStatus","DURUM DOĞRULANAMADI: "+(e?.message||e))}
+ finally{$("create").disabled=false}
+};
+async function read(){
+ if(!c)throw Error("Sözleşmeyi doğrula.");
+ const id=$("dealId").value.trim();
+ if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası gir.");
+ const s=decode(await c.getSwap(id).call());current=s;
+ const [a,b]=[addr(s.partyA),addr(s.partyB)];
+ const funded=yes(s.depositedA)&&yes(s.depositedB);
+ const accepted=yes(s.acceptedA)&&yes(s.acceptedB);
+ const deadline=BigInt(value(s.settlementDeadline));
+ readyForFinal=funded&&accepted&&deadline>now()&&!yes(s.completed)&&!yes(s.cancelled);
+ $("confirm").disabled=yes(s.walletsConfirmed)||yes(s.cancelled)||yes(s.completed)||!tw.isAddress(a)||!tw.isAddress(b)||a===b;
+ $("finalize").disabled=!readyForFinal;
+ const state=[
+ "TAKAS #"+id,
+ "Taraf A: "+a,
+ "Taraf B: "+b,
+ "Katılımcı adresleri kilitlendi: "+(yes(s.walletsConfirmed)?"Evet":"Hayır"),
+ "A tokeni: "+(value(s.tokenA)==="410000000000000000000000000000000000000000"?"TRX":addr(s.tokenA))+" | tutar (en küçük birim): "+value(s.amountA),
+ "B tokeni: "+(value(s.tokenB)==="410000000000000000000000000000000000000000"?"TRX":addr(s.tokenB))+" | tutar (en küçük birim): "+value(s.amountB),
+ "Teklif onayı A/B: "+(yes(s.acceptedA)?"Evet":"Hayır")+"/"+(yes(s.acceptedB)?"Evet":"Hayır"),
+ "Yatırıldı A/B: "+(yes(s.depositedA)?"Evet":"Hayır")+"/"+(yes(s.depositedB)?"Evet":"Hayır"),
+ "İade A/B: "+(yes(s.refundedA)?"Evet":"Hayır")+"/"+(yes(s.refundedB)?"Evet":"Hayır"),
+ "Tamamlandı: "+(yes(s.completed)?"Evet":"Hayır"),
+ "Son onay için uygun: "+(readyForFinal?"EVET":"HAYIR")
+ ].join("\n");
+ status("dealStatus",state);
+ return s;
+}
+$("read").onclick=async()=>{status("dealStatus","Zincirden okunuyor…");try{await read()}catch(e){$("finalize").disabled=true;$("confirm").disabled=true;status("dealStatus","HATA: "+(e?.message||e))}};
+$("confirm").onclick=async()=>{
+ if(!c||$("confirm").disabled)return;
+ if(!confirm("İki tarafın cüzdan adreslerini bağımsız olarak kontrol ettin mi? Bu işlem adresleri KALICI kilitler. Onaylıyor musun?"))return;
+ $("confirm").disabled=true;
+ try{const tx=await c.confirmParticipants($("dealId").value).send({feeLimit:50000000});status("actionStatus","Katılımcı doğrulama işlemi gönderildi: "+tx+"\nZincirden tekrar oku.");await read()}catch(e){status("actionStatus","HATA: "+(e?.message||e))}
+};
+$("finalize").onclick=async()=>{
+ if(!c||!readyForFinal||$("finalize").disabled)return;
+ $("finalize").disabled=true;
+ try{
+  await read();
+  if(!readyForFinal)throw Error("Son onay koşulları değişti.");
+  const id=$("dealId").value;
+  if(!confirm("NILE: Takas #"+id+" tamamlanacak, taraflara tokenler ve yöneticiye hizmet bedeli gönderilecek. Devam edilsin mi?"))return;
+  const tx=await c.finalize(id).send({feeLimit:150000000,shouldPollResponse:false});
+  status("actionStatus","Son onay gönderildi, henüz kesinleşmedi. İşlem: "+tx+"\nDurumu yeniden zincirden doğrula.");
+  readyForFinal=false;
+ }catch(e){status("actionStatus","HATA / BELİRSİZ İŞLEM: "+(e?.message||e))}
+ finally{$("finalize").disabled=true}
+};
+for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
+try{const a=localStorage.getItem("takas-v4-nile-address");if(a)$("contractAddress").value=a}catch{}
+</script></body></html>
