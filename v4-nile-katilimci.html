@@ -171,6 +171,17 @@ async function read(){
  }}
  return deal;
 }
+async function preflight(selector,params,callValue=0){
+ const body={owner_address:tw.address.toHex(wallet),contract_address:tw.address.toHex(contractAddress),
+  function_selector:selector,parameter:params,visible:false,call_value:callValue};
+ const resp=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+  method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ if(!resp.ok)throw Error("Ücretsiz işlem kontrolü HTTP "+resp.status);
+ const data=await resp.json();
+ if(!data.result?.result||data.result?.code||data.result?.message)
+  throw Error("Ücretsiz zincir kontrolü işlemi reddetti; imza istenmedi: "+(data.result?.message||data.result?.code||"Sözleşme reddetti"));
+}
+const word=v=>BigInt(v).toString(16).padStart(64,"0");
 async function sign(action){
  if(pending)return;
  pending=true;disable();
@@ -183,6 +194,7 @@ async function sign(action){
   let tx;
   if(action==="accept"){
     if(flag(deal["accepted"+mine])||!flag(deal.proposedA)||!flag(deal.proposedB)||bigint(deal.depositDeadline)!==0n||now>=bigint(deal.offerDeadline))throw Error("Onay koşulları geçerli değil.");
+    await preflight("acceptTerms(uint256)",word(dealId));
     if(!confirm("Her iki tarafın token, miktar ve hizmet bedeli koşullarını gördünüz. Teklifleri kabul etmek için Nile cüzdan imzası verilsin mi?"))return;
     tx=await c.acceptTerms(dealId).send({feeLimit:50000000,shouldPollResponse:false});
   }else if(action==="allow"){
@@ -193,6 +205,7 @@ async function sign(action){
   }else if(action==="deposit"){
     if(flag(deal["deposited"+mine])||bigint(deal.depositDeadline)===0n||now>=bigint(deal.depositDeadline)||bigint(deal.settlementDeadline)!==0n)throw Error("Yatırma aşaması kapalı.");
     if(item?.token&&allowance<amount)throw Error("Önce token izni gerekli.");
+    await preflight("deposit(uint256)",word(dealId),item.token?0:Number(amount));
     if(!confirm("Nile test ağı: "+display(amount,item.dp)+" "+item.symbol+" V4 sözleşmesine yatırılacak. Bu işlem cüzdan imzası ve test ağ maliyeti ister. Devam edilsin mi?"))return;
     const options={feeLimit:100000000,shouldPollResponse:false};
     if(!item.token){if(!Number.isSafeInteger(Number(amount)))throw Error("TRX tutarı istemci sayısal sınırını aşıyor.");options.callValue=Number(amount)}
@@ -200,6 +213,7 @@ async function sign(action){
   }else if(action==="refund"){
     const full=flag(deal.depositedA)&&flag(deal.depositedB),end=bigint(deal.settlementDeadline),dep=bigint(deal.depositDeadline);
     if(flag(deal.completed)||!flag(deal["deposited"+mine])||flag(deal["refunded"+mine])||!((dep>0n&&!full&&now>=dep)||(end>0n&&now>=end)))throw Error("İade koşulları geçerli değil.");
+    await preflight("refund(uint256)",word(dealId));
     if(!confirm("Süresi dolmuş yatırımı komisyonsuz iade almak için Nile cüzdan imzası verilsin mi?"))return;
     tx=await c.refund(dealId).send({feeLimit:80000000,shouldPollResponse:false});
   }
@@ -231,7 +245,7 @@ $("join").onclick=async()=>{
  if(pending||!wallet)return;
  if(!confirm("Bu cüzdanı Taraf "+(roleParam==="1"?"A":"B")+" olarak kaydetmek için Nile işlemi imzalanacak. Yönetici bağımsız doğrulama yapmadan fon yatırılmayacak. Devam edilsin mi?"))return;
  pending=true;$("join").disabled=true;
- try{await setup(true);const tx=await c.requestRole(dealId,Number(roleParam)).send({feeLimit:50000000,shouldPollResponse:false});$("joinStatus").textContent="Rol talebi gönderildi; kesinleşmesi doğrulanmadı.\n"+tx+"\nZincirden yenile."}catch(e){$("joinStatus").textContent="HATA: "+(e?.message||e)}finally{pending=false}
+ try{await setup(true);await preflight("requestRole(uint256,uint8)",word(dealId)+word(Number(roleParam)));const tx=await c.requestRole(dealId,Number(roleParam)).send({feeLimit:50000000,shouldPollResponse:false});$("joinStatus").textContent="Rol talebi gönderildi; kesinleşmesi doğrulanmadı.\n"+tx+"\nZincirden yenile."}catch(e){$("joinStatus").textContent="HATA: "+(e?.message||e)}finally{pending=false}
 };
 $("propose").onclick=async()=>{
  if(pending||!wallet||$("propose").disabled)return;
@@ -245,6 +259,7 @@ $("propose").onclick=async()=>{
    dp=(await asset(tokenAddress)).dp;
   }else if($("type").value!=="TRX")throw Error("Token türünü seç.");
   const n=units($("amount").value.trim().replace(",","."),dp);
+  await preflight("propose(uint256,address,uint256)",word(dealId)+tw.address.toHex(tokenAddress).slice(2).padStart(64,"0")+word(n));
   if(!confirm("Teklif: "+$("amount").value+" "+$("type").value+"\nHizmet bedelini ve karşı tarafın teklifini daha sonra ayrıca kabul edeceksiniz. Nile işlemi imzalansın mı?"))return;
   const tx=await c.propose(dealId,tokenAddress,n.toString()).send({feeLimit:60000000,shouldPollResponse:false});
   $("proposalStatus").textContent="TEKLİF GÖNDERİLDİ, HENÜZ DOĞRULANMADI\n"+tx+"\nZincirden güncelleyin.";
