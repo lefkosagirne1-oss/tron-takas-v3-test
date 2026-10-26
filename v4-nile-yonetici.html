@@ -285,7 +285,7 @@ async function read(){
  const accepted=yes(s.acceptedA)&&yes(s.acceptedB);
  const deadline=BigInt(value(s.settlementDeadline));
  readyForFinal=funded&&accepted&&deadline>now()&&!yes(s.completed)&&!yes(s.cancelled);
- $("confirm").disabled=yes(s.walletsConfirmed)||yes(s.cancelled)||yes(s.completed)||!tw.isAddress(a)||!tw.isAddress(b)||a===b;
+ $("confirm").disabled=true; // Fail closed: on-chain raw slot validation required before wallet locking.
  $("finalize").disabled=!readyForFinal;
  const state=[
  "TAKAS #"+id,
