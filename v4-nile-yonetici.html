@@ -157,6 +157,11 @@ $("signDeploy").onclick=async()=>{
  if(!confirm("Nile test ağı: Dağıtım imzalanacak. Fee Limit en fazla 1.000 test TRX; bu tahmini gerçek tüketim değildir. TronLink imza ekranında maliyeti kontrol edin. Devam edilsin mi?"))return;
  $("signDeploy").disabled=true;
  const tx=preparedDeployment;preparedDeployment=null;
+ const exp=Number(tx?.raw_data?.expiration);
+ if(!Number.isFinite(exp)||exp-Date.now()<60000){
+  status("deployStatus","İMZASIZ İŞLEMİN SÜRESİ DOLDU VEYA ÇOK AZ KALDI. Yeni imza verme. Nile saat kontrolünü kullan.");
+  return;
+ }
  try{
   lastDeploymentTx=tx.txID;
   const signed=await tw.trx.sign(tx);
