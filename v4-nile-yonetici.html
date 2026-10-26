@@ -136,7 +136,7 @@ async function verify(){
  for(const id of ["create","read"])$(id).disabled=false;
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
-$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify()}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
+$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify();status("walletStatus","CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+owner)}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
 $("deployAck").onchange=()=>{$("deploy").disabled=true};
 $("diagnose").onclick=async()=>{
@@ -387,53 +387,5 @@ for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{cons
 try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";if(!$("dealId").value)$("dealId").value="1";
  const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
 }catch{}
-</script><script>
-/* Independent wallet bridge: works even if a later setup script fails. */
-(function(){
- const btn=document.getElementById("connect"),out=document.getElementById("walletStatus");
- if(!btn||!out)return;
- btn.addEventListener("click",async function(ev){
-  ev.stopImmediatePropagation();
-  ev.preventDefault();
-  out.textContent="TronLink cüzdanı aranıyor…";
-  try{
-   const provider=window.tronLink||window.tron;
-   let wallet=window.tronWeb||window.tron?.tronWeb||window.tronLink?.tronWeb;
-   if(!wallet?.defaultAddress?.base58){
-    out.textContent="Cüzdan izni isteniyor…";
-    if(!provider?.request)throw Error("TronLink cüzdan sağlayıcısı bulunamadı. Discover içinden aç.");
-    const permission=provider.request({method:"tron_requestAccounts"});
-    await Promise.race([permission,new Promise((_,reject)=>setTimeout(()=>reject(Error("TronLink izin isteği yanıt vermedi. Discover bağlantısını kontrol et.")),10000))]);
-    wallet=window.tronWeb||window.tron?.tronWeb||window.tronLink?.tronWeb;
-   }
-   const address=wallet?.defaultAddress?.base58;
-   if(!address)throw Error("TronLink cüzdan adresini paylaşmadı.");
-   if(address!=="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU")throw Error("Yönetici cüzdanı seçili değil: "+address);
-   const node=String(wallet.fullNode?.host||wallet.fullNode?.url||"").toLowerCase();
-   if(node&&!node.includes("nile"))throw Error("Nile Testnet ağını seç.");
-   out.textContent="CÜZDAN BAĞLANDI\n"+address;
-   if(typeof tw!=="undefined")tw=wallet;
-   if(typeof artifact!=="undefined"&&!artifact){
-    try{const res=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});if(res.ok)artifact=await res.json();}catch{}
-   }
-   if(typeof artifactMatchesSource!=="undefined"&&artifact?.sourceSha256&&window.crypto?.subtle){
-    try{
-     const source=await fetch("./contracts/TakasV4Draft.sol",{cache:"no-store"});
-     if(source.ok){
-      const digest=await crypto.subtle.digest("SHA-256",await source.arrayBuffer());
-      const hash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,"0")).join("");
-      artifactMatchesSource=hash===artifact.sourceSha256;
-     }
-    }catch{}
-   }
-   const dep=document.getElementById("deploy"),ack=document.getElementById("deployAck");
-   if(dep)dep.disabled=true;
-   if(typeof verify==="function"&&typeof tw!=="undefined"&&tw){
-    try{await verify();out.textContent="CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+address;}
-    catch(e){out.textContent="CÜZDAN BAĞLANDI\\n"+address+"\\nSÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e);}
-   }
-  }catch(e){out.textContent="BAĞLANTI HATASI: "+(e?.message||e);}
- },true);
-})();
 </script>
 </body></html>
