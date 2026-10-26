@@ -188,7 +188,23 @@ async function sign(action){
  }catch(e){$("txStatus").textContent="HATA / DURUM BELİRSİZ: "+(e?.message||e)+"\nYeniden imzalamadan önce zincirde kontrol edin."}
  finally{pending=false;disable()}
 }
-$("wallet").onclick=async()=>{try{await setup(true);await read()}catch(e){$("connection").textContent="BAĞLANTI HATASI: "+(e?.message||e)}};
+$("wallet").onclick=async()=>{
+ const button=$("wallet");button.disabled=true;
+ $("connection").textContent="TronLink bağlantısı kontrol ediliyor…";
+ try{
+  const injected=window.tronWeb||window.tron?.tronWeb||window.tronLink?.tronWeb;
+  if(injected?.trx&&injected?.defaultAddress?.base58){
+   window.tronWeb=injected;
+   if(!injected.ready)try{injected.ready=true}catch{}
+  }
+  await setup(true);
+  await read();
+  $("joinStatus").textContent="Cüzdan bağlantısı yenilendi. Katılım durumunu zincirden kontrol edin.";
+ }catch(e){
+  $("connection").textContent="BAĞLANTI HATASI: "+(e?.message||e);
+  $("joinStatus").textContent="Bağlantı kontrolü: "+(e?.message||e);
+ }finally{button.disabled=false}
+};
 $("refresh").onclick=async()=>{try{await read();$("txStatus").textContent="Zincir durumu yenilendi."}catch(e){$("txStatus").textContent="OKUMA HATASI: "+(e?.message||e)}};
 $("type").onchange=()=>$("tokenBox").hidden=$("type").value!=="TOKEN";
 $("join").onclick=async()=>{
