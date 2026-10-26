@@ -386,7 +386,16 @@ $("finalize").onclick=async()=>{
   await read();
   if(!readyForFinal)throw Error("Son onay koşulları değişti.");
   const id=$("dealId").value;
-  if(!confirm("NILE: Takas #"+id+" tamamlanacak, taraflara tokenler ve yöneticiye hizmet bedeli gönderilecek. Devam edilsin mi?"))return;
+  const preflight=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({owner_address:tw.address.toHex(owner),contract_address:tw.address.toHex(liveAddress),
+    function_selector:"finalize(uint256)",parameter:BigInt(id).toString(16).padStart(64,"0"),visible:false})
+  });
+  if(!preflight.ok)throw Error("Ücretsiz son onay kontrolü HTTP "+preflight.status);
+  const result=await preflight.json();
+  if(!result.result?.result||result.result?.code||result.result?.message)
+   throw Error("Ücretsiz son onay kontrolü başarısız; imza istenmedi: "+(result.result?.message||result.result?.code||"Sözleşme reddetti"));
+  if(!confirm("Ücretsiz zincir ön kontrolü geçti. NILE: Takas #"+id+" tamamlanacak, taraflara tokenler ve yöneticiye hizmet bedeli gönderilecek. Devam edilsin mi?"))return;
   const tx=await c.finalize(id).send({feeLimit:150000000,shouldPollResponse:false});
   status("actionStatus","Son onay gönderildi, henüz kesinleşmedi. İşlem: "+tx+"\nDurumu yeniden zincirden doğrula.");
   readyForFinal=false;
