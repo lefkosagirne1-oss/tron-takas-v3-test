@@ -115,7 +115,10 @@ async function read(){
  const isRegistered=!!mine,invited=role===roleParam;
  const settled=flag(deal.completed),cancelled=flag(deal.cancelled);
  const canPropose=isRegistered&&invited&&flag(deal.walletsConfirmed)&&!cancelled&&!settled&&depEnd===0n&&now<bigint(deal.offerDeadline);
- $("join").disabled=!wallet||isRegistered||flag(deal.walletsConfirmed)||cancelled||!invited;
+ const emptySlot=address(deal[roleParam==="1"?"partyA":"partyB"])===tw.address.fromHex(ZERO);
+ const alreadyOther=wallet===address(deal[roleParam==="1"?"partyB":"partyA"]);
+ const managerAddress=address(await c.manager().call());
+ $("join").disabled=!wallet||isRegistered||!emptySlot||alreadyOther||wallet===managerAddress||flag(deal.walletsConfirmed)||cancelled;
  $("propose").disabled=!canPropose;
  const canAccept=canPropose&&flag(deal.proposedA)&&flag(deal.proposedB)&&!flag(deal["accepted"+mine]);
  const canDeposit=isRegistered&&invited&&depEnd>0n&&now<depEnd&&end===0n&&!deposited&&!settled&&!cancelled;
