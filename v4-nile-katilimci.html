@@ -48,6 +48,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div>
 <pre id="terms">Yönetici hizmet bedeli ve teklifler yükleniyor…</pre>
 <pre id="state">Zincir bekleniyor.</pre>
+<pre id="countdown" aria-live="off">Süre bilgisi bekleniyor.</pre>
 <button class="secondary" id="refresh">Durumu güncelle (ücretsiz)</button>
 </section>
 <section id="actionSection"><h2>3 · Onayla ve gönder</h2>
@@ -116,6 +117,19 @@ async function readSwapRaw(id){
    i>=11?(n===1n?true:n===0n?false:(()=>{throw Error("Geçersiz zincir durumu")})()):n.toString();
  });
  return out;
+}
+function updateCountdown(){
+ const el=$("countdown");if(!deal){el.textContent="Süre bilgisi bekleniyor.";return}
+ if(flag(deal.completed)){el.textContent="Takas tamamlandı.";return}
+ if(flag(deal.cancelled)){el.textContent="Takas iptal edildi.";return}
+ const now=BigInt(Math.floor(Date.now()/1000));
+ const settlement=bigint(deal.settlementDeadline),deposit=bigint(deal.depositDeadline);
+ const end=settlement>0n?settlement:deposit>0n?deposit:0n;
+ if(end===0n){el.textContent="Geri sayım henüz başlamadı.";return}
+ const remaining=end>now?Number(end-now):0;
+ const mm=String(Math.floor(remaining/60)).padStart(2,"0"),ss=String(remaining%60).padStart(2,"0");
+ const label=settlement>0n?"Yönetici son onayı":"Varlık yatırma";
+ el.textContent=remaining>0?label+" için kalan süre: "+mm+":"+ss:label+" süresi doldu. Güncel zincir durumunu kontrol edin.";
 }
 async function read(){
  disable();
@@ -190,6 +204,7 @@ async function read(){
   $("allow").disabled=!needsApproval;$("allow").hidden=!needsApproval;
   $("deposit").disabled=needsApproval;$("deposit").hidden=needsApproval;
  }}
+ updateCountdown();
  return deal;
 }
 async function preflight(selector,params,callValue=0){
@@ -288,5 +303,6 @@ $("propose").onclick=async()=>{
  finally{pending=false}
 };
 for(const key of ["accept","allow","deposit","refund"])$(key).onclick=()=>sign(key);
+setInterval(updateCountdown,1000);
 (async()=>{try{await setup(false);await read()}catch(e){$("connection").textContent="DAVET HATASI: "+(e?.message||e)}})();
 </script></body></html>
