@@ -260,7 +260,6 @@ $("create").onclick=async()=>{
  const pct=Number($("rate").value),payer=Number($("payer").value);
  if(!Number.isFinite(pct)||pct<0||pct>10||!Number.isInteger(pct*100)){status("inviteStatus","Hizmet bedeli 0–10 arasında, en fazla iki ondalıklı olmalı.");return}
  if((pct===0)!==(payer===0)){status("inviteStatus","Komisyon yoksa ücret ödeyen seçeneğini de 'Hizmet bedeli yok' yap.");return}
- if(!confirm("Nile test ağı: %"+pct+" hizmet bedeli kuralıyla yeni davet oluşturulsun mu? Bu işlem cüzdan imzası ister."))return;
  $("create").disabled=true;
  try{
   const nextBefore=BigInt(value(await c.nextId().call()));
@@ -274,6 +273,7 @@ $("create").onclick=async()=>{
   const simulated=await simulation.json();
   if(!simulated.result?.result||simulated.result?.code||simulated.result?.message)
    throw Error("Ücretsiz davet ön kontrolü reddetti: "+(simulated.result?.message||simulated.result?.code||"Bilinmeyen neden"));
+  if(!confirm("Ücretsiz zincir ön kontrolü geçti. Nile test ağında %"+pct+" hizmet bedeliyle yeni davet oluşturmak için cüzdan imzası verilsin mi?"))return;
   const args=[{type:"uint16",value:Math.round(pct*100)},{type:"uint8",value:payer}];
   const built=await tw.transactionBuilder.triggerSmartContract(liveAddress,"createInvite(uint16,uint8)",{feeLimit:60000000,callValue:0},args,owner);
   if(!built?.result?.result||!built.transaction?.raw_data)throw Error("İşlem taslağı hazırlanamadı.");
