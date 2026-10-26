@@ -1,0 +1,14 @@
+{
+  "name": "takas-v4-nile-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:v4": "node --test v4-test/contract.test.mjs",
+    "build:v4": "node v4-test/build-artifact.mjs"
+  },
+  "devDependencies": {
+    "solc": "0.8.31",
+    "ganache": "7.9.2",
+    "ethers": "6.15.0"
+  }
+}
