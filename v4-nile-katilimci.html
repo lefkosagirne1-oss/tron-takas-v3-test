@@ -81,10 +81,29 @@ async function setup(connect){
  $("connection").textContent="Nile sözleşmesi: "+contractAddress+"\nTakas: #"+dealId+"\nCüzdan: "+(wallet||"Henüz bağlanmadı");
 }
 async function asset(t){if(isNative(t))return {token:null,dp:6,symbol:"TRX"};const id=address(t);const token=await tw.contract(tokenABI,id);const dp=Number(value(await token.decimals().call()));if(!Number.isInteger(dp)||dp<0||dp>30)throw Error("Token ondalık hanesi geçersiz.");let symbol="TRC20";try{symbol=value(await token.symbol().call()).slice(0,16)}catch{}return {token,dp,symbol}}
+async function readSwapRaw(id){
+ const response=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+  method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({owner_address:tw.address.toHex(wallet||"TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU"),
+   contract_address:tw.address.toHex(contractAddress),function_selector:"getSwap(uint256)",
+   parameter:BigInt(id).toString(16).padStart(64,"0"),visible:false})
+ });
+ if(!response.ok)throw Error("Nile zincir okuması başarısız: HTTP "+response.status);
+ const result=await response.json(),raw=result.constant_result?.[0];
+ if(!result.result?.result||!raw||raw.length!==fields.length*64||!/^[0-9a-f]+$/i.test(raw))
+  throw Error("Takas bilgisi zincirden doğrulanamadı.");
+ const words=raw.match(/.{64}/g),out={};
+ fields.forEach((name,i)=>{
+  const n=BigInt("0x"+words[i]);
+  out[name]=i<4?(n===0n?ZERO:tw.address.fromHex("41"+words[i].slice(-40))):
+   i>=11?(n===1n?true:n===0n?false:(()=>{throw Error("Geçersiz zincir durumu")})()):n.toString();
+ });
+ return out;
+}
 async function read(){
  disable();
  if(!c)await setup(false);
- deal=decode(await c.getSwap(dealId).call());
+ deal=await readSwapRaw(dealId);
  const a=address(deal.partyA),b=address(deal.partyB);
  role=wallet&&wallet===a?"1":wallet&&wallet===b?"2":"";
  assets={};for(const k of ["A","B"])if(flag(deal["proposed"+k]))assets[k]=await asset(deal["token"+k]);
