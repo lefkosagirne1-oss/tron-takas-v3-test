@@ -1,6 +1,6 @@
 # Takas V4 — İlk sözleşme taslağı
 
-**Durum (26.10.2026):** Solidity kaynak kodu hazır; henüz derlenmedi, otomatik/yerel testleri çalıştırılmadı, Nile ağına dağıtılmadı. **Gerçek veya test tokeni göndermeyin.**
+**Durum (26.10.2026):** Solidity kaynak kodu hazır; Solidity 0.8.31 ile derlendi ve yerel EVM üzerinde **11/11 otomatik test geçti**. Nile ağına dağıtılmadı; TRON TVM davranışları ayrıca doğrulanmalı. **Gerçek veya test tokeni göndermeyin.**
 
 ## Yeni akış
 1. Yönetici `createInvite(feeBps, feePayer)` ile komisyon kuralı oluşturur (ör. %5 = 500 baz puan, ödeyen = A).
@@ -21,17 +21,19 @@
 - Kaynak dosya `contracts/TakasV4Draft.sol` eski V3 sözleşmesiyle bağımsızdır.
 
 ## Dağıtımdan önce zorunlu testler
-- [ ] Solidity 0.8.31 ile derleme ve ABI kontrolü
-- [ ] Yetkisiz `createInvite`, `confirmParticipants` ve `finalize` engellemesi
+- [x] Solidity 0.8.31 ile yerel derleme ve ABI kontrolü
+- [x] Yetkisiz `createInvite`, `confirmParticipants` ve `finalize` engellemesi
 - [ ] Aynı adres / eksik katılımcı / yanlış role talepleri
-- [ ] Teklif güncellenince her iki onayın geçersiz olması
-- [ ] TRX ↔ TRC20 ve TRC20 ↔ TRC20 gerçek miktar işlemleri
-- [ ] %0, %5, %10 komisyon; A/B ödeyen; yuvarlama ve net tutar doğruluğu
-- [ ] Eksik yatırma, ikinci yatırımın geç gelmesi ve komisyonsuz iade
-- [ ] Son onay süresi dolunca her iki tarafın ayrı ayrı iadesi
+- [x] Teklif güncellenince her iki onayın geçersiz olması
+- [x] TRX ↔ TRC20 ve TRC20 ↔ TRC20 **yerel simülasyonda**
+- [x] %0, %5, %10 ve diğer komisyonlar; A/B ödeyen; farklı miktarlar ve net sonuçlar yerel olarak test edildi
+- [x] Tek taraflı yatırım ve süre sonrası komisyonsuz iade yerel olarak test edildi; diğer uç durumlar açık
+- [x] Son onay süresi dolunca her iki tarafın ayrı ayrı iadesi yerel olarak test edildi
 - [ ] Yeniden giriş, çift yatırma, iki kez iade, iki kez tamamlamanın engellenmesi
-- [ ] Transferi başarısız tokenlar, fee-on-transfer ve token uyumluluğu
+- [ ] Transferi başarısız veya uyumsuz tokenların geniş kapsamlı testleri (**çıkan miktarda eksik transferin engellenmesi için test geçti**)
 - [ ] Nile dağıtımı, zincir üstü olay ve bakiye denetimi, mobil TronLink kullanıcı testi
 - [ ] Mainnet öncesi bağımsız güvenlik denetimi
 
 **Durum:** Kontrolleri geçmeden Nile'de imza veya Mainnet kullanımı önerilmez.
+
+**26.10.2026 — Son CI:** 11 test başarılı, 0 hatalı. GitHub Actions: https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/40336268804
