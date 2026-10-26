@@ -86,7 +86,7 @@ async function connect(){
   artifactMatchesSource=/^[a-f0-9]{64}$/.test(artifact.sourceSha256||"")&&sourceHash===artifact.sourceSha256;
  }
  if(!artifactMatchesSource){
-  status("walletStatus","NILE YÖNETİCİ CÜZDANI DOĞRULANDI\\nCüzdan: "+owner+"\\nUYARI: V4 derlemesi güncel değil. Dağıtım kapalı.");
+  status("walletStatus","NILE YÖNETİCİ CÜZDANI DOĞRULANDI\nCüzdan: "+owner+"\nUYARI: V4 derlemesi güncel değil. Dağıtım kapalı.");
   $("deploy").disabled=true;
   return;
  }
