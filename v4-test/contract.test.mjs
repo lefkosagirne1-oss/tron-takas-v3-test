@@ -82,9 +82,9 @@ test("participant-driven 100 native ↔ 50000 token: 5% A fee and exact settleme
   const f=await fixture();const {swap,token,a,b,owner,one,provider}=f;
   await registerAndOffer(f);
   const abefore=await token.balanceOf(await a.getAddress());
-  const beforeB=await provider.getBalance(await b.getAddress());
   await one(swap.connect(a).deposit(1,{value:parseEther("100")}));
   await one(swap.connect(b).deposit(1));
+  const beforeB=await provider.getBalance(await b.getAddress());
   const beforeFee=await provider.getBalance(await owner.getAddress());
   await one(swap.finalize(1));
   assert.equal((await token.balanceOf(await a.getAddress()))-abefore,parseEther("50000"));
