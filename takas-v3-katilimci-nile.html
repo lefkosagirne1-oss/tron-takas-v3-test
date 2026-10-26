@@ -243,5 +243,8 @@ $("wallet").addEventListener("click",async()=>{
 $("refresh").addEventListener("click",async()=>{try{await read();$("actionResult").textContent="Zincirden güncellendi."}catch(e){disable();$("actionResult").textContent="Yenileme hatası: "+(e?.message||e)}});
 for(const action of ["approve","deposit","accept","refund"])$(action).addEventListener("click",()=>signedAction(action));
 const q=new URLSearchParams(location.search).get("id");
-if(q&&/^[1-9]\d*$/.test(q))$("dealId").value=q;
+if(q&&/^[1-9]\d*$/.test(q)){
+ $("dealId").value=q;
+ $("managerLink").href="./takas-v3-yonetici-islem.html?id="+encodeURIComponent(q)+"#finalSection";
+}
 </script></body></html>
