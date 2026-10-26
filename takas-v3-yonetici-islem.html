@@ -91,14 +91,26 @@ function tokenInfo(side){
  if(!Number.isInteger(decimals)||decimals<0||decimals>18)throw Error(side+" token decimals geçersiz");
  return {address,decimals,label:"Token "+address.slice(0,8)+"…"};
 }
+function tronDiagnostic(){
+ const t=window.tron, l=window.tronLink, w=window.tronWeb;
+ const tw=t?.tronWeb||w;
+ return "Sayfa teşhisi: tron="+Boolean(t)+", tronWeb="+Boolean(w)+", tronLink="+Boolean(l)+
+ ", request="+Boolean(l?.request||t?.request)+", ready="+Boolean(tw?.ready)+
+ ", adres="+Boolean(tw?.defaultAddress?.base58);
+}
 async function connect(){
  const provider=window.tron;
  let tw=provider?.tronWeb||window.tronWeb;
- if(!tw?.ready && window.tronLink?.request){
-  try{await window.tronLink.request({method:"tron_requestAccounts"});}catch(e){throw Error("TronLink bağlantı izni verilmedi: "+(e?.message||e));}
-  tw=window.tron?.tronWeb||window.tronWeb;
+ if(!tw?.ready){
+  const request=window.tronLink?.request?window.tronLink.request.bind(window.tronLink):
+   provider?.request?provider.request.bind(provider):null;
+  if(request){
+   try{await request({method:"tron_requestAccounts"});}
+   catch(e){throw Error("Bağlantı isteği başarısız: "+(e?.message||e)+"\\n"+tronDiagnostic());}
+   tw=window.tron?.tronWeb||window.tronWeb;
+  }
  }
- if(!tw?.ready)throw Error("TronLink bu siteye bağlı değil. TronLink üzerinden siteye Connect izni verin.");
+ if(!tw?.ready)throw Error("TronLink sayfaya cüzdan bilgisi aktarmıyor.\\n"+tronDiagnostic());
  const host=String(tw.fullNode?.host||tw.fullNode?.url||"");
  if(!host.toLowerCase().includes("nile"))throw Error("Nile ağı seçili değil");
  const wallet=tw.defaultAddress?.base58;
