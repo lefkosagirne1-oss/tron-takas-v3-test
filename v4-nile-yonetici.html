@@ -21,6 +21,8 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 <button id="verifyContract" class="light">Mevcut sözleşmeyi doğrula</button>
 <label><input type="checkbox" id="deployAck" style="width:auto;min-height:auto;margin-right:8px">Nile test ağında yeni V4 sözleşmesinin dağıtım maliyetini onaylıyorum.</label>
 <button id="deploy" disabled>Ücretsiz dağıtım taslağını hazırla</button>
+<button id="estimateDeploy" class="light" disabled>Dağıtım Energy maliyetini ücretsiz tahmin et</button>
+<pre id="energyEstimate">Henüz Energy tahmini yapılmadı.</pre>
 <button id="signDeploy" disabled>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
@@ -162,10 +164,27 @@ $("deploy").onclick=async()=>{
    "Gönderen: "+owner+"\\nİşlem ID: "+unsigned.txID+
    "\\nFee Limit üst sınırı: 1.000 test TRX (gerçek tüketim değil)."+
    "\\nMaliyeti kontrol etmeden onay verme.");
+  $("estimateDeploy").disabled=false;
   $("signDeploy").disabled=false;
  }catch(e){
   status("deployStatus","İMZASIZ HAZIRLIK BAŞARISIZ: "+(e?.message||e)+"\\nHerhangi bir işlem imzalanmadı.");
  }finally{$("deploy").disabled=!tw||!artifactMatchesSource||!$("deployAck").checked}
+};
+$("estimateDeploy").onclick=async()=>{
+ const out=$("energyEstimate");out.textContent="Nile üzerinde ücretsiz tahmin sorgulanıyor…";
+ try{
+  if(!preparedDeployment||!tw)throw Error("Önce ücretsiz dağıtım taslağını hazırla.");
+  const tx=preparedDeployment;
+  const from=tw.address.toHex(owner);
+  const data=tx?.raw_data?.contract?.[0]?.parameter?.value?.new_contract?.bytecode;
+  if(!data)throw Error("Taslakta sözleşme bytecode bulunamadı.");
+  const node=String(tw.fullNode?.host||tw.fullNode?.url||"").replace(/\\/$/,"");
+  if(!node.includes("nile"))throw Error("Nile bağlantısı gerekli.");
+  const response=await fetch(node+"/wallet/estimateenergy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({owner_address:from,contract_address:from,visible:false,function_selector:"",parameter:data,call_value:0})});
+  const j=await response.json();
+  if(!response.ok||!j.result?.result||!Number.isFinite(Number(j.energy_required)))throw Error("Nile dağıtım Energy tahminini desteklemiyor veya doğrulamadı: "+JSON.stringify(j).slice(0,350));
+  out.textContent="Nile Energy tahmini: "+Number(j.energy_required).toLocaleString("tr-TR")+"\\nBu değer ağ tahminidir; gerçek tüketim farklı olabilir. İmzalamadan önce TronLink ücret ekranını kontrol et.";
+ }catch(e){out.textContent="DOĞRULANMIŞ ENERGY TAHMİNİ YOK: "+(e?.message||e)+"\\nBu sonuçla imza verme.";}
 };
 $("signDeploy").onclick=async()=>{
  if(!preparedDeployment||!tw||!artifactMatchesSource||!$("deployAck").checked)return;
