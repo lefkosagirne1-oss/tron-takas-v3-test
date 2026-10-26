@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><title>FRHN izin kontrolü</title></head>
+<body style="font:18px sans-serif;max-width:720px;margin:2rem auto;padding:1rem">
+<h1>FRHN izin kontrolü (Nile test ağı)</h1>
+<p>Bu sayfa yalnızca okuma yapar. Cüzdandan işlem veya imza istemez.</p>
+<p>Veli: TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF</p>
+<p>Token: TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx</p>
+<p>İzin verilecek sözleşme: TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm</p>
+<button id="check">Zincirde mevcut izni oku</button><pre id="result">Kontrol yapılmadı.</pre>
+<script>
+const ABI=[{name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]}];
+document.getElementById("check").onclick=async()=>{
+ const out=document.getElementById("result");out.textContent="Zincir okunuyor...";
+ try{
+ const tw=window.tron?.tronWeb||window.tronWeb;
+ if(!tw?.trx)throw Error("TronLink bu sayfada bulunamadı.");
+ if(!String(tw.fullNode?.host||tw.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink Nile ağına alınmalı.");
+ const c=await tw.contract(ABI,"TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx");
+ const amount=BigInt(String(await c.allowance("TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF","TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm").call()));
+ out.textContent="İzin (ham): "+amount+"\n100 FRHN için yeterli: "+(amount>=100n*10n**18n?"EVET":"HAYIR");
+ }catch(e){out.textContent="Hata: "+e.message}
+};
+</script></body></html>
