@@ -345,8 +345,11 @@ $("precheck").onclick=async()=>{
   if(!/^[1-9][0-9]*$/.test(id))throw Error("Takas numarası geçersiz: "+JSON.stringify(id));
   $("dealId").value=id;
   const state=await readSwapRaw(id);
-  if(state.partyA===zero||state.partyB===zero||state.partyA===state.partyB)
-   throw Error("İki ayrı katılımcı cüzdanı henüz kayıtlı değil.");
+  const partyA=addr(state.partyA),partyB=addr(state.partyB);
+  const empty=tw.address.fromHex(zero);
+  if(partyA===zero||partyB===zero||partyA===empty||partyB===empty||partyA===partyB)
+   throw Error("İki ayrı katılımcı cüzdanı zincirde doğrulanamadı. A: "+partyA+" | B: "+partyB);
+  $("precheckStatus").textContent="Zincirden okunan A: "+partyA+" | B: "+partyB+"\\nÜcretsiz simülasyon yapılıyor…";
   if(yes(state.walletsConfirmed))throw Error("Cüzdanlar zaten kilitli.");
   const resp=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
    method:"POST",headers:{"Content-Type":"application/json"},
