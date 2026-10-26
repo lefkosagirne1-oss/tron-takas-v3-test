@@ -93,7 +93,7 @@ $("deploy").onclick=async()=>{
   if(tw.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değişmiş.");
   const deployed=await tw.contract().new({abi:artifact.abi,bytecode:artifact.bytecode,feeLimit:1000000000,callValue:0,userFeePercentage:100,originEnergyLimit:10000000,name:"TakasV4Draft"});
   if(!deployed?.address)throw Error("Dağıtım adresi doğrulanamadı; yeniden imzalamadan önce işlemlerini kontrol et.");
-  const address=tw.isAddress(deployed.address)?deployed.address:tw.address.fromHex(deployed.address);
+  const raw=String(deployed.address);const address=/^41[0-9a-f]{40}$/i.test(raw)?tw.address.fromHex(raw):raw;
   $("contractAddress").value=address;
   status("deployStatus","Dağıtım işlemi gönderildi. Adres: "+address+"\nSözleşme zincirden ayrıca doğrulanmalı.");
   await verify();
@@ -108,7 +108,8 @@ $("create").onclick=async()=>{
  if(!confirm("Nile test ağı: %"+pct+" hizmet bedeli kuralıyla yeni davet oluşturulsun mu? Bu işlem cüzdan imzası ister."))return;
  $("create").disabled=true;
  try{
-  const tx=await c.createInvite(Math.round(pct*100),payer).send({feeLimit:60000000,shouldPollResponse:false});
+  const result=await c.createInvite(Math.round(pct*100),payer).send({feeLimit:60000000,shouldPollResponse:true,keepTxID:true});
+  const tx=Array.isArray(result)?result[0]:result;
   status("inviteStatus","Davet zincire gönderildi, henüz kesinleşmedi.\nİşlem: "+tx+"\nZincir doğrulaması yapılıyor…");
   const info=await tw.trx.getTransactionInfo(tx);
   if(info?.receipt?.result!=="SUCCESS")throw Error("Henüz başarı doğrulanmadı. İşlemi TronLink'te kontrol et; yeniden oluşturma.");
