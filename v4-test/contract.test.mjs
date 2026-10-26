@@ -62,7 +62,7 @@ async function fixture() {
   return {node,provider,owner,a,b,other,swap,token,one};
 }
 
-async function registerAndOffer(f,{fee=500,payer=1,amountA=parseEther("100"),amountB=parseEther("50000")}={}) {
+async function registerAndOffer(f,{fee=500,payer=1,amountA=parseEther("3.75"),amountB=parseEther("91.2")}={}) {
   const {swap,token,owner,a,b,one}=f;
   await one(swap.createInvite(fee,payer));
   const id=1;
@@ -158,3 +158,37 @@ test("service fee zero and participant wallet rules",async()=>{
   await one(swap.confirmParticipants(1,{gasLimit:500000}));
   await assert.rejects(one(swap.connect(other).requestRole(1,1)));
 });
+
+for(const sample of [
+ {amountA:"2.5",amountB:"321.75",payer:1,fee:500},
+ {amountA:"17",amountB:"3.4",payer:2,fee:250},
+ {amountA:"0.6",amountB:"832.07",payer:0,fee:0},
+ {amountA:"28.125",amountB:"0.75",payer:1,fee:1000},
+]) {
+ test("independent participant amounts and fee rule: "+JSON.stringify(sample),async()=>{
+  const f=await fixture();const {swap,token,a,b,owner,one}=f;
+  const amountA=parseEther(sample.amountA), amountB=parseEther(sample.amountB);
+  await registerAndOffer(f,{fee:sample.fee,payer:sample.payer,amountA,amountB});
+  const saved=await swap.getSwap(1);
+  assert.equal(saved.amountA,amountA);
+  assert.equal(saved.amountB,amountB);
+  assert.equal(saved.feeBps,BigInt(sample.fee));
+  const feeBase=sample.payer===1?amountA:sample.payer===2?amountB:0n;
+  const fee=feeBase*BigInt(sample.fee)/10000n;
+  const [onChainFee,onChainNetA,onChainNetB]=await swap.preview(1);
+  assert.equal(onChainFee,fee);
+  assert.equal(onChainNetA,amountB-(sample.payer===2?fee:0n));
+  assert.equal(onChainNetB,amountA-(sample.payer===1?fee:0n));
+  await one(swap.connect(a).deposit(1,{value:amountA}));
+  await one(swap.connect(b).deposit(1));
+  const nativeBalance=async account=>BigInt(await f.node.request({method:"eth_getBalance",params:[account,"latest"]}));
+  const bBefore=await nativeBalance(await b.getAddress());
+  const aBefore=await token.balanceOf(await a.getAddress());
+  const managerTokenBefore=await token.balanceOf(await owner.getAddress());
+  await one(swap.finalize(1));
+  assert.equal((await nativeBalance(await b.getAddress()))-bBefore,onChainNetB);
+  assert.equal((await token.balanceOf(await a.getAddress()))-aBefore,onChainNetA);
+  assert.equal((await token.balanceOf(await owner.getAddress()))-managerTokenBefore,sample.payer===2?fee:0n);
+  assert.equal((await swap.getSwap(1)).completed,true);
+ });
+}
