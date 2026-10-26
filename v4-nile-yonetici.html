@@ -290,7 +290,7 @@ $("create").onclick=async()=>{
   }
   if(info?.receipt?.result!=="SUCCESS")throw Error("Henüz başarı doğrulanmadı. İşlemi TronLink'te kontrol et; yeniden oluşturma.");
   const next=BigInt(value(await c.nextId().call())),id=(next-1n).toString();
-  const swap=decode(await c.getSwap(id).call());
+  const swap=await readSwapRaw(id);
   if(Number(value(swap.feeBps))!==Math.round(pct*100)||Number(value(swap.feePayer))!==payer)throw Error("Son davet zincirden doğrulanamadı; tekrar imzalama.");
   $("dealId").value=id;$("linkA").value=url(liveAddress,id,1);$("linkB").value=url(liveAddress,id,2);$("links").hidden=false;
   status("inviteStatus","NILE ZİNCİRİNDE DAVET #"+id+" OLUŞTU\nTaraf A ve B bağlantıları ayrı hazır. Henüz para yatırılmadı.");
