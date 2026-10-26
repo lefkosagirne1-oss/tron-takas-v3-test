@@ -376,7 +376,18 @@ async function read(){
  "Son onay için uygun: "+(readyForFinal?"EVET":"HAYIR")
  ].join("\n");
  status("dealStatus",state);
+ const pending=[];
+ if(!yes(s.proposedA))pending.push("A teklifi bekleniyor");
+ if(!yes(s.proposedB))pending.push("B teklifi bekleniyor");
+ if(!yes(s.acceptedA))pending.push("A onayı bekleniyor");
+ if(!yes(s.acceptedB))pending.push("B onayı bekleniyor");
+ if(!yes(s.depositedA))pending.push("A yatırımı bekleniyor");
+ if(!yes(s.depositedB))pending.push("B yatırımı bekleniyor");
+ status("overviewStatus","Takas #"+id+"\n"+(yes(s.completed)?"Tamamlandı":yes(s.cancelled)?"İptal edildi":readyForFinal?"Yönetici son onayı bekleniyor":pending.join("\n"))+"\nYatırıldı A/B: "+(yes(s.depositedA)?"Evet":"Hayır")+"/"+(yes(s.depositedB)?"Evet":"Hayır"));
+ $("overviewRefresh").disabled=false;
+ $("overviewLinks").hidden=false;
  updateFinalCountdown();
+ status("overviewTimer",$("finalCountdown").textContent);
  return s;
 }
 async function showExistingLinks(id){
@@ -494,7 +505,7 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 setInterval(()=>{updateFinalCountdown();status("overviewTimer",$("finalCountdown").textContent)},1000);
-$("overviewLoad").onclick=async()=>{const id=$("overviewDealId").value.trim();if(!/^[1-9]\\d*$/.test(id)){status("overviewStatus","Geçerli takas numarası gir.");return}try{status("overviewStatus","Zincirden okunuyor…");await showExistingLinks(id)}catch(e){status("overviewStatus","Takas okunamadı: "+(e?.message||e))}};
+$("overviewLoad").onclick=async()=>{const id=$("overviewDealId").value.trim();if(!/^[1-9][0-9]*$/.test(id)){status("overviewStatus","Geçerli takas numarası gir.");return}try{status("overviewStatus","Zincirden okunuyor…");await showExistingLinks(id)}catch(e){status("overviewStatus","Takas okunamadı: "+(e?.message||e))}};
 $("overviewRefresh").onclick=()=> $("overviewLoad").click();
 $("overviewCopyA").onclick=()=> $("linkA").value?navigator.clipboard.writeText($("linkA").value).then(()=>status("inviteStatus","Taraf A bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 $("overviewCopyB").onclick=()=> $("linkB").value?navigator.clipboard.writeText($("linkB").value).then(()=>status("inviteStatus","Taraf B bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
