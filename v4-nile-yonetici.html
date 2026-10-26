@@ -15,7 +15,7 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <h1>TAKAS · Yönetici</h1><p>Nile Testnet · V4 canlı test hazırlığı</p>
 <div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
 <section><h2>1 · Cüzdanım</h2>
-<button id="connect">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
+<button id="connect" onclick="document.getElementById('walletStatus').textContent='Bağlantı isteği alındı; TronLink kontrol ediliyor…'">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
 <section class="setup"><h2>Teknik kurulum · V4 sözleşmesi</h2>
 <p class="note">Henüz V4 Nile adresi yoksa sözleşmeyi yönetici cüzdanından bir defa dağıtmak gerekir. Bu düğme gerçek test ağı işlemi imzalatır.</p>
 <label for="contractAddress">V4 Nile sözleşme adresi</label><input id="contractAddress" placeholder="Sözleşme kurulunca burada görünecek" autocomplete="off">
@@ -47,6 +47,7 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <small>Gerçek transferler zincir üzerinde doğrulanır. URL'deki rol bilgisi yetki sağlamaz. Tarafların kimlikleri ayrıca kontrol edilmelidir.</small>
 <script>
 const $=id=>document.getElementById(id);
+window.addEventListener("error",e=>{const el=document.getElementById("walletStatus");if(el)el.textContent="SAYFA KODU HATASI: "+(e.message||"Bilinmeyen hata")+" (satır "+(e.lineno||"?")+")";});
 $("toggleSetup").onclick=()=>{document.body.classList.toggle("advanced");$("toggleSetup").textContent=document.body.classList.contains("advanced")?"Teknik kurulumu gizle":"Teknik kurulum (yalnızca gerektiğinde)"};
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
