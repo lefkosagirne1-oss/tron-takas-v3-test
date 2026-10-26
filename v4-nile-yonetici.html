@@ -346,9 +346,13 @@ $("precheck").onclick=async()=>{
   $("dealId").value=id;
   const state=await readSwapRaw(id);
   const partyA=addr(state.partyA),partyB=addr(state.partyB);
-  const empty=tw.address.fromHex(zero);
-  if(partyA===zero||partyB===zero||partyA===empty||partyB===empty||partyA===partyB)
-   throw Error("İki ayrı katılımcı cüzdanı zincirde doğrulanamadı. A: "+partyA+" | B: "+partyB);
+  // Compare raw ABI address words to zero, not Base58 conversion of the TRON
+  // sentinel: converting 4100... to Base58 may not be a reliable emptiness test.
+  const missingA=state.partyA===zero;
+  const missingB=state.partyB===zero;
+  const same=state.partyA===state.partyB;
+  if(missingA||missingB||same)
+   throw Error("Katılımcı doğrulaması başarısız (A boş: "+missingA+", B boş: "+missingB+", aynı: "+same+"). A: "+partyA+" | B: "+partyB);
   $("precheckStatus").textContent="Zincirden okunan A: "+partyA+" | B: "+partyB+"\\nÜcretsiz simülasyon yapılıyor…";
   if(yes(state.walletsConfirmed))throw Error("Cüzdanlar zaten kilitli.");
   const resp=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
