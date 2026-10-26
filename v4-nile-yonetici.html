@@ -21,7 +21,9 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 <button id="verifyContract" class="light">Mevcut sözleşmeyi doğrula</button>
 <label><input type="checkbox" id="deployAck" style="width:auto;min-height:auto;margin-right:8px">Nile test ağında yeni V4 sözleşmesinin dağıtım maliyetini onaylıyorum.</label>
 <button id="deploy" disabled>Ücretsiz dağıtım taslağını hazırla</button>
-<button id="signDeploy" disabled>Dağıtımı TronLink ile imzala</button><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
+<button id="signDeploy" disabled>Dağıtımı TronLink ile imzala</button>
+<button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
+<pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
 <section><h2>3 · Yeni takas daveti</h2>
 <p class="note">Token isimleri, miktarları ve cüzdan adreslerini sen girmeyeceksin; yalnızca hizmet bedelini belirleyeceksin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option><option value="0">Hizmet bedeli yok</option></select>
@@ -43,7 +45,7 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 const $=id=>document.getElementById(id);
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
-let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null;
+let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="cbadb7160c597044066220300646e1144577ef4bc6068e00efefe22cabfdc68";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 const value=x=>String(x?.toString?.()??x??"");
 const yes=x=>x===true||value(x)==="true"||value(x)==="1";
@@ -93,6 +95,32 @@ async function verify(){
 $("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect()}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
 $("deployAck").onchange=()=>{$("deploy").disabled=!tw||!$("deployAck").checked};
+$("diagnose").onclick=async()=>{
+ status("diagnosis","Nile blok zamanı ve gönderim durumu okunuyor…");
+ try{
+  const w=tw||window.tron?.tronWeb||window.tronWeb;
+  if(!w?.trx)throw Error("TronLink Discover üzerinden aç.");
+  const block=await w.trx.getNowBlock();
+  const chainMs=Number(block?.block_header?.raw_data?.timestamp);
+  if(!Number.isFinite(chainMs)||chainMs<=0)throw Error("Nile blok saati okunamadı.");
+  const deviceMs=Date.now(),offsetSec=Math.round((deviceMs-chainMs)/1000);
+  let outcome="İşlem zincirde doğrulanmadı.";
+  if(lastDeploymentTx){
+   try{
+    const info=await w.trx.getTransactionInfo(lastDeploymentTx);
+    outcome=info?.receipt?.result==="SUCCESS"
+      ?"BAŞARILI: "+(info.contract_address||"Sözleşme adresi raporlanmadı")
+      :info?.receipt?.result?"Zincirde başarısız: "+info.receipt.result:"Bu işlem için başarılı zincir makbuzu bulunamadı.";
+   }catch(e){outcome="İşlem sorgusunda kesinleşme doğrulanamadı: "+(e?.message||e);}
+  }
+  status("diagnosis","Nile blok zamanı: "+new Date(chainMs).toLocaleString("tr-TR")+
+   "\nTelefon zamanı: "+new Date(deviceMs).toLocaleString("tr-TR")+
+   "\nSaat farkı: "+offsetSec+" saniye (telefon - Nile)"+
+   "\nSon işlem: "+lastDeploymentTx+
+   "\n"+outcome+
+   "\nBu kontrol imza veya ücret gerektirmez.");
+ }catch(e){status("diagnosis","KONTROL HATASI: "+(e?.message||e));}
+};
 $("deploy").onclick=async()=>{
  if(!tw||!artifact||!$("deployAck").checked)return;
  $("deploy").disabled=true;$("signDeploy").disabled=true;preparedDeployment=null;
@@ -111,6 +139,8 @@ $("deploy").onclick=async()=>{
   const from=unsigned?.raw_data?.contract?.[0]?.parameter?.value?.owner_address||"";
   if(String(from).toLowerCase()!==issuer.toLowerCase())throw Error("İmzasız işlemin gönderen adresi uyuşmadı.");
   if(!unsigned?.txID||!unsigned?.raw_data_hex)throw Error("İmzasız işlem oluşturulamadı.");
+  const exp=Number(unsigned?.raw_data?.expiration),block=await tw.trx.getNowBlock(),chainTime=Number(block?.block_header?.raw_data?.timestamp);
+  if(!Number.isFinite(exp)||!Number.isFinite(chainTime)||exp-chainTime<60000)throw Error("İşlemin geçerlilik süresi çok kısa veya süresi dolmuş. Telefon ve Nile saatini kontrol et.");
   preparedDeployment=unsigned;
   status("deployStatus","İMZASIZ İŞLEM HAZIR — HENÜZ ÜCRET ALINMADI VE İMZA VERİLMEDİ\\n"+
    "Gönderen: "+owner+"\\nİşlem ID: "+unsigned.txID+
@@ -128,6 +158,7 @@ $("signDeploy").onclick=async()=>{
  $("signDeploy").disabled=true;
  const tx=preparedDeployment;preparedDeployment=null;
  try{
+  lastDeploymentTx=tx.txID;
   const signed=await tw.trx.sign(tx);
   if(!signed?.signature?.length)throw Error("TronLink işlemi imzalamadı.");
   const sent=await tw.trx.sendRawTransaction(signed);
