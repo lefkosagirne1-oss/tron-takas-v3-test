@@ -48,6 +48,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
 <label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="0">
 <button id="create" disabled>Takas bağlantısı oluştur</button>
+<button id="recoverLinks" class="light" disabled type="button">Mevcut takasın bağlantılarını getir (ücretsiz)</button>
 <pre id="inviteStatus">Önce V4 sözleşmesini doğrula.</pre>
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
@@ -149,7 +150,7 @@ async function verify(){
  if(chainOwner!==owner)throw Error("Sözleşmenin yönetici cüzdanı eşleşmiyor.");
  tw=window.tron?.tronWeb||window.tronWeb;c=found;liveAddress=address;
  try{localStorage.setItem("takas-v4-nile-address",address)}catch{}
- for(const id of ["create","read"])$(id).disabled=false;
+ for(const id of ["create","read","recoverLinks"])$(id).disabled=false;
  status("inviteStatus","Sözleşme doğrulandı. Hizmet bedelini seçip yeni takas bağlantısı oluşturabilirsin.");
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
@@ -353,6 +354,21 @@ async function read(){
  status("dealStatus",state);
  return s;
 }
+$("recoverLinks").onclick=async()=>{
+ try{
+  if(!c)throw Error("Önce sözleşmeyi doğrula.");
+  const id=$("dealId").value.trim();
+  if(!/^[1-9]\\d*$/.test(id))throw Error("Önce 3. bölümde takas numarasını gir (ör. 2).");
+  const next=BigInt(value(await c.nextId().call()));
+  if(BigInt(id)>=next)throw Error("Bu numarada zincirde oluşturulmuş takas yok.");
+  const swap=await readSwapRaw(id);
+  if(yes(swap.completed)||yes(swap.cancelled))throw Error("Bu takas tamamlanmış veya iptal edilmiş.");
+  $("linkA").value=url(liveAddress,id,1);
+  $("linkB").value=url(liveAddress,id,2);
+  $("links").hidden=false;
+  status("inviteStatus","TAKAS #"+id+" için mevcut zincir kaydından davet bağlantıları getirildi. Yeni işlem yapılmadı, TRX harcanmadı.");
+ }catch(e){status("inviteStatus","BAĞLANTILAR GETİRİLEMEDİ: "+(e?.message||e))}
+};
 $("read").onclick=async()=>{status("dealStatus","Zincirden okunuyor…");try{await read()}catch(e){$("finalize").disabled=true;$("confirm").disabled=true;status("dealStatus","HATA: "+(e?.message||e))}};
 $("precheck").onclick=async()=>{
  $("precheckStatus").textContent="Nile üzerinde ücretsiz kontrol yapılıyor…";
