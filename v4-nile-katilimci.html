@@ -36,25 +36,25 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="wallet">TronLink cüzdanını bağla</button>
 <button id="join" disabled>Katılım talebini zincire gönder</button>
 <pre id="joinStatus">İşlem imzalanmadı.</pre></section>
-<section><h2>2 · Teklifini belirle</h2>
+<section><h2>2 · Varlığını ve miktarını belirle</h2>
 <p>Hangi tokeni ne kadar göndereceğine sen karar verirsin. Diğer tarafın teklifi değişirse iki tarafın da yeniden onayı gerekir.</p>
 <label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="TOKEN">TRC20 token adresi</option></select>
 <div id="tokenBox" hidden><label for="token">TRC20 sözleşme adresi (T…)</label><input id="token" autocomplete="off" placeholder="T..."></div>
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
-<button id="propose" disabled>Teklifimi zincire kaydet</button><pre id="proposalStatus">Teklif gönderilmedi.</pre>
+<button id="propose" disabled>Teklifimi onayla</button><pre id="proposalStatus">Teklif gönderilmedi.</pre>
 </section>
-<section><h2>3 · İki tarafın teklifleri ve yatırımları</h2><div class="sides">
+<section id="detailsSection"><h2>3 · Takasın güncel durumu</h2><div class="sides">
 <div class="side"><strong>TARAF A</strong><pre id="sideA">Henüz okunmadı.</pre></div>
 <div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div>
 <pre id="terms">Yönetici hizmet bedeli ve teklifler yükleniyor…</pre>
 <pre id="state">Zincir bekleniyor.</pre>
-<button class="secondary" id="refresh">Zincirdeki güncel durumu oku</button>
+<button class="secondary" id="refresh">Durumu güncelle (ücretsiz)</button>
 </section>
-<section><h2>4 · İşlemini tamamla</h2>
+<section><h2>4 · Onayla ve gönder</h2>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku.</p>
-<button id="accept" hidden disabled>İki tarafın teklifini kabul et</button>
-<button id="allow" hidden disabled>Token harcama izni ver</button>
-<button id="deposit" hidden disabled>Varlığımı akıllı sözleşmeye yatır</button>
+<button id="accept" hidden disabled>Koşulları onayla ve devam et</button>
+<button id="allow" hidden disabled>Token iznini cüzdanda onayla</button>
+<button id="deposit" hidden disabled>Onayla ve güvenli takasa gönder</button>
 <button id="refund" hidden disabled>Süresi dolan yatırımımı iade al</button>
 <pre id="txStatus">Henüz işlem imzalanmadı.</pre>
 </section>
@@ -168,10 +168,10 @@ async function read(){
  else if(!flag(deal.walletsConfirmed))nxt="Yöneticinin katılımcı cüzdanlarını doğrulaması bekleniyor.";
  else if(canAccept)nxt="İki tarafın teklifini ve net tutarları inceleyip onaylayın.";
  else if(canDeposit)nxt="Teklifler kabul edildi. Varlığınızı yatırabilirsiniz.";
- else if(deposited&&!fully)nxt="Yatırdınız. Diğer tarafın yatırması bekleniyor.";
- else if(fully)nxt="İki yatırım doğrulandı. Yönetici nihai onayı bekleniyor.";
+ else if(deposited&&!fully)nxt="Varlığınız sözleşmede güvence altında. Diğer tarafın yatırması bekleniyor.";
+ else if(fully)nxt="İki tarafın yatırımı doğrulandı. Yönetici son onayı bekleniyor.";
  else if(!deposited&&depEnd>0n&&now>=depEnd)nxt="Yatırma süresi doldu. Bu takasa artık yatırılamaz.";
- else nxt="Teklifleri oluşturun veya diğer tarafın teklifini bekleyin.";
+ else nxt="Tokeninizi ve miktarınızı girip teklifinizi onaylayın; diğer tarafın teklifini bekleyin.";
  $("next").textContent=nxt;
  $("state").textContent="Yönetici son onayı: "+(fully&&!settled?"Bekleniyor":settled?"Tamamlandı":"Henüz hazır değil")+
  "\nYatırma sonu: "+(depEnd?new Date(Number(depEnd)*1000).toLocaleString("tr-TR"):"Başlamadı")+
