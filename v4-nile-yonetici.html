@@ -39,6 +39,7 @@ section.setup{display:none}body.advanced section.setup{display:block}.setup-togg
 <section><h2>3 · Takas takibi ve son onay</h2>
 <label for="dealId">Takas numarası</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
+<button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
 <button id="finalize" disabled>Takas işlemini onayla</button>
 <pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
@@ -82,7 +83,7 @@ async function readSwapRaw(id){
  return out;
 }
 const now=()=>BigInt(Math.floor(Date.now()/1000));
-function reset(){for(const id of ["create","read","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
+function reset(){for(const id of ["create","read","precheck","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
 async function connect(){
  const p=window.tronLink||window.tron;
  let w=window.tron?.tronWeb||window.tronWeb;
@@ -301,6 +302,7 @@ async function read(){
  const id=$("dealId").value.trim();
  if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası gir.");
  const s=await readSwapRaw(id);current=s;
+ $("precheck").disabled=false;
  const [a,b]=[addr(s.partyA),addr(s.partyB)];
  const funded=yes(s.depositedA)&&yes(s.depositedB);
  const accepted=yes(s.acceptedA)&&yes(s.acceptedB);
@@ -325,6 +327,27 @@ async function read(){
  return s;
 }
 $("read").onclick=async()=>{status("dealStatus","Zincirden okunuyor…");try{await read()}catch(e){$("finalize").disabled=true;$("confirm").disabled=true;status("dealStatus","HATA: "+(e?.message||e))}};
+$("precheck").onclick=async()=>{
+ $("precheckStatus").textContent="Nile üzerinde ücretsiz kontrol yapılıyor…";
+ try{
+  if(!c)throw Error("Önce sözleşmeyi doğrula.");
+  const id=$("dealId").value.trim();
+  if(!/^[1-9]\\d*$/.test(id))throw Error("Takas numarası geçersiz.");
+  const state=await readSwapRaw(id);
+  if(state.partyA===zero||state.partyB===zero||state.partyA===state.partyB)
+   throw Error("İki ayrı katılımcı cüzdanı henüz kayıtlı değil.");
+  if(yes(state.walletsConfirmed))throw Error("Cüzdanlar zaten kilitli.");
+  const resp=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({owner_address:tw.address.toHex(owner),contract_address:tw.address.toHex(liveAddress),
+    function_selector:"confirmParticipants(uint256)",parameter:BigInt(id).toString(16).padStart(64,"0"),visible:false})
+  });
+  if(!resp.ok)throw Error("Nile HTTP "+resp.status);
+  const check=await resp.json();
+  if(!check.result?.result)throw Error("Sözleşme işlemi reddetti: "+(check.result?.message||check.result?.code||JSON.stringify(check.result)));
+  $("precheckStatus").textContent="ÜCRETSİZ ÖN KONTROL GEÇTİ. Bu işlem zincire gönderilmedi; imza atılmadı. İşlem gönderilirse yine de ağ koşullarına bağlı olarak başarısız olabilir.";
+ }catch(e){$("precheckStatus").textContent="ÖN KONTROL BAŞARISIZ: "+(e?.message||e)+". İmza atma."}
+};
 $("confirm").onclick=async()=>{
  if(!c||$("confirm").disabled)return;
  if(!confirm("İki tarafın cüzdan adreslerini bağımsız olarak kontrol ettin mi? Bu işlem adresleri KALICI kilitler. Onaylıyor musun?"))return;
