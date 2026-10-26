@@ -69,6 +69,8 @@ details.testTools{border:1px solid #34506d;border-radius:12px;margin:12px 0}deta
 <p>Yatırma süresi <strong>15 dakika</strong>. Her iki taraf yatırınca <strong>5 dakika</strong> onay ve yöneticinin son onayı için süre başlar. İade süresi aşımında mümkündür. Farklı varlık miktarları arasında kur kontrolü yoktur.</p>
 <button id="preview">2 · Tutarları doğrula ve önizle</button>
 <pre id="summary">Henüz önizleme yok.</pre>
+<button id="checkAllowance" type="button">FRHN iznini burada kontrol et</button>
+<pre id="allowanceStatus" role="status">İzin henüz kontrol edilmedi. Cüzdan değiştirmene gerek yok.</pre>
 </section>
 <section class="warning"><h2>İmzalı işlem — yalnızca hazırken</h2>
 <p><strong>Önemli:</strong> Takas oluşturulduğu anda 15 dakikalık sayaç başlar. İki tarafın cüzdanı ve yatırılacak test varlıkları hazır olmadan bu düğmeyi kullanmayın.</p>
@@ -153,6 +155,25 @@ async function connect(){
  const next=String(await c.nextDealId().call());
  $("status").textContent="NILE BAĞLANTISI DOĞRULANDI\nYönetici: "+wallet+"\nTakas V3: "+contractAddress+"\nSonraki takas: "+next+"\nHenüz işlem imzalanmadı.";
 }
+
+$("checkAllowance").addEventListener("click",async()=>{
+ const out=$("allowanceStatus");out.textContent="Nile üzerinde izin okunuyor...";
+ try{
+  if(!tronWeb||!ownerWallet)throw Error("Önce yönetici cüzdanını doğrula.");
+  if(tronWeb.defaultAddress?.base58!==ownerWallet)throw Error("Yönetici cüzdanı değişmiş; tekrar doğrula.");
+  if($("typeB").value!=="TOKEN")throw Error("Taraf B'nin varlığı TRC20 token değil.");
+  const tokenAddress=$("tokenB").value.trim(),party=$("partyB").value.trim();
+  if(!tronWeb.isAddress(tokenAddress)||!tronWeb.isAddress(party))throw Error("Taraf B adresi veya token adresi geçersiz.");
+  const decimals=Number($("decimalsB").value);
+  const amount=toUnits($("amountB").value,decimals);
+  const token=await tronWeb.contract([{name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]}],tokenAddress);
+  const allowance=BigInt(String(await token.allowance(party,contractAddress).call()));
+  out.textContent="Taraf B'nin zincirdeki izni: "+displayUnits(allowance,decimals)+
+   "\\nBu takas için gereken: "+displayUnits(amount,decimals)+
+   "\\nİzin yeterli: "+(allowance>=amount?"EVET ✅":"HAYIR — yeni takas oluşturmadan önce izin gerekli.")+
+   "\\nKontrol salt okumadır; imza veya ücret yok.";
+ }catch(e){out.textContent="İZİN KONTROL HATASI: "+(e?.message||e);}
+});
 $("preset").addEventListener("click",()=>{
  $("partyA").value="TCHtTrBZCKUzFzteTKTsspMsGWBXh6H1sR";
  $("partyB").value="TXALhAiGyuX2C9tk9ZccDTpeoJ1GKrc5LF";
