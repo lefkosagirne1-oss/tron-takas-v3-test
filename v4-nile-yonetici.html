@@ -74,14 +74,21 @@ async function connect(){
  const r=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});if(!r.ok)throw Error("V4 derleme dosyası henüz yayınlanmadı.");
  artifact=await r.json();
  if(artifact.contractName!=="TakasV4Draft"||!artifact.bytecode||!Array.isArray(artifact.abi))throw Error("V4 derleme dosyası geçersiz.");
- // Never allow signing a deployment built from an older contract revision.
+ // Wallet verification is independent of artifact freshness.
+ // Deployment must still verify the compiled artifact against current source.
  const sourceResponse=await fetch("./contracts/TakasV4Draft.sol",{cache:"no-store"});
- if(!sourceResponse.ok)throw Error("V4 kaynak dosyası doğrulanamadı.");
- const sourceBytes=await sourceResponse.arrayBuffer();
- const digest=await crypto.subtle.digest("SHA-256",sourceBytes);
- const sourceHash=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
- if(!/^[a-f0-9]{64}$/.test(artifact.sourceSha256||"")||sourceHash!==artifact.sourceSha256)
-  throw Error("V4 derlemesi eski veya kaynak kodla eşleşmiyor. Yeni derleme ve testler tamamlanmadan dağıtım yapılamaz.");
+ let artifactMatchesSource=false;
+ if(sourceResponse.ok && crypto?.subtle){
+  const sourceBytes=await sourceResponse.arrayBuffer();
+  const digest=await crypto.subtle.digest("SHA-256",sourceBytes);
+  const sourceHash=Array.from(new Uint8Array(digest),v=>v.toString(16).padStart(2,"0")).join("");
+  artifactMatchesSource=/^[a-f0-9]{64}$/.test(artifact.sourceSha256||"")&&sourceHash===artifact.sourceSha256;
+ }
+ if(!artifactMatchesSource){
+  status("walletStatus","NILE YÖNETİCİ CÜZDANI DOĞRULANDI\\nCüzdan: "+owner+"\\nUYARI: V4 derlemesi güncel değil. Dağıtım kapalı.");
+  $("deploy").disabled=true;
+  return;
+ }
  status("walletStatus","NILE YÖNETİCİ BAĞLANTISI DOĞRULANDI\nCüzdan: "+owner+"\nV4 ABI ve bytecode doğrulandı.");
  $("deploy").disabled=!$("deployAck").checked;
 }
