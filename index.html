@@ -23,11 +23,11 @@ small{color:#9cb2d0}.steps{font-size:14px;line-height:1.7}
 const a=document.getElementById("participantId"),b=document.getElementById("managerId");
 const p=document.getElementById("participantGo"),m=document.getElementById("finalGo");
 function sync(){
-const val=/^[1-9]\\d*$/.test(a.value.trim())?a.value.trim():"";
+const val=/^[1-9]\d*$/.test(a.value.trim())?a.value.trim():"";
 p.href="./takas-v3-katilimci-nile.html"+(val?"?id="+encodeURIComponent(val):"");
-const id=/^[1-9]\\d*$/.test(b.value.trim())?b.value.trim():"";
+const id=/^[1-9]\d*$/.test(b.value.trim())?b.value.trim():"";
 m.href="./takas-v3-yonetici-islem.html"+(id?"?id="+encodeURIComponent(id):"")+"#finalSection";
 }
 a.addEventListener("input",sync);b.addEventListener("input",sync);
-try{const last=localStorage.getItem("takasv3-last-deal");if(/^[1-9]\\d*$/.test(last||"")){a.value=last;b.value=last;sync();}}catch{}
+try{const last=localStorage.getItem("takasv3-last-deal");if(/^[1-9]\d*$/.test(last||"")){a.value=last;b.value=last;sync();}}catch{}
 </script></body></html>
