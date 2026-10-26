@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Takas V3 · Katılımcı</title>
+<style>
+:root{color-scheme:dark;background:#0b1423;color:#ebf2ff;font:16px system-ui}
+*{box-sizing:border-box}body{max-width:860px;margin:22px auto;padding:15px}
+h1{font-size:28px;margin-bottom:5px}h2{font-size:20px}
+p,small{color:#c2d0e4;line-height:1.5}section{background:#132238;border:1px solid #35506d;border-radius:15px;padding:18px;margin:14px 0}
+label{display:block;margin:12px 0 5px}input{width:100%;padding:11px;background:#091729;color:#fff;border:1px solid #536c8c;border-radius:8px;font:inherit}
+button{border:0;background:#5685ec;color:#fff;border-radius:9px;padding:12px 16px;font:inherit;margin:5px 7px 5px 0;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}button.secondary{background:#425570}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;padding:14px;border-radius:9px;background:#091629}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.muted{color:#bed0e7}.warn{border-color:#9e8158}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><h1>Takas V3 · İşlem Detayı</h1>
+<p>TRON Nile test ağı · Bu sayfa zincirdeki takası görüntüler. Yalnızca sözleşmede kayıtlı taraf kendi yatırma, onay veya iade işlemini imzalayabilir.</p>
+<section class="warn"><strong>Testnet uyarısı</strong><p>Gerçek varlık göndermeyin. İşlem bilgilerini cüzdan onayı vermeden önce doğrulayın. İşlem ücreti ve TRC20 token onayı ayrı zincir işlemleridir.</p></section>
+<section>
+<label for="dealId">Takas numarası</label><input id="dealId" type="text" inputmode="numeric" placeholder="Örnek: 1" autocomplete="off">
+<button id="read">1 · Nile sözleşmesinden oku</button><button id="wallet">2 · TronLink cüzdanını doğrula</button>
+<pre id="connection" role="status">Henüz takas ve cüzdan okunmadı.</pre>
+</section>
+<div class="grid">
+<section><h2>Taraf A</h2><pre id="cardA">Bilgi bekleniyor</pre></section>
+<section><h2>Taraf B</h2><pre id="cardB">Bilgi bekleniyor</pre></section>
+</div>
+<section><h2>Komisyon ve net tutarlar</h2><pre id="terms">Sözleşme verisi bekleniyor.</pre></section>
+<section><h2>Durum ve süreler</h2><pre id="state">Sözleşme verisi bekleniyor.</pre></section>
+<section>
+<h2>Sizin işlemleriniz</h2>
+<p>TRC20 yatırmadan önce token onayı (approve) gerekebilir. Yatırma, onay ve iade ancak ilgili koşullarda etkinleşir. Her düğme için TronLink ayrıca imza ister.</p>
+<button id="approve" disabled>Token harcama izni ver</button>
+<button id="deposit" disabled>Varlığımı yatır</button>
+<button id="accept" disabled>Takası onayla</button>
+<button id="refund" class="secondary" disabled>Süresi dolan varlığımı iade et</button>
+<pre id="actionResult" role="status">İşlem başlatılmadı.</pre>
+<button id="refresh" class="secondary">Zincir durumunu yenile</button>
+<p><small>İki tarafın onayından sonra yöneticinin de 5 dakikalık pencere bitmeden son onayı vermesi gerekir. Aksi hâlde taraflar süre sonunda kendi yatırımlarını iade alabilir.</small></p>
+</section>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const V3="TDD6iwzowCLxmbSxVBtH2goQyUs5pcZybm";
+const ZERO="410000000000000000000000000000000000000000";
+const tokenABI=[
+ {name:"decimals",type:"function",stateMutability:"view",inputs:[],outputs:[{type:"uint8"}]},
+ {name:"symbol",type:"function",stateMutability:"view",inputs:[],outputs:[{type:"string"}]},
+ {name:"allowance",type:"function",stateMutability:"view",inputs:[{type:"address"},{type:"address"}],outputs:[{type:"uint256"}]},
+ {name:"approve",type:"function",stateMutability:"nonpayable",inputs:[{type:"address"},{type:"uint256"}],outputs:[{type:"bool"}]}
+];
+const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","commissionAmount","commissionRecipient","commissionPayer","depositDeadline","approvalDeadline","depositedA","depositedB","approvedA","approvedB","ownerApproved","refundedA","refundedB","completed"];
+let tw=null,c=null,wallet="",deal=null,preview=null,assets=null,role="",id="",allowance=0n,busy=false;
+function disable(){for(const k of ["approve","deposit","accept","refund"])$(k).disabled=true;}
+function resultText(v){return v?.toString?.()??String(v)}
+function truth(v){return v===true||v==="true"||v===1||v==="1"}
+function num(v){return BigInt(resultText(v))}
+function address(v){
+ const x=resultText(v);
+ if(/^0x[0-9a-f]{40}$/i.test(x))return tw.address.fromHex("41"+x.slice(2));
+ if(/^[0-9a-f]{40}$/i.test(x))return tw.address.fromHex("41"+x);
+ if(/^41[0-9a-f]{40}$/i.test(x))return tw.address.fromHex(x);
+ if(tw.isAddress(x))return x;
+ throw Error("Zincir adresi okunamadı: "+x.slice(0,30));
+}
+function isTRX(v){
+ const raw=resultText(v);
+ if(tw&&raw===tw.address.fromHex(ZERO))return true;
+ const x=raw.replace(/^0x/i,"").toLowerCase();
+ return x===ZERO.toLowerCase()||x==="0000000000000000000000000000000000000000";
+}
+function asDeal(v){
+ let d=v;
+ if(d && d[0] && typeof d[0]==="object" && d.partyA===undefined)d=d[0];
+ if(!d)throw Error("Takas verisi boş");
+ const out={};
+ fields.forEach((name,i)=>{if(d[name]===undefined&&d[i]===undefined)throw Error("Eksik takas alanı: "+name);out[name]=d[name]??d[i]});
+ for(const field of ["partyA","partyB","tokenA","tokenB","commissionRecipient"])out[field]=address(out[field]);
+ for(const field of ["depositedA","depositedB","approvedA","approvedB","ownerApproved","refundedA","refundedB","completed"])out[field]=truth(out[field]);
+ return out;
+}
+function fmt(v,dp){
+ const x=num(v).toString().padStart(dp+1,"0");
+ const fractional=dp?x.slice(-dp).replace(/0+$/,""):"";
+ return dp===0?x:x.slice(0,-dp)+(fractional?"."+fractional:"");
+}
+function time(v){return num(v)===0n?"Başlamadı":new Date(Number(num(v))*1000).toLocaleString("tr-TR")}
+function secondsNow(){return BigInt(Math.floor(Date.now()/1000))}
+function hostOK(){
+ // TronLink may expose tronWeb globally even when window.tron is absent.
+ const web=window.tron?.tronWeb||window.tronWeb;
+ if(!web?.trx||!web?.address)throw Error("TronLink cüzdanı bu sekmede bulunamadı. TronLink'i açıp site bağlantısına izin verin; sonra sayfayı yenileyin.");
+ const node=String(web.fullNode?.host||web.fullNode?.url||"");
+ if(!node.toLowerCase().includes("nile"))throw Error("TronLink Nile ağına bağlı değil.");
+ return web;
+}
+async function setup(requireWallet){
+ tw=hostOK();
+ if(requireWallet&&!tw.ready)throw Error("Önce TronLink ile site bağlantısına izin verin.");
+ const r=await fetch("./v3-deploy-artifact.json",{cache:"no-store"});
+ if(!r.ok)throw Error("V3 ABI dosyası yok.");
+ const art=await r.json();
+ if(art.contractName!=="TakasV3"||!Array.isArray(art.abi))throw Error("Yanlış V3 ABI.");
+ const deployed=await tw.trx.getContract(V3);
+ if(deployed?.name!=="TakasV3")throw Error("Nile üzerindeki sözleşme adı beklenenden farklı.");
+ c=await tw.contract(art.abi,V3);
+ wallet=tw.ready?tw.defaultAddress?.base58||"":"";
+}
+async function assetOf(value){
+ if(isTRX(value))return {token:null,decimals:6,label:"TRX"};
+ const addr=address(value);
+ const token=await tw.contract(tokenABI,addr);
+ const dp=Number(resultText(await token.decimals().call()));
+ if(!Number.isInteger(dp)||dp<0||dp>30)throw Error("Token decimals geçersiz");
+ let sym="TRC20";
+ try{sym=String(await token.symbol().call()).slice(0,20)||sym}catch{}
+ return {token,addr,decimals:dp,label:sym};
+}
+async function read(){
+ disable();
+ const v=$("dealId").value.trim();
+ if(!/^[1-9]\d*$/.test(v))throw Error("Geçerli pozitif takas numarası girin.");
+ await setup(false);
+ id=v;deal=asDeal(await c.getDeal(v).call());
+ const p=await c.previewDeal(v).call();
+ const take=(key,index)=>p[key]??p[index];
+ preview={fee:take("commission",0),netA:take("netForA",1),netB:take("netForB",2),payer:take("commissionPayer",3)};
+ assets={a:await assetOf(deal.tokenA),b:await assetOf(deal.tokenB)};
+ await render();
+}
+async function render(){
+ if(!deal||!assets)return;
+ const who=wallet===deal.partyA?"A":wallet===deal.partyB?"B":"";
+ role=who;
+ $("connection").textContent="Ağ: Nile\nSözleşme: "+V3+"\nTakas: #"+id+"\nBağlı cüzdan: "+(wallet||"Bağlı değil")+"\nTarafınız: "+(who||"Bu takasta katılımcı değilsiniz");
+ $("cardA").textContent="Adres: "+deal.partyA+"\nGönderir: "+fmt(deal.amountA,assets.a.decimals)+" "+assets.a.label+"\nYatırdı: "+(deal.depositedA?"Evet":"Hayır")+"\nOnayladı: "+(deal.approvedA?"Evet":"Hayır");
+ $("cardB").textContent="Adres: "+deal.partyB+"\nGönderir: "+fmt(deal.amountB,assets.b.decimals)+" "+assets.b.label+"\nYatırdı: "+(deal.depositedB?"Evet":"Hayır")+"\nOnayladı: "+(deal.approvedB?"Evet":"Hayır");
+ $("terms").textContent=[
+  "Komisyon: "+(num(preview.fee)===0n?"Yok":fmt(preview.fee,Number(resultText(deal.commissionPayer))===1?assets.a.decimals:assets.b.decimals)+" "+(Number(resultText(deal.commissionPayer))===1?assets.a.label:assets.b.label)),
+  "Komisyonu ödeyen: "+(["Yok","Taraf A","Taraf B"][Number(resultText(deal.commissionPayer))]||"Bilinmiyor"),
+  "Komisyon cüzdanı: "+(num(preview.fee)===0n?"Yok":deal.commissionRecipient),
+  "Taraf A net alır: "+fmt(preview.netA,assets.b.decimals)+" "+assets.b.label,
+  "Taraf B net alır: "+fmt(preview.netB,assets.a.decimals)+" "+assets.a.label,
+  "Değer/kur karşılaştırması yapılmaz."
+ ].join("\n");
+ const now=secondsNow(),depositExpired=now>=num(deal.depositDeadline)&&!(deal.depositedA&&deal.depositedB);
+ const approvalExpired=num(deal.approvalDeadline)>0n&&now>=num(deal.approvalDeadline);
+ $("state").textContent=[
+  "Yatırma sonu: "+time(deal.depositDeadline),
+  "Onay sonu: "+time(deal.approvalDeadline),
+  "Yönetici onayı: "+(deal.ownerApproved?"Evet":"Hayır"),
+  "Takas tamamlandı: "+(deal.completed?"EVET":"Hayır"),
+  "A iade aldı: "+(deal.refundedA?"Evet":"Hayır"),
+  "B iade aldı: "+(deal.refundedB?"Evet":"Hayır"),
+  "Yatırma süresi doldu: "+(depositExpired?"Evet":"Hayır"),
+  "Onay süresi doldu: "+(approvalExpired?"Evet":"Hayır")
+ ].join("\n");
+ allowance=0n;
+ const myAsset=who==="A"?assets.a:assets.b,amount=who==="A"?num(deal.amountA):num(deal.amountB);
+ const deposited=who==="A"?deal.depositedA:deal.depositedB,approved=who==="A"?deal.approvedA:deal.approvedB,refunded=who==="A"?deal.refundedA:deal.refundedB;
+ if(who&&myAsset.token&&wallet){try{allowance=num(await myAsset.token.allowance(wallet,V3).call())}catch(e){$("actionResult").textContent="Token izni okunamadı: "+(e?.message||e)}}
+ const canDeposit=Boolean(who&&!deal.completed&&!refunded&&!deposited&&!depositExpired&&now<num(deal.depositDeadline));
+ $("approve").disabled=busy||!canDeposit||!myAsset?.token||allowance>=amount;
+ $("deposit").disabled=busy||!canDeposit||Boolean(myAsset?.token&&allowance<amount);
+ $("accept").disabled=busy||!who||deal.completed||approved||refunded||!(deal.depositedA&&deal.depositedB)||num(deal.approvalDeadline)===0n||approvalExpired;
+ $("refund").disabled=busy||!who||deal.completed||!deposited||refunded||!(depositExpired||approvalExpired);
+}
+async function signedAction(action){
+ if(busy||!role||!deal||!c)throw Error("Önce takası ve cüzdanınızı doğrulayın.");
+ const currentWallet=hostOK().defaultAddress?.base58;
+ if(currentWallet!==wallet)throw Error("TronLink cüzdanı değişti. Yeniden bağlanıp kontrol edin.");
+ const myAsset=role==="A"?assets.a:assets.b;
+ const amount=role==="A"?num(deal.amountA):num(deal.amountB);
+ const message={approve:"Token sözleşmesine yalnızca bu takas miktarı için harcama izni verilsin mi?",deposit:"Belirtilen varlık V3 sözleşmesine yatırılsın mı?",accept:"Takas şartlarını onaylıyor musunuz?",refund:"Süresi dolmuş yatırımı geri almak istiyor musunuz?"}[action];
+ if(!confirm(message+"\n\nNile Testnet · Takas #"+id))return;
+ busy=true;disable();
+ try{
+  // Refresh chain state immediately before the signature; never trust stale UI buttons.
+  const oldRole=role;
+  await read();
+  if(role!==oldRole)throw Error("Cüzdan tarafı değişti");
+  const now=secondsNow(),depositExpired=now>=num(deal.depositDeadline)&&!(deal.depositedA&&deal.depositedB);
+  const approvalExpired=num(deal.approvalDeadline)>0n&&now>=num(deal.approvalDeadline);
+  const myDeposited=role==="A"?deal.depositedA:deal.depositedB, myApproved=role==="A"?deal.approvedA:deal.approvedB, myRefunded=role==="A"?deal.refundedA:deal.refundedB;
+  const active=!deal.completed&&!myRefunded;
+  if(action==="approve"||action==="deposit"){
+   if(!active||myDeposited||now>=num(deal.depositDeadline))throw Error("Yatırma süresi dolmuş veya yatırılmış");
+  }
+  if(action==="accept"&&(!active||myApproved||!(deal.depositedA&&deal.depositedB)||now>=num(deal.approvalDeadline)))throw Error("Şu anda onay verilemez");
+  if(action==="refund"&&(!active||!myDeposited||!(depositExpired||approvalExpired)))throw Error("İade henüz mümkün değil");
+  let txId;
+  if(action==="approve"){
+    if(!myAsset.token||allowance>=amount)throw Error("Yeni token izni gerekmiyor");
+    txId=await myAsset.token.approve(V3,amount.toString()).send({feeLimit:30000000});
+  }else if(action==="deposit"){
+    if(myAsset.token&&allowance<amount)throw Error("Önce token harcama izni gerekli");
+    const opts={feeLimit:50000000};
+    if(!myAsset.token)opts.callValue=Number(amount);
+    if(!myAsset.token&&!Number.isSafeInteger(opts.callValue))throw Error("TRX miktarı güvenli sayısal sınırı aşıyor");
+    txId=await (role==="A"?c.depositA(id):c.depositB(id)).send(opts);
+  }else if(action==="accept"){
+    txId=await c.approveSwap(id).send({feeLimit:50000000});
+  }else if(action==="refund"){
+    txId=await c.refund(id).send({feeLimit:50000000});
+  }
+  $("actionResult").textContent="İŞLEM GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem ID: "+txId+"\nAynı işlemi tekrar göndermeden önce zincir durumunu yenileyin.";
+ }catch(e){$("actionResult").textContent="İŞLEM TAMAMLANAMADI VEYA DURUM BELİRSİZ\n"+(e?.message||e)+"\nYeni imza atmadan önce işlemi zincirden doğrulayın."}
+ finally{busy=false;disable();}
+}
+$("read").addEventListener("click",async()=>{try{$("connection").textContent="Zincir okunuyor…";await read()}catch(e){deal=null;disable();$("connection").textContent="HATA: "+(e?.message||e)}});
+$("wallet").addEventListener("click",async()=>{
+ try{
+  const provider=window.tron;
+  let walletProvider=window.tron?.tronWeb||window.tronWeb;
+  if(!walletProvider?.ready && provider?.request)await provider.request({method:"eth_requestAccounts"});
+  walletProvider=hostOK();
+  if(!walletProvider.ready||!walletProvider.defaultAddress?.base58)throw Error("TronLink'te cüzdanı açıp siteye bağlayın; ardından yeniden deneyin.");
+  await read();
+ }catch(e){disable();$("connection").textContent="CÜZDAN HATASI: "+(e?.message||e)}
+});
+$("refresh").addEventListener("click",async()=>{try{await read();$("actionResult").textContent="Zincirden güncellendi."}catch(e){disable();$("actionResult").textContent="Yenileme hatası: "+(e?.message||e)}});
+for(const action of ["approve","deposit","accept","refund"])$(action).addEventListener("click",()=>signedAction(action));
+const q=new URLSearchParams(location.search).get("id");
+if(q&&/^[1-9]\d*$/.test(q))$("dealId").value=q;
+</script></body></html>
