@@ -136,7 +136,7 @@ async function verify(){
  for(const id of ["create","read"])$(id).disabled=false;
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
-$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect()}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
+$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify()}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
 $("deployAck").onchange=()=>{$("deploy").disabled=!tw||!artifactMatchesSource||!$("deployAck").checked};
 $("diagnose").onclick=async()=>{
