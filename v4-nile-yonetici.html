@@ -329,7 +329,21 @@ $("confirm").onclick=async()=>{
  if(!c||$("confirm").disabled)return;
  if(!confirm("İki tarafın cüzdan adreslerini bağımsız olarak kontrol ettin mi? Bu işlem adresleri KALICI kilitler. Onaylıyor musun?"))return;
  $("confirm").disabled=true;
- try{const tx=await c.confirmParticipants($("dealId").value).send({feeLimit:50000000});status("actionStatus","Katılımcı doğrulama işlemi gönderildi: "+tx+"\nZincirden tekrar oku.");await read()}catch(e){status("actionStatus","HATA: "+(e?.message||e))}
+ try{// Simulate the exact manager call on Nile before opening TronLink.
+  const check=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({owner_address:tw.address.toHex(owner),contract_address:tw.address.toHex(liveAddress),
+    function_selector:"confirmParticipants(uint256)",
+    parameter:BigInt($("dealId").value).toString(16).padStart(64,"0"),visible:false})
+  });
+  if(!check.ok)throw Error("Ücretsiz işlem ön kontrolü başarısız: HTTP "+check.status);
+  const simulation=await check.json();
+  if(!simulation.result?.result||simulation.result?.code||simulation.result?.message)
+   throw Error("Zincir ön kontrolü reddetti. İmza açılmadı. "+(simulation.result?.message||simulation.result?.code||""));
+  const latest=await readSwapRaw($("dealId").value);
+  if(latest.partyA===zero||latest.partyB===zero||latest.partyA===latest.partyB||yes(latest.walletsConfirmed))
+   throw Error("Katılımcı adresleri doğrulanamadı; işlem durduruldu.");
+  const tx=await c.confirmParticipants($("dealId").value).send({feeLimit:50000000});status("actionStatus","Katılımcı doğrulama işlemi gönderildi: "+tx+"\nZincirden tekrar oku.");await read()}catch(e){status("actionStatus","HATA: "+(e?.message||e))}
 };
 $("finalize").onclick=async()=>{
  if(!c||!readyForFinal||$("finalize").disabled)return;
