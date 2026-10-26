@@ -93,7 +93,7 @@ $("deploy").onclick=async()=>{
   if(tw.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değişmiş.");
   const deployed=await tw.contract().new({abi:artifact.abi,bytecode:artifact.bytecode,feeLimit:1000000000,callValue:0,userFeePercentage:100,originEnergyLimit:10000000,name:"TakasV4Draft"});
   if(!deployed?.address)throw Error("Dağıtım adresi doğrulanamadı; yeniden imzalamadan önce işlemlerini kontrol et.");
-  const address=tw.address.fromHex(deployed.address);
+  const address=tw.isAddress(deployed.address)?deployed.address:tw.address.fromHex(deployed.address);
   $("contractAddress").value=address;
   status("deployStatus","Dağıtım işlemi gönderildi. Adres: "+address+"\nSözleşme zincirden ayrıca doğrulanmalı.");
   await verify();
