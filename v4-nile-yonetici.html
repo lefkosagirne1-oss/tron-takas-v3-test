@@ -195,10 +195,25 @@ $("signDeploy").onclick=async()=>{
  if(tw.defaultAddress?.base58!==owner){preparedDeployment=null;$("signDeploy").disabled=true;status("deployStatus","Cüzdan değişti; imzasız işlemi yeniden hazırla.");return;}
  if(!confirm("Nile test ağı: Dağıtım imzalanacak. Fee Limit en fazla 1.000 test TRX; bu tahmini gerçek tüketim değildir. TronLink imza ekranında maliyeti kontrol edin. Devam edilsin mi?"))return;
  $("signDeploy").disabled=true;
- const tx=preparedDeployment;preparedDeployment=null;
- const exp=Number(tx?.raw_data?.expiration);
- if(!Number.isFinite(exp)||exp-Date.now()<60000){
-  status("deployStatus","İMZASIZ İŞLEMİN SÜRESİ DOLDU VEYA ÇOK AZ KALDI. Yeni imza verme. Nile saat kontrolünü kullan.");
+ let tx=preparedDeployment;
+ let exp=Number(tx?.raw_data?.expiration);
+ // Refresh only when needed, immediately before wallet signing; the prior draft may have aged.
+ if(!Number.isFinite(exp)||exp-Date.now()<30000){
+  status("deployStatus","Eski taslağın süresi doldu; imzadan önce ücretsiz olarak yenileniyor…");
+  try{
+   const issuer=tw.address.toHex(owner);
+   const options={abi:artifact.abi,bytecode:artifact.bytecode,feeLimit:1000000000,callValue:0,userFeePercentage:100,originEnergyLimit:10000000,name:"TakasV4Draft"};
+   tx=await tw.transactionBuilder.createSmartContract(options,issuer);
+   const from=tx?.raw_data?.contract?.[0]?.parameter?.value?.owner_address||"";
+   const chainBlock=await tw.trx.getCurrentBlock();
+   const chainTime=Number(chainBlock?.block_header?.raw_data?.timestamp);
+   exp=Number(tx?.raw_data?.expiration);
+   if(String(from).toLowerCase()!==issuer.toLowerCase()||!tx?.txID||!Number.isFinite(exp)||!Number.isFinite(chainTime)||exp-chainTime<30000)throw Error("Yeni taslağın geçerlilik süresi doğrulanamadı.");
+  }catch(e){status("deployStatus","İmzasız taslak yenilenemedi: "+(e?.message||e));return;}
+ }
+ preparedDeployment=null;
+ if(!Number.isFinite(exp)||exp-Date.now()<15000){
+  status("deployStatus","İşlem süresi yetersiz. Yeniden taslak hazırla; imza verilmedi.");
   return;
  }
  try{
