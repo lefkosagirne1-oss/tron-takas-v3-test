@@ -29,7 +29,7 @@ footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
 </style></head><body>
 <header><div class="identity"><div class="logo">T</div><div><div class="brand">TAKAS</div><div class="caption">Dijital varlıklar için kontrollü takas</div></div></div>
 <h1>Güvenli takas yönetimi</h1><p>Her iki taraf kendi varlığını seçer. İşlem koşulları ortak ekranda doğrulanır.</p>
-<div class="warning"><strong>V4 arayüz önizlemesi.</strong> Bu ekran gerçek cüzdan bağlantısı, token transferi veya zincir teyidi yapmaz. Aşağıdaki örnekler gerçek işlem değildir.</div></header>
+<div class="warning"><strong>V4 arayüz önizlemesi.</strong> Bu ekran yalnızca arayüz önizlemesidir. Bağlantıdaki rol gerçek bir erişim yetkisi sağlamaz. Yetkilendirme henüz etkin değil; bağlantılar gerçek işlem veya gizli bilgi için kullanılmamalıdır.</div></header>
 <nav aria-label="Ekran önizlemeleri"><button class="active" data-role="owner">Yönetici</button><button data-role="a">Taraf A</button><button data-role="b">Taraf B</button></nav>
 <section id="owner" class="panel"><div class="row"><h2>Yeni takas daveti</h2><span class="tag">YÖNETİCİ</span></div>
 <p>Sadece hizmet bedelini belirleyin. Gönderilecek token ve tutarları katılımcılar kendileri seçecektir.</p>
@@ -50,39 +50,39 @@ footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
 <section id="a" class="panel" hidden><div class="row"><h2>Taraf A · İşlem ekranı</h2><span class="tag">TARAF A</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
 <label for="assetA">Göndereceğiniz dijital varlık</label><select id="assetA"><option>TRX</option><option>FRHN</option><option>USDT</option></select>
-<label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" value="100">
+<label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" placeholder="Miktarı girin">
 <p id="feeNoteA" class="small"></p>
 <button id="offerA" class="full">Takas koşullarını incele</button>
 <p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
 <section id="b" class="panel" hidden><div class="row"><h2>Taraf B · İşlem ekranı</h2><span class="tag">TARAF B</span></div>
 <div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
 <label for="assetB">Göndereceğiniz dijital varlık</label><select id="assetB"><option>FRHN</option><option>TRX</option><option>USDT</option></select>
-<label for="amountB">Gönderim miktarı</label><input id="amountB" type="number" min="0" step="any" inputmode="decimal" value="50000">
+<label for="amountB">Gönderim miktarı</label><input id="amountB" type="number" min="0" step="any" inputmode="decimal" placeholder="Miktarı girin">
 <p id="feeNoteB" class="small"></p>
 <button id="offerB" class="full">Takas koşullarını incele</button>
 <p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
-<section class="panel" id="overview"><div class="row"><h2>İşlem detayları</h2><span class="tag">ÖRNEK VERİ</span></div>
+<section class="panel" id="overview"><div class="row"><h2>İşlem detayları</h2><span class="tag">ÖRNEK VERİ · ZİNCİRDEN GELMİYOR</span></div>
 <div class="flow">
-<div class="side"><div class="name">TARAF A</div><div class="value" id="sideA">100 TRX</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div>
-<div class="side"><div class="name">TARAF B</div><div class="value" id="sideB">50.000 FRHN</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div></div>
+<div class="side"><div class="name">TARAF A</div><div class="value" id="sideA">Teklif verilmedi</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div>
+<div class="side"><div class="name">TARAF B</div><div class="value" id="sideB">Teklif verilmedi</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div></div>
 <div class="statusLine"><strong id="headline">İşlem henüz oluşturulmadı</strong><p class="small" id="subHeadline">Yönetici onayı ancak her iki tarafın teklifi ve yatırımı zincirde doğrulandıktan sonra istenebilir.</p></div>
 <div class="sep"></div><h3>Ücret ve net varlık özeti</h3>
-<div class="summary"><div><span class="muted">Platform hizmet bedeli</span><b id="feeAmount">5 TRX</b></div>
-<div><span class="muted">A tarafının net alacağı</span><b id="netA">50.000 FRHN</b></div>
-<div><span class="muted">B tarafının net alacağı</span><b id="netB">95 TRX</b></div>
-<div><span class="muted">Yönetici hizmet bedeli</span><b id="managerFee">5 TRX</b></div>
+<div class="summary"><div><span class="muted">Platform hizmet bedeli</span><b id="feeAmount">Teklifler bekleniyor</b></div>
+<div><span class="muted">A tarafının net alacağı</span><b id="netA">—</b></div>
+<div><span class="muted">B tarafının net alacağı</span><b id="netB">—</b></div>
+<div><span class="muted">Yönetici hizmet bedeli</span><b id="managerFee">—</b></div>
 </div><p class="subtle">Ağ işlem maliyetleri (Energy/Bandwidth) ayrıca oluşabilir ve cüzdan onayı öncesinde gösterilmelidir. Hesaplamalar yalnızca arayüz örneğidir.</p>
 </section>
 <footer>TAKAS · V4 tasarım önizlemesi · Gerçek işlem, bağlanma veya yatırım gerçekleştirilmez.</footer>
 <script>
 const $=id=>document.getElementById(id);
 const fmt=v=>Number(v).toLocaleString("tr-TR",{maximumFractionDigits:8});
-function show(role){for(const id of ["owner","a","b"])$(id).hidden=id!==role;for(const item of document.querySelectorAll("[data-role]"))item.classList.toggle("active",item.dataset.role===role)}
+function show(role){if(window.invitedRole&&role!==window.invitedRole)return;for(const id of ["owner","a","b"])$(id).hidden=id!==role;for(const item of document.querySelectorAll("[data-role]"))item.classList.toggle("active",item.dataset.role===role)}
 for(const el of document.querySelectorAll("[data-role]"))el.addEventListener("click",()=>show(el.dataset.role));
 function render(){
  const a=Number($("amountA").value),b=Number($("amountB").value),pct=Number($("percent").value),payer=$("payer").value;
  const valid=[a,b,pct].every(Number.isFinite)&&a>0&&b>0&&pct>=0&&pct<=10;
- if(!valid){$("headline").textContent="Geçerli miktar ve oran girin";$("subHeadline").textContent="Miktarlar sıfırdan büyük; hizmet bedeli oranı 0–10 arasında olmalı.";return false}
+ if(!valid){$("sideA").textContent=$("amountA").value?$("amountA").value+" "+$("assetA").value:"Teklif verilmedi";$("sideB").textContent=$("amountB").value?$("amountB").value+" "+$("assetB").value:"Teklif verilmedi";$("feeAmount").textContent="Teklifler bekleniyor";$("netA").textContent="—";$("netB").textContent="—";$("managerFee").textContent="—";$("headline").textContent="Katılımcı teklifleri bekleniyor";$("subHeadline").textContent="Her iki taraf teklif girmeden net tutarlar hesaplanamaz. Bu sayfa teklifleri paylaşmaz veya kaydetmez.";return false}
  const fa=payer==="a"?a*pct/100:0,fb=payer==="b"?b*pct/100:0;
  const assetA=$("assetA").value,assetB=$("assetB").value;
  if(assetA===assetB){$("headline").textContent="Farklı dijital varlıklar seçin";$("subHeadline").textContent="Bu önizleme farklı varlıkların takası içindir.";return false}
@@ -100,6 +100,12 @@ function render(){
 function applyInviteFromUrl(){
  const params=new URLSearchParams(location.search), role=params.get("role");
  if(role!=="a"&&role!=="b")return;
+ window.invitedRole=role;
+ document.querySelector("nav").hidden=true;
+ $("owner").hidden=true;
+ $("a").hidden=role!=="a";
+ $("b").hidden=role!=="b";
+ document.querySelector("h1").textContent="Takas Daveti · "+(role==="a"?"Taraf A":"Taraf B");
  const payer=params.get("payer"),pct=params.get("rate");
  if(["a","b","none"].includes(payer))$("payer").value=payer;
  if(pct!==null&&pct!==""&&Number.isFinite(Number(pct))&&Number(pct)>=0&&Number(pct)<=10)$("percent").value=pct;
