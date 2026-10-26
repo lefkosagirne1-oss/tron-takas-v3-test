@@ -1,63 +1,97 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Yeni Takas · V4 Arayüz Taslağı</title>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1423">
+<title>Takas · Güvenli Varlık Değişimi — V4 Tasarım</title>
 <style>
-:root{font:16px system-ui;background:#0b1422;color:#f1f5fb;color-scheme:dark}*{box-sizing:border-box}
-body{max-width:650px;margin:0 auto;padding:18px}header{margin:8px 0 20px}
-h1{margin:0 0 8px;font-size:27px}h2{font-size:20px;margin:0 0 10px}
-p{line-height:1.5;color:#c4d3e5}.panel{padding:19px;border:1px solid #34506d;background:#17273e;border-radius:16px;margin:14px 0}
-label{display:block;margin:16px 0 6px}input,select{width:100%;background:#0a1729;color:#fff;border:1px solid #607b9f;padding:14px;font:inherit;border-radius:11px;min-height:52px}
-button{display:block;width:100%;background:#5179da;color:#fff;border:0;border-radius:12px;padding:16px;margin:15px 0;min-height:55px;font:inherit;font-weight:700}
-button.secondary{background:#345070}button:disabled{opacity:.45}
-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:18px 0}nav button{padding:12px 4px;margin:0;font-size:14px}nav button.active{background:#5688ef}
-.note{font-size:14px;color:#b8c7da}.ok{color:#adf3c8}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a1729;padding:15px;border-radius:11px;font:15px/1.65 system-ui}
-#notice{padding:10px 0;color:#c5d9ff}a{color:#9dc0ff}strong{color:#fff}
+:root{color-scheme:dark;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;background:#091321;color:#edf5ff}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0 auto;padding:15px;max-width:680px}
+header{padding:13px 3px 11px}.identity{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.logo{display:grid;place-items:center;background:linear-gradient(135deg,#447ff2,#183e85);width:43px;height:43px;border-radius:14px;font-weight:800;font-size:20px}
+.brand{font-size:19px;font-weight:800;letter-spacing:.3px}.caption{font-size:12px;color:#92a8c4}
+h1{font-size:26px;line-height:1.2;margin:12px 0 8px}h2{font-size:19px;margin:0 0 12px}h3{font-size:15px;margin:0 0 6px}
+p{color:#aebfd4;margin:7px 0 12px}strong{color:#f5f9ff}
+.warning{background:#312918;border:1px solid #8b6938;color:#f7dda6;border-radius:12px;padding:11px 13px;font-size:13px}
+.panel{background:#14233a;border:1px solid #304a69;border-radius:18px;padding:19px;margin:15px 0;box-shadow:0 6px 24px #0002}
+nav{display:flex;gap:8px;margin:17px 0}button{font:inherit;cursor:pointer;min-height:51px;border-radius:12px;border:0;background:#4278e1;color:white;font-weight:700;padding:13px 14px}
+nav button{flex:1;background:#1a3150;color:#bbd4f7;font-size:14px;padding:10px 2px}nav button.active{background:#477bed;color:white}
+button:disabled{opacity:.45;cursor:not-allowed}.outline{background:#213a5c;border:1px solid #49709e}.full{width:100%}
+label{display:block;margin:14px 0 6px;font-weight:650;font-size:14px}input,select{width:100%;min-height:52px;border:1px solid #496888;border-radius:11px;background:#0b192d;color:#fff;font:inherit;padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.small{font-size:13px;color:#94aecb}.tag{display:inline-block;background:#233c5a;color:#b8d5f5;padding:6px 10px;border-radius:30px;font-size:12px;font-weight:700}
+.sep{height:1px;background:#304960;margin:15px 0}
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.side{background:#0c1a2e;border:1px solid #304967;border-radius:13px;padding:14px;min-width:0}
+.side .name{font-size:13px;font-weight:800;color:#c8d9f0}.side .value{font-size:21px;font-weight:800;overflow-wrap:anywhere;padding:5px 0}
+.state{color:#d2ac60;font-size:12px;font-weight:700}.state.ok{color:#85e6bd}.state.no{color:#afc3db}
+.statusLine{background:#0e2944;border:1px solid #345c85;border-radius:12px;padding:13px;margin-top:13px}
+.summary{display:grid;gap:8px}.summary>div{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;font-size:14px}
+.summary b{text-align:right}.muted{color:#aebfd4}.positive{color:#93e3bd}.subtle{font-size:12px;color:#90a9c6}
+footer{padding:8px 4px 25px;color:#7994b7;font-size:12px}
+@media(max-width:370px){.side .value{font-size:17px}nav button{font-size:12px}body{padding:10px}.panel{padding:14px}}
 </style></head><body>
-<header><h1>Yeni Takas</h1><p>Yönetici bağlantı ve komisyon kuralını belirler. Ali ile Veli kendi token ve miktarlarını seçer.</p>
-<p class="note"><strong>Arayüz taslağı · Nile test hazırlığı.</strong> Bu sayfa henüz cüzdan bağlamaz, para yatırmaz veya gerçek takas oluşturmaz.</p></header>
-<nav><button class="active" data-role="owner">Yönetici</button><button data-role="a">Ali</button><button data-role="b">Veli</button></nav>
-<div id="owner" class="panel"><h2>Yönetici paneli</h2>
-<p>Token ve miktar girmiyorsun. Yalnızca komisyonu hazırlıyorsun.</p>
-<label for="payer">Komisyonu kim öder?</label>
-<select id="payer"><option value="a">Ali'nin gönderdiği tokenden</option><option value="b">Veli'nin gönderdiği tokenden</option><option value="none">Komisyon yok</option></select>
-<label for="percent">Komisyon yüzdesi (%)</label><input id="percent" type="number" min="0" max="10" step="0.1" value="5">
-<button id="make">Komisyon şartlarını hazırla</button>
-<pre id="managerResult">Önce komisyon kuralını hazırla.</pre></div>
-<div id="a" class="panel" hidden><h2>Ali · Takas teklifi</h2>
-<p>Kendi cüzdanınla bağlanınca yalnızca kendi teklifini belirleyeceksin.</p>
-<label for="assetA">Göndereceğin token (taslak)</label><select id="assetA"><option value="TRX">TRX</option><option value="FRHN">FRHN (test)</option><option value="USDT">USDT (örnek)</option></select>
-<label for="amountA">Göndereceğin miktar</label><input id="amountA" inputmode="decimal" type="number" min="0" step="any" value="100">
-<button id="offerA">Teklif önizlemesi</button><p class="note">Bu düğme imza veya para transferi yapmaz.</p></div>
-<div id="b" class="panel" hidden><h2>Veli · Takas teklifi</h2>
-<p>Kendi cüzdanınla bağlanınca yalnızca kendi teklifini belirleyeceksin.</p>
-<label for="assetB">Göndereceğin token (taslak)</label><select id="assetB"><option value="FRHN">FRHN (test)</option><option value="TRX">TRX</option><option value="USDT">USDT (örnek)</option></select>
-<label for="amountB">Göndereceğin miktar</label><input id="amountB" inputmode="decimal" type="number" min="0" step="any" value="50000">
-<button id="offerB">Teklif önizlemesi</button><p class="note">Bu düğme imza veya para transferi yapmaz.</p></div>
-<section class="panel"><h2>İki tarafın anlaşması</h2><pre id="terms">Ali ve Veli tokenlerini seçince anlaşma özeti burada görünür.</pre>
-<p class="note">Gerçek sürümde taraflar aynı zincir teklifini doğrulayıp ayrı ayrı onaylayacak; sen yatırılan tokenleri ve tutarları zincirden görerek en son onaylayacaksın.</p>
+<header><div class="identity"><div class="logo">T</div><div><div class="brand">TAKAS</div><div class="caption">Dijital varlıklar için kontrollü takas</div></div></div>
+<h1>Güvenli takas yönetimi</h1><p>Her iki taraf kendi varlığını seçer. İşlem koşulları ortak ekranda doğrulanır.</p>
+<div class="warning"><strong>V4 arayüz önizlemesi.</strong> Bu ekran gerçek cüzdan bağlantısı, token transferi veya zincir teyidi yapmaz. Aşağıdaki örnekler gerçek işlem değildir.</div></header>
+<nav aria-label="Ekran önizlemeleri"><button class="active" data-role="owner">Yönetici</button><button data-role="a">Ali</button><button data-role="b">Veli</button></nav>
+<section id="owner" class="panel"><div class="row"><h2>Yeni takas daveti</h2><span class="tag">YÖNETİCİ</span></div>
+<p>Sadece hizmet bedelini belirleyin. Gönderilecek token ve tutarları katılımcılar kendileri seçecektir.</p>
+<label for="payer">Platform hizmet bedeli hangi taraftan tahsil edilir?</label>
+<select id="payer"><option value="a">A tarafının göndereceği varlıktan</option><option value="b">B tarafının göndereceği varlıktan</option><option value="none">Hizmet bedeli uygulanmaz</option></select>
+<label for="percent">Hizmet bedeli oranı (%)</label><input id="percent" type="number" min="0" max="10" step="0.1" value="5">
+<div class="statusLine small"><strong>Ücretlendirme ilkesi</strong><div>Platform hizmet bedeli, yalnızca başarılı takasın sonunda ilgili varlıktan mahsup edilir. TRON ağında oluşabilecek Energy/Bandwidth giderleri bu bedelden ayrıdır.</div></div>
+<button class="full" id="make">Davet koşullarını önizle</button>
+<div class="small" id="managerResult">Davet bağlantısı oluşturma henüz geliştirme aşamasında.</div>
 </section>
-<div id="notice" role="status"></div>
+<section id="a" class="panel" hidden><div class="row"><h2>Ali · İşlem ekranı</h2><span class="tag">TARAF A</span></div>
+<div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
+<label for="assetA">Göndereceğiniz dijital varlık</label><select id="assetA"><option>TRX</option><option>FRHN</option><option>USDT</option></select>
+<label for="amountA">Gönderim miktarı</label><input id="amountA" type="number" min="0" step="any" inputmode="decimal" value="100">
+<p id="feeNoteA" class="small"></p>
+<button id="offerA" class="full">Takas koşullarını incele</button>
+<p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
+<section id="b" class="panel" hidden><div class="row"><h2>Veli · İşlem ekranı</h2><span class="tag">TARAF B</span></div>
+<div class="statusLine"><strong>◌ Cüzdan bağlı değil</strong><p class="small">Gerçek sürümde TronLink cüzdanınızı burada bağlayacaksınız.</p></div>
+<label for="assetB">Göndereceğiniz dijital varlık</label><select id="assetB"><option>FRHN</option><option>TRX</option><option>USDT</option></select>
+<label for="amountB">Gönderim miktarı</label><input id="amountB" type="number" min="0" step="any" inputmode="decimal" value="50000">
+<p id="feeNoteB" class="small"></p>
+<button id="offerB" class="full">Takas koşullarını incele</button>
+<p class="subtle">Önizleme düğmesi işlem imzalamaz. Gerçek sürümde kabul ve yatırım birbirinden ayrı, açık onaylar gerektirecektir.</p></section>
+<section class="panel" id="overview"><div class="row"><h2>İşlem detayları</h2><span class="tag">ÖRNEK VERİ</span></div>
+<div class="flow">
+<div class="side"><div class="name">A TARAFI · ALİ</div><div class="value" id="sideA">100 TRX</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div>
+<div class="side"><div class="name">B TARAFI · VELİ</div><div class="value" id="sideB">50.000 FRHN</div><div class="state no">○ Teklif taslağı</div><div class="state no">○ Yatırım doğrulanmadı</div></div></div>
+<div class="statusLine"><strong id="headline">İşlem henüz oluşturulmadı</strong><p class="small" id="subHeadline">Yönetici onayı ancak her iki tarafın teklifi ve yatırımı zincirde doğrulandıktan sonra istenebilir.</p></div>
+<div class="sep"></div><h3>Ücret ve net varlık özeti</h3>
+<div class="summary"><div><span class="muted">Platform hizmet bedeli</span><b id="feeAmount">5 TRX</b></div>
+<div><span class="muted">A tarafının net alacağı</span><b id="netA">50.000 FRHN</b></div>
+<div><span class="muted">B tarafının net alacağı</span><b id="netB">95 TRX</b></div>
+<div><span class="muted">Yönetici hizmet bedeli</span><b id="managerFee">5 TRX</b></div>
+</div><p class="subtle">Ağ işlem maliyetleri (Energy/Bandwidth) ayrıca oluşabilir ve cüzdan onayı öncesinde gösterilmelidir. Hesaplamalar yalnızca arayüz örneğidir.</p>
+</section>
+<footer>TAKAS · V4 tasarım önizlemesi · Gerçek işlem, bağlanma veya yatırım gerçekleştirilmez.</footer>
 <script>
 const $=id=>document.getElementById(id);
-const state={a:false,b:false,commission:false};const fmt=x=>Number(x).toLocaleString("tr-TR",{maximumFractionDigits:8});
-function show(role){for(const id of ["owner","a","b"])$(id).hidden=role!==id;for(const el of document.querySelectorAll("[data-role]"))el.classList.toggle("active",el.dataset.role===role)}
+const fmt=v=>Number(v).toLocaleString("tr-TR",{maximumFractionDigits:8});
+function show(role){for(const id of ["owner","a","b"])$(id).hidden=id!==role;for(const item of document.querySelectorAll("[data-role]"))item.classList.toggle("active",item.dataset.role===role)}
 for(const el of document.querySelectorAll("[data-role]"))el.addEventListener("click",()=>show(el.dataset.role));
 function render(){
- const aa=Number($("amountA").value),bb=Number($("amountB").value),pct=Number($("percent").value);
- const payer=$("payer").value,valid=Number.isFinite(aa)&&Number.isFinite(bb)&&aa>0&&bb>0&&Number.isFinite(pct)&&pct>=0&&pct<=10;
- if(!valid){$("terms").textContent="Pozitif miktarlar ve 0-10 arası komisyon girilmeli.";return false;}
- const fa=payer==="a"?aa*pct/100:0,fb=payer==="b"?bb*pct/100:0;
- $("terms").textContent=
- "Ali gönderir: "+fmt(aa)+" "+$("assetA").value+
- "\nVeli gönderir: "+fmt(bb)+" "+$("assetB").value+
- "\nKomisyon: "+(payer==="none"?"Yok":payer==="a"?fmt(fa)+" "+$("assetA").value+" (Ali)":" "+fmt(fb)+" "+$("assetB").value+" (Veli)")+
- "\nAli net alır: "+fmt(bb-fb)+" "+$("assetB").value+
- "\nVeli net alır: "+fmt(aa-fa)+" "+$("assetA").value+
- "\nYönetici alır: "+(payer==="a"?fmt(fa)+" "+$("assetA").value:payer==="b"?fmt(fb)+" "+$("assetB").value:"0");
+ const a=Number($("amountA").value),b=Number($("amountB").value),pct=Number($("percent").value),payer=$("payer").value;
+ const valid=[a,b,pct].every(Number.isFinite)&&a>0&&b>0&&pct>=0&&pct<=10;
+ if(!valid){$("headline").textContent="Geçerli miktar ve oran girin";$("subHeadline").textContent="Miktarlar sıfırdan büyük; hizmet bedeli oranı 0–10 arasında olmalı.";return false}
+ const fa=payer==="a"?a*pct/100:0,fb=payer==="b"?b*pct/100:0;
+ const assetA=$("assetA").value,assetB=$("assetB").value;
+ if(assetA===assetB){$("headline").textContent="Farklı dijital varlıklar seçin";$("subHeadline").textContent="Bu önizleme farklı varlıkların takası içindir.";return false}
+ $("sideA").textContent=fmt(a)+" "+assetA;$("sideB").textContent=fmt(b)+" "+assetB;
+ $("feeAmount").textContent=payer==="none"?"Uygulanmıyor":fmt(fa||fb)+" "+(fa?assetA:assetB)+" (%"+fmt(pct)+")";
+ $("netA").textContent=fmt(b-fb)+" "+assetB;
+ $("netB").textContent=fmt(a-fa)+" "+assetA;
+ $("managerFee").textContent=payer==="none"?"0":fmt(fa||fb)+" "+(fa?assetA:assetB);
+ $("feeNoteA").textContent=payer==="a"?"Platform hizmet bedeli: gönderdiğiniz "+assetA+" üzerinden %"+fmt(pct)+"; sadece başarılı tamamlamada tahsil edilir.":"Bu örnekte gönderiminizden platform hizmet bedeli kesilmeyecek.";
+ $("feeNoteB").textContent=payer==="b"?"Platform hizmet bedeli: gönderdiğiniz "+assetB+" üzerinden %"+fmt(pct)+"; sadece başarılı tamamlamada tahsil edilir.":"Bu örnekte gönderiminizden platform hizmet bedeli kesilmeyecek.";
+ $("headline").textContent="Katılımcı teklifleri hazırlanıyor";
+ $("subHeadline").textContent="Örnek değerlerdir. Henüz zincire yatırılan token yok; yönetici son onayı beklenmiyor.";
  return true;
 }
-$("make").addEventListener("click",()=>{if(!render())return;state.commission=true;$("managerResult").textContent="Komisyon kuralı taslak olarak hazır.\\nGerçek davet bağlantısı ve zincir işlemi henüz etkin değil.";$("notice").textContent="Kural hazır. Ali ve Veli sekmelerinde örnek teklifleri görebilirsin."});
-for(const id of ["offerA","offerB"])$(id).addEventListener("click",()=>{if(render())$("notice").textContent="Teklif önizlendi. Bu taslak herhangi bir veri göndermedi."});
+$("make").addEventListener("click",()=>{if(!render())return;$("managerResult").textContent="Hizmet bedeli koşulları önizlendi. Gerçek bağlantı üretilmedi ve hiçbir işlem imzalanmadı.";});
+for(const id of ["offerA","offerB"])$(id).addEventListener("click",()=>{if(render())$("overview").scrollIntoView({behavior:"smooth",block:"start"})});
 for(const id of ["payer","percent","assetA","assetB","amountA","amountB"])$(id).addEventListener("input",render);
 render();
 </script></body></html>
