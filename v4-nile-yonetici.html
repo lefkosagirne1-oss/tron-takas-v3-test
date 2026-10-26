@@ -10,12 +10,13 @@ input,select{background:#0c1b30;color:#fff;border:1px solid #567296;margin:5px 0
 label{font-size:14px;font-weight:600;display:block}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:9px;background:#091627;font-size:13px;line-height:1.6}
 .note{font-size:13px;color:#c3d2e4}.warn{border-color:#ad874b;background:#30281b;color:#f1d49b;padding:13px;border-radius:12px}
 code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{color:#acc3de}
-</style></head><body>
+
+section.setup{display:none}body.advanced section.setup{display:block}.setup-toggle{background:transparent;border:1px solid #567296;color:#c3d2e4;font-size:13px;min-height:42px}</style></head><body>
 <h1>TAKAS · Yönetici</h1><p>Nile Testnet · V4 canlı test hazırlığı</p>
 <div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
-<section><h2>1 · Cüzdan ve ağ</h2>
-<button id="connect">Yönetici TronLink cüzdanını doğrula</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
-<section><h2>2 · V4 sözleşmesi</h2>
+<section><h2>1 · Cüzdanım</h2>
+<button id="connect">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
+<section class="setup"><h2>Teknik kurulum · V4 sözleşmesi</h2>
 <p class="note">Henüz V4 Nile adresi yoksa sözleşmeyi yönetici cüzdanından bir defa dağıtmak gerekir. Bu düğme gerçek test ağı işlemi imzalatır.</p>
 <label for="contractAddress">V4 Nile sözleşme adresi</label><input id="contractAddress" placeholder="Sözleşme kurulunca burada görünecek" autocomplete="off">
 <button id="verifyContract" class="light">Mevcut sözleşmeyi doğrula</button>
@@ -26,25 +27,27 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 <button id="signDeploy" disabled>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
-<section><h2>3 · Yeni takas daveti</h2>
+<section><h2>2 · Yeni takas bağlantısı</h2>
 <p class="note">Token isimleri, miktarları ve cüzdan adreslerini sen girmeyeceksin; yalnızca hizmet bedelini belirleyeceksin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option><option value="0">Hizmet bedeli yok</option></select>
 <label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="5">
-<button id="create" disabled>Gerçek Nile davetini oluştur</button>
+<button id="create" disabled>Takas bağlantısı oluştur</button>
 <pre id="inviteStatus">Önce V4 sözleşmesini doğrula.</pre>
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
 </section>
-<section><h2>4 · Takas takibi ve son onay</h2>
+<section><h2>3 · Takas takibi ve son onay</h2>
 <label for="dealId">Takas numarası</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
-<button id="read" class="light" disabled>Zincirdeki teklifleri ve yatırımları kontrol et</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
+<button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
-<button id="finalize" disabled>Yönetici son onayı · Takası tamamla</button>
+<button id="finalize" disabled>Takas işlemini onayla</button>
 <pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
 </section>
+<button class="setup-toggle" id="toggleSetup" type="button">Teknik kurulum (yalnızca gerektiğinde)</button>
 <small>Gerçek transferler zincir üzerinde doğrulanır. URL'deki rol bilgisi yetki sağlamaz. Tarafların kimlikleri ayrıca kontrol edilmelidir.</small>
 <script>
 const $=id=>document.getElementById(id);
+$("toggleSetup").onclick=()=>{document.body.classList.toggle("advanced");$("toggleSetup").textContent=document.body.classList.contains("advanced")?"Teknik kurulumu gizle":"Teknik kurulum (yalnızca gerektiğinde)"};
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
 let artifactMatchesSource=false;
