@@ -60,6 +60,13 @@ async function connect(){
  if(!w?.ready||!w.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
  if(!String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
  if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. iPhone Wallet-3 cüzdanını seç.");
+ // TronLink sometimes exposes a valid base58 account without a valid
+ // defaultAddress.hex; contract().new uses the issuer/default address internally.
+ // Set the address explicitly before any deployment transaction is constructed.
+ if(!w.isAddress(owner))throw Error("Yönetici adresi geçersiz.");
+ w.setAddress(owner);
+ if(!w.defaultAddress?.hex || !w.isAddress(w.defaultAddress.hex))throw Error("TronWeb dağıtım gönderen adresini hazırlayamadı.");
+ if(w.defaultAddress.base58!==owner)throw Error("Dağıtım gönderen adresi yöneticiyle eşleşmiyor.");
  tw=w;
  const r=await fetch("./v4-deploy-artifact.json",{cache:"no-store"});if(!r.ok)throw Error("V4 derleme dosyası henüz yayınlanmadı.");
  artifact=await r.json();
@@ -91,6 +98,8 @@ $("deploy").onclick=async()=>{
  $("deploy").disabled=true;status("deployStatus","TronLink sözleşme dağıtımı bekleniyor…");
  try{
   if(tw.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değişmiş.");
+  tw.setAddress(owner);
+  if(!tw.defaultAddress?.hex||!tw.isAddress(tw.defaultAddress.hex))throw Error("Gönderen adresi hazır değil. İşlem başlatılmadı.");
   const deployed=await tw.contract().new({abi:artifact.abi,bytecode:artifact.bytecode,feeLimit:1000000000,callValue:0,userFeePercentage:100,originEnergyLimit:10000000,name:"TakasV4Draft"});
   if(!deployed?.address)throw Error("Dağıtım adresi doğrulanamadı; yeniden imzalamadan önce işlemlerini kontrol et.");
   const raw=String(deployed.address);const address=/^41[0-9a-f]{40}$/i.test(raw)?tw.address.fromHex(raw):raw;
