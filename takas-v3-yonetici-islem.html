@@ -32,16 +32,19 @@ pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
  [hidden]{display:none!important}
 }
 .mobileNav{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.mobileNav a{display:inline-block;border-radius:10px;background:#244a78;color:#fff;padding:12px 16px;text-decoration:none;font-weight:600} @media(max-width:680px){.mobileNav a{flex:1;text-align:center;padding:16px 10px}}
+details.testTools{border:1px solid #34506d;border-radius:12px;margin:12px 0}details.testTools>summary{padding:15px;cursor:pointer;font-weight:600}details.testTools>section{margin:0}
+#finalSection{scroll-margin-top:12px}#finalSign{background:#346fe0;font-weight:700}
+@media(max-width:680px){#finalSection{padding:16px!important}.mobileNav a{font-size:15px!important}}
 </style></head><body><main>
 <h1>Takas V3 · Yönetici Paneli</h1>
 <nav class="mobileNav" aria-label="Hızlı erişim"><a href="#finalSection">⚡ Son onaya git</a><a href="./">Ana sayfa</a></nav>
 <p>Nile Testnet · Yalnızca sözleşme yöneticisi takas oluşturabilir. Bu, gerçek zincire bağlı <strong>deneme</strong> panelidir. Mainnet işlemleri için kullanmayın.</p>
-<section><h2>İlk test: HD USDT #2 ↔ HD USDT #1</h2>
+<details class="testTools"><summary>Test cüzdanlarını hazırla (isteğe bağlı)</summary><section><h2>İlk test: HD USDT #2 ↔ HD USDT #1</h2>
 <p><strong>Taraf A:</strong> HD USDT #2, 1 test TRX gönderir. <strong>Taraf B:</strong> HD USDT #1, 100 FRHN test tokeni gönderir. Yönetici: HD USDT #4. İlk denemede komisyon yok.</p>
 <button id="preset" type="button">Test alanlarını otomatik doldur</button>
 <p><small>Test cüzdanları için kayıtlı adresler doldurulur. Her işlemde adresleri kontrol edin. Bu düğme imza istemez.</small></p>
-</section>
-<button id="connect">1 · Nile ve yönetici yetkisini doğrula</button>
+</section></details>
+<button id="connect">1 · Yönetici cüzdanını doğrula</button>
 <pre id="status" role="status">Bağlantı henüz kontrol edilmedi.</pre>
 <div class="grid">
 <section><h2>Taraf A</h2>
@@ -73,10 +76,10 @@ pre{font-size:13px;overflow-wrap:anywhere;word-break:break-word}
 <button id="create" disabled>3 · TronLink'te takas oluşturma imzasını iste</button>
 <pre id="result" role="status">Zincire takas gönderilmedi.</pre><button id="verify" disabled>4 · Takası zincirden doğrula ve bağlantı oluştur</button><p id="shareLink"></p>
 </section>
-<section class="warning" id="finalSection"><h2>Yönetici son onayı</h2>
+<section class="warning" id="finalSection"><h2>Yönetici son onayı</h2><p id="finalTip">Takas numarasını gir, koşulları kontrol et; hazırsa tek imzayla sonuçlandır.</p>
 <p>Her iki katılımcı yatırıp onayladıktan sonra, 5 dakikalık süre dolmadan yönetici son onayı vermelidir. İşlem tamamlanmazsa süre sonunda katılımcılar kendi yatırımlarını iade edebilir.</p>
 <label for="finalId">Takas numarası</label><input id="finalId" inputmode="numeric" placeholder="Örnek: 1" autocomplete="off">
-<button id="finalRead">Son onay koşullarını zincirden oku</button>
+<button id="finalRead">Son onayı kontrol et</button>
 <pre id="finalStatus">Henüz son onay kontrolü yapılmadı.</pre>
 <label class="switch"><input type="checkbox" id="finalAck">Bu takası sonuçlandırmak için son imzayı vermeyi onaylıyorum.</label>
 <button id="finalSign" disabled>TronLink ile yönetici son onayını imzala</button>
@@ -263,6 +266,7 @@ $("verify").addEventListener("click",async()=>{
   const link=document.createElement("a");link.href=url.href;link.textContent="Katılımcı bağlantısını aç";link.target="_blank";link.rel="noopener";
   $("shareLink").append("Takas #"+dealId+" hazır. ",link);
   $("finalId").value=dealId;
+  $("finalTip").textContent="Takas #"+dealId+" — Son onay için iki tarafın onayını bekleyin.";
   try{localStorage.setItem("takasv3-last-deal",dealId);}catch{}
   $("result").textContent="ZİNCİRDE TAKAS OLUŞTURULDU / SUCCESS\\nTakas numarası: "+dealId+"\\nİşlem ID: "+pendingTx+"\\nTaraflar kendi cüzdanlarıyla katılabilir.";
   pendingTx=null;pendingArgs=null;
@@ -341,5 +345,10 @@ if(/^[1-9]\d*$/.test(requestedFinalId||""))$("finalId").value=requestedFinalId;
 else if(/^[1-9]\d*$/.test(rememberedId))$("finalId").value=rememberedId;
 $("ack").checked=false;
 $("finalAck").checked=false;
+$("finalAck").addEventListener("change",()=>{
+ if($("finalAck").checked && $("finalId").value.trim() && contract && !finalBusy){
+  $("finalRead").click();
+ }
+});
 update();
 </script></body></html>
