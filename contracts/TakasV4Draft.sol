@@ -260,7 +260,12 @@ contract TakasV4Draft {
             (bool ok,) = payable(recipient).call{value: amount}("");
             require(ok, "TRX transfer failed");
         } else {
+            // Reject fee-on-transfer / deflationary outgoing tokens. A successful
+            // TRC20 call is NOT proof that the recipient received the full amount.
+            uint256 beforeBal = _balanceOf(token, recipient);
             _safeCall(token, abi.encodeWithSelector(0xa9059cbb, recipient, amount));
+            uint256 afterBal = _balanceOf(token, recipient);
+            require(afterBal >= beforeBal && afterBal - beforeBal == amount, "Recipient amount mismatch");
         }
     }
 
