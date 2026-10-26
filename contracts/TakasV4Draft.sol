@@ -12,7 +12,7 @@ pragma solidity ^0.8.20;
 contract TakasV4Draft {
     uint256 public constant OFFER_WINDOW = 1 days;
     uint256 public constant DEPOSIT_WINDOW = 15 minutes;
-    uint256 public constant SETTLEMENT_WINDOW = 30 minutes;
+    uint256 public constant SETTLEMENT_WINDOW = 5 minutes;
     uint16 public constant MAX_FEE_BPS = 1000; // Maximum 10%
 
     address public immutable manager;
