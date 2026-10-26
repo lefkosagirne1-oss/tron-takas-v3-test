@@ -65,9 +65,9 @@ function reset(){for(const id of ["create","read","confirm","finalize"])$(id).di
 async function connect(){
  const p=window.tronLink||window.tron;
  let w=window.tron?.tronWeb||window.tronWeb;
- if(!w?.ready&&p?.request)await p.request({method:"tron_requestAccounts"});
+ if(!w?.defaultAddress?.base58&&p?.request){status("walletStatus","TronLink hesap izni bekleniyor…");await p.request({method:"tron_requestAccounts"});}
  w=window.tron?.tronWeb||window.tronWeb;
- if(!w?.ready||!w.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
+ if(!w?.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
  if(!String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
  if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. iPhone Wallet-3 cüzdanını seç.");
  // TronLink sometimes exposes a valid base58 account without a valid
