@@ -116,12 +116,18 @@ function applyInviteFromUrl(){
  show(role);render();
 }
 $("make").addEventListener("click",()=>{
- if(!render())return;
+ // Only the manager's fee rule is required when creating invitations.
+ // Participant token selection and amounts happen after they open their links.
+ const percent=Number($("percent").value);
+ if(!$("percent").value.trim()||!Number.isFinite(percent)||percent<0||percent>10){
+  $("managerResult").textContent="Hizmet bedeli oranını 0 ile 10 arasında girin.";
+  return;
+ }
  const sessionId=Array.from(crypto.getRandomValues(new Uint8Array(12)),v=>v.toString(16).padStart(2,"0")).join("");
  for(const role of ["a","b"]){
   const u=new URL(location.href);
   u.search="";u.hash="";
-  u.searchParams.set("preview","2");u.searchParams.set("v","20261026c");u.searchParams.set("ref",sessionId);
+  u.searchParams.set("preview","2");u.searchParams.set("v","20261026d");u.searchParams.set("ref",sessionId);
   u.searchParams.set("role",role);u.searchParams.set("payer",$("payer").value);u.searchParams.set("rate",$("percent").value);
   $("invite"+role.toUpperCase()).value=u.href;
  }
