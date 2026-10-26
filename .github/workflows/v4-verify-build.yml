@@ -1,0 +1,38 @@
+name: V4 contract tests and Nile artifact
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/TakasV4Draft.sol'
+      - 'v4-test/**'
+      - 'package.json'
+      - '.github/workflows/v4-verify-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact Solidity compiler and test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run V4 escrow regression tests
+        run: npm run test:v4
+      - name: Build V4 deployment artifact after tests
+        run: npm run build:v4
+      - name: Publish tested ABI and bytecode to GitHub Pages repository
+        run: |
+          if git diff --quiet -- v4-deploy-artifact.json; then
+            echo "Artifact unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v4-deploy-artifact.json
+          git commit -m "Build verified V4 Nile artifact [skip ci]"
+          git push
