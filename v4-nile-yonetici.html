@@ -59,6 +59,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
+<pre id="finalCountdown">Son onay sayacı henüz başlamadı.</pre>
 <button id="finalize" disabled>Takas işlemini onayla</button>
 <pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
 </section>
@@ -326,6 +327,17 @@ $("create").onclick=async()=>{
  }catch(e){status("inviteStatus","DURUM DOĞRULANAMADI: "+(e?.message||e))}
  finally{$("create").disabled=false}
 };
+function updateFinalCountdown(){
+ const el=$("finalCountdown");if(!el)return;
+ if(!current){el.textContent="Son onay sayacı henüz başlamadı.";return}
+ if(yes(current.completed)){el.textContent="Takas tamamlandı.";readyForFinal=false;$("finalize").disabled=true;return}
+ if(yes(current.cancelled)){el.textContent="Takas iptal edildi.";readyForFinal=false;$("finalize").disabled=true;return}
+ const end=BigInt(value(current.settlementDeadline));
+ if(end===0n){el.textContent="İki tarafın yatırımları bekleniyor.";return}
+ const remaining=end>now()?Number(end-now()):0;
+ if(remaining===0){el.textContent="5 dakikalık son onay süresi doldu. Zincir durumunu yenileyin.";readyForFinal=false;$("finalize").disabled=true;return}
+ el.textContent="Yönetici son onayına kalan: "+String(Math.floor(remaining/60)).padStart(2,"0")+":"+String(remaining%60).padStart(2,"0");
+}
 async function read(){
  if(!c)throw Error("Sözleşmeyi doğrula.");
  const id=$("dealId").value.trim();
@@ -353,6 +365,7 @@ async function read(){
  "Son onay için uygun: "+(readyForFinal?"EVET":"HAYIR")
  ].join("\n");
  status("dealStatus",state);
+ updateFinalCountdown();
  return s;
 }
 async function showExistingLinks(id){
@@ -469,6 +482,7 @@ $("finalize").onclick=async()=>{
  }catch(e){status("actionStatus","HATA / BELİRSİZ İŞLEM: "+(e?.message||e))}
  finally{$("finalize").disabled=true}
 };
+setInterval(updateFinalCountdown,1000);
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
 try{const a=localStorage.getItem("takas-v4-nile-address");$("contractAddress").value=(a&&a==="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR")?a:"TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
  const tx=localStorage.getItem("takas-v4-last-deploy-tx");if(/^[0-9a-f]{64}$/i.test(tx||""))lastDeploymentTx=tx;
