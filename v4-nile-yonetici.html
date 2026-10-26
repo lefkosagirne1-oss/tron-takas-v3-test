@@ -332,7 +332,7 @@ $("precheck").onclick=async()=>{
  try{
   if(!c)throw Error("Önce sözleşmeyi doğrula.");
   const id=$("dealId").value.trim();
-  if(!/^[1-9]\\d*$/.test(id))throw Error("Takas numarası geçersiz.");
+  if(!/^[1-9]\d*$/.test(id))throw Error("Takas numarası geçersiz.");
   const state=await readSwapRaw(id);
   if(state.partyA===zero||state.partyB===zero||state.partyA===state.partyB)
    throw Error("İki ayrı katılımcı cüzdanı henüz kayıtlı değil.");
