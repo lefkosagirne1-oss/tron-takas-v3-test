@@ -45,6 +45,7 @@ code{overflow-wrap:anywhere}.light{background:#304e78}a{color:#9ec4ff}small{colo
 const $=id=>document.getElementById(id);
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const zero="410000000000000000000000000000000000000000";
+let artifactMatchesSource=false;
 let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="f0898285f24bb6b4cbcbb4d3d24348d1466e8457cfa783a8edc13dfc8d7e6239";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 const value=x=>String(x?.toString?.()??x??"");
@@ -77,7 +78,7 @@ async function connect(){
  // Wallet verification is independent of artifact freshness.
  // Deployment must still verify the compiled artifact against current source.
  const sourceResponse=await fetch("./contracts/TakasV4Draft.sol",{cache:"no-store"});
- let artifactMatchesSource=false;
+ artifactMatchesSource=false;
  if(sourceResponse.ok && crypto?.subtle){
   const sourceBytes=await sourceResponse.arrayBuffer();
   const digest=await crypto.subtle.digest("SHA-256",sourceBytes);
@@ -109,7 +110,7 @@ async function verify(){
 }
 $("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect()}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
-$("deployAck").onchange=()=>{$("deploy").disabled=!tw||!$("deployAck").checked};
+$("deployAck").onchange=()=>{$("deploy").disabled=!tw||!artifactMatchesSource||!$("deployAck").checked};
 $("diagnose").onclick=async()=>{
  status("diagnosis","Nile blok zamanı ve gönderim durumu okunuyor…");
  try{
@@ -137,7 +138,7 @@ $("diagnose").onclick=async()=>{
  }catch(e){status("diagnosis","KONTROL HATASI: "+(e?.message||e));}
 };
 $("deploy").onclick=async()=>{
- if(!tw||!artifact||!$("deployAck").checked)return;
+ if(!tw||!artifact||!artifactMatchesSource||!$("deployAck").checked)return;
  $("deploy").disabled=true;$("signDeploy").disabled=true;preparedDeployment=null;
  status("deployStatus","Nile için imzasız dağıtım taslağı hazırlanıyor. Bu aşama ücret/işlem imzası istemez…");
  try{
@@ -164,10 +165,10 @@ $("deploy").onclick=async()=>{
   $("signDeploy").disabled=false;
  }catch(e){
   status("deployStatus","İMZASIZ HAZIRLIK BAŞARISIZ: "+(e?.message||e)+"\\nHerhangi bir işlem imzalanmadı.");
- }finally{$("deploy").disabled=!tw||!$("deployAck").checked}
+ }finally{$("deploy").disabled=!tw||!artifactMatchesSource||!$("deployAck").checked}
 };
 $("signDeploy").onclick=async()=>{
- if(!preparedDeployment||!tw||!$("deployAck").checked)return;
+ if(!preparedDeployment||!tw||!artifactMatchesSource||!$("deployAck").checked)return;
  if(tw.defaultAddress?.base58!==owner){preparedDeployment=null;$("signDeploy").disabled=true;status("deployStatus","Cüzdan değişti; imzasız işlemi yeniden hazırla.");return;}
  if(!confirm("Nile test ağı: Dağıtım imzalanacak. Fee Limit en fazla 1.000 test TRX; bu tahmini gerçek tüketim değildir. TronLink imza ekranında maliyeti kontrol edin. Devam edilsin mi?"))return;
  $("signDeploy").disabled=true;
