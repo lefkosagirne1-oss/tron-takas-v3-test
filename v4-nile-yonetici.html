@@ -45,8 +45,8 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
 <section id="overview"><h2>Takas özeti · tek ekran</h2>
 <p class="note">Bu alan zincirden okunan mevcut takası özetler. Yeni işlem oluşturmaz, imza istemez.</p>
-<label for="overviewDealId">Takas numarası</label><input id="overviewDealId" inputmode="numeric" value="5" placeholder="Örn. 5"><button id="overviewLoad" class="light" type="button">Takası ücretsiz görüntüle</button>
-<pre id="overviewStatus">Cüzdan bağlandıktan sonra takas numarasını seçip durumunu görüntüle.</pre>
+<input id="overviewDealId" type="hidden" value=""><button id="overviewLoad" class="light" type="button">Takaslarımı göster (ücretsiz)</button><div id="overviewTradeList"></div>
+<pre id="overviewStatus">Cüzdan bağlanınca takasların otomatik listelenecek.</pre>
 <button id="overviewRefresh" class="light" type="button" disabled>Seçili takası ücretsiz yenile</button>
 <div id="overviewLinks" hidden>
 <button id="overviewCopyA" class="light" type="button">Taraf A davetini kopyala</button>
@@ -66,7 +66,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 </section>
 <section><h2>3 · Yatırımları kontrol et ve son onayı ver</h2>
 <button id="loadHistory" class="light" type="button" disabled>Takaslarımı listele (ücretsiz)</button><div id="historyList"></div><pre id="historyStatus">Takaslarını görmek için listele butonuna bas.</pre>
-<label for="dealId">Takas numarası (isteğe bağlı)</label><input id="dealId" inputmode="numeric" placeholder="Örn. 1">
+<input id="dealId" type="hidden" value="">
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
@@ -167,7 +167,7 @@ async function verify(){
  status("inviteStatus","Sözleşme doğrulandı. Hizmet bedelini seçip yeni takas bağlantısı oluşturabilirsin.");
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
-$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify();status("walletStatus","CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+owner);try{await showExistingLinks($("overviewDealId").value.trim())}catch(loadError){status("overviewStatus","Takas otomatik okunamadı: "+(loadError?.message||loadError))}}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));status("inviteStatus","Sözleşme doğrulanamadı: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
+$("connect").onclick=async()=>{status("walletStatus","Bağlantı kontrol ediliyor…");try{await connect();if(tw&&$("contractAddress").value.trim()){try{await verify();status("walletStatus","CÜZDAN VE V4 SÖZLEŞMESİ DOĞRULANDI\\n"+owner);try{await $("overviewLoad").onclick()}catch(loadError){status("overviewStatus","Takaslar otomatik okunamadı: "+(loadError?.message||loadError))}}catch(e){status("deployStatus","SÖZLEŞME DOĞRULAMA HATASI: "+(e?.message||e));status("inviteStatus","Sözleşme doğrulanamadı: "+(e?.message||e));}}}catch(e){reset();status("walletStatus","HATA: "+(e?.message||e))}};
 $("verifyContract").onclick=async()=>{status("deployStatus","Zincir doğrulanıyor…");try{await verify()}catch(e){status("deployStatus","HATA: "+(e?.message||e))}};
 $("deployAck").onchange=()=>{$("deploy").disabled=true};
 $("diagnose").onclick=async()=>{
@@ -508,8 +508,28 @@ $("finalize").onclick=async()=>{
  finally{$("finalize").disabled=true}
 };
 setInterval(()=>{updateFinalCountdown();status("overviewTimer",$("finalCountdown").textContent)},1000);
-$("overviewLoad").onclick=async()=>{const id=$("overviewDealId").value.trim();if(!/^[1-9][0-9]*$/.test(id)){status("overviewStatus","Geçerli takas numarası gir.");return}try{status("overviewStatus","Zincirden okunuyor…");await showExistingLinks(id)}catch(e){status("overviewStatus","Takas okunamadı: "+(e?.message||e))}};
-$("overviewRefresh").onclick=()=> $("overviewLoad").click();
+$("overviewLoad").onclick=async()=>{
+ const list=$("overviewTradeList");list.replaceChildren();
+ try{
+  if(!c)throw Error("Önce yönetici cüzdanını bağla.");
+  status("overviewStatus","Takaslar zincirden okunuyor…");
+  const next=BigInt(value(await c.nextId().call()));
+  if(next<=1n){status("overviewStatus","Henüz takas oluşturulmamış.");return}
+  const total=next-1n,start=total>30n?total-29n:1n;
+  let complete=0,open=0,cancelled=0;
+  for(let n=total;n>=start;n--){
+   const id=n.toString(),swap=await readSwapRaw(id);
+   const done=yes(swap.completed),cancel=yes(swap.cancelled);
+   if(done)complete++;else if(cancel)cancelled++;else open++;
+   const btn=document.createElement("button");btn.type="button";btn.className="light";
+   btn.textContent="Takas #"+id+" · "+(done?"Tamamlandı":cancel?"İptal edildi":"Devam ediyor");
+   btn.onclick=async()=>{try{await showExistingLinks(id);status("overviewStatus",$("overviewStatus").textContent)}catch(e){status("overviewStatus","Okunamadı: "+(e?.message||e))}};
+   list.appendChild(btn);
+  }
+  status("overviewStatus",complete+" tamamlandı · "+open+" devam ediyor · "+cancelled+" iptal edildi. Ayrıntı için takasa dokun.");
+ }catch(e){status("overviewStatus","Liste okunamadı: "+(e?.message||e))}
+};
+$("overviewRefresh").onclick=()=>{const id=$("overviewDealId").value;if(id)showExistingLinks(id).catch(e=>status("overviewStatus","Yenilenemedi: "+(e?.message||e)))};
 $("overviewCopyA").onclick=()=> $("linkA").value?navigator.clipboard.writeText($("linkA").value).then(()=>status("inviteStatus","Taraf A bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 $("overviewCopyB").onclick=()=> $("linkB").value?navigator.clipboard.writeText($("linkB").value).then(()=>status("inviteStatus","Taraf B bağlantısı kopyalandı.")).catch(e=>status("inviteStatus","Kopyalanamadı: "+e.message)):status("inviteStatus","Önce mevcut takasın bağlantılarını getir.");
 for(const b of document.querySelectorAll("[data-copy]"))b.onclick=async()=>{const e=$(b.dataset.copy);try{await navigator.clipboard.writeText(e.value);status("inviteStatus","Bağlantı kopyalandı.")}catch{e.focus();e.select();status("inviteStatus","Adres seçildi; telefonunun kopyala seçeneğini kullan.")}};
