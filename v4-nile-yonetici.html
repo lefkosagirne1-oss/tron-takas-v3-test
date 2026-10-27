@@ -26,9 +26,9 @@ input,select{border-radius:12px}
 pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 .warn{border-radius:14px;line-height:1.55}
 #finalize{background:#19866c}
-#links:not([hidden]){padding-top:8px}
+#links:not([hidden]){padding-top:8px}button[hidden],div[hidden],pre[hidden]{display:none!important}
 </style></head><body>
-<h1>Güvenli Takas</h1><p>Yönetici Paneli · Takas oluştur, bağlantıları paylaş, yatırımları takip et.</p>
+<h1>Güvenli Takas</h1><p>Yönetici Paneli · Önce mevcut takası aç, cüzdanları doğrula, yatırımları izle ve son onayı ver.</p>
 <div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
 <section><h2>1 · Cüzdanım</h2>
 <button id="connect" onclick="document.getElementById('walletStatus').textContent='Bağlantı isteği alındı; TronLink kontrol ediliyor…'">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
@@ -43,7 +43,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="signDeploy" disabled hidden>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
-<section><h2>1 · Yeni takas oluştur</h2>
+<section><h2>2 · Yeni takas oluştur</h2>
 <p class="note">Ali ve Veli gönderecekleri varlıkları ve miktarları kendileri seçer. Sen yalnızca hizmet bedelini belirlersin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
 <label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="0">
@@ -53,9 +53,9 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
 </section>
-<section id="overview"><h2>Mevcut takaslar ve arşiv</h2>
+<section id="overview"><h2>3 · Mevcut takaslar</h2>
 <p class="note">Bu alan zincirden okunan mevcut takası özetler. Yeni işlem oluşturmaz, imza istemez.</p>
-<input id="overviewDealId" type="hidden" value=""><button id="overviewLoad" class="light" type="button">Takaslarımı göster (ücretsiz)</button><div id="overviewTradeList" hidden></div>
+<input id="overviewDealId" type="hidden" value=""><button id="openTest5" class="light" type="button" disabled>Mevcut takas #5’i aç (ücretsiz)</button><button id="overviewLoad" class="light" type="button">Takaslarımı göster (ücretsiz)</button><div id="overviewTradeList" hidden></div>
 <pre id="overviewStatus">Cüzdan bağlanınca takasların otomatik listelenecek.</pre>
 <button id="overviewRefresh" class="light" type="button" disabled>Seçili takası ücretsiz yenile</button>
 <div id="overviewLinks" hidden>
@@ -64,15 +64,15 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 </div>
 <pre id="overviewTimer">Son onay sayacı henüz başlamadı.</pre>
 </section>
-<section><h2>3 · Yatırımları kontrol et ve son onayı ver</h2>
-<button id="loadHistory" class="light" type="button" disabled>Takaslarımı listele (ücretsiz)</button><div id="historyList"></div><pre id="historyStatus">Takaslarını görmek için listele butonuna bas.</pre>
+<section><h2>4 · Cüzdanları doğrula, yatırımları kontrol et ve son onayı ver</h2>
+<button id="loadHistory" class="light" type="button" disabled hidden>Takaslarımı listele (ücretsiz)</button><div id="historyList" hidden></div><pre id="historyStatus" hidden>Takaslarını görmek için listele butonuna bas.</pre>
 <input id="dealId" type="hidden" value="">
 <button id="read" class="light" disabled>Takas durumunu görüntüle</button><pre id="dealStatus">Henüz takas okunmadı.</pre>
 <button id="precheck" class="light" disabled>Ücretsiz kilitleme ön kontrolü</button><pre id="precheckStatus">Ön kontrol henüz yapılmadı. İmza gerekmez.</pre>
 <button id="confirm" disabled>Katılımcı cüzdanlarını doğrula ve kilitle</button>
 <pre id="finalCountdown">Son onay sayacı henüz başlamadı.</pre>
-<button id="finalize" disabled>Takas işlemini onayla</button>
-<pre id="actionStatus">Yalnızca zincirden doğrulanan koşullar sağlanırsa işlem imzalanabilir.</pre>
+<button id="finalize" disabled>Son kontrolü onayla ve takası tamamla</button>
+<pre id="actionStatus">İki tarafın yatırımı ve onayı zincirde doğrulanmadan son onay açılmaz. Gönderilen işlem kesinleşmeden takas tamamlandı sayılmaz.</pre>
 </section>
 
 <small>Gerçek transferler zincir üzerinde doğrulanır. URL'deki rol bilgisi yetki sağlamaz. Tarafların kimlikleri ayrıca kontrol edilmelidir.</small>
@@ -81,6 +81,7 @@ const $=id=>document.getElementById(id);
 window.addEventListener("error",e=>{const el=document.getElementById("walletStatus");if(el)el.textContent="SAYFA KODU HATASI: "+(e.message||"Bilinmeyen hata")+" (satır "+(e.lineno||"?")+")";});
 
 const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
+const KNOWN_V4="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
 const zero="410000000000000000000000000000000000000000";
 let artifactMatchesSource=false;
 let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="f0898285f24bb6b4cbcbb4d3d24348d1466e8457cfa783a8edc13dfc8d7e6239";
@@ -113,7 +114,7 @@ async function readSwapRaw(id){
  return out;
 }
 const now=()=>BigInt(Math.floor(Date.now()/1000));
-function reset(){for(const id of ["create","read","precheck","confirm","finalize"])$(id).disabled=true;c=null;readyForFinal=false}
+function reset(){for(const id of ["create","read","precheck","confirm","finalize","openTest5"])$(id).disabled=true;c=null;readyForFinal=false}
 async function connect(){
  const p=window.tronLink||window.tron;
  let w=window.tron?.tronWeb||window.tronWeb;
@@ -121,7 +122,7 @@ async function connect(){
  w=window.tron?.tronWeb||window.tronWeb;
  if(!w?.defaultAddress?.base58)throw Error("TronLink Discover üzerinden cüzdan bağlantısına izin ver.");
  if(!String(w.fullNode?.host||w.fullNode?.url||"").toLowerCase().includes("nile"))throw Error("TronLink ağını Nile Testnet olarak seç.");
- if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. iPhone Wallet-3 cüzdanını seç.");
+ if(w.defaultAddress.base58!==owner)throw Error("Yönetici cüzdanı değil. 4. cüzdanı (yönetici) seç.");
  // TronLink sometimes exposes a valid base58 account without a valid
  // defaultAddress.hex; contract().new uses the issuer/default address internally.
  // Set the address explicitly before any deployment transaction is constructed.
@@ -155,7 +156,7 @@ async function verify(){
  reset();
  if(!tw||tw.defaultAddress.base58!==owner)throw Error("Önce yönetici cüzdanını doğrula.");
  const address=$("contractAddress").value.trim();
- if(!tw.isAddress(address))throw Error("Geçerli V4 sözleşme adresi gerekli.");
+ if(!tw.isAddress(address)||address!==KNOWN_V4)throw Error("Yalnızca mevcut Nile V4 sözleşme adresi kabul edilir. İşlem yapma.");
  const chain=await tw.trx.getContract(address);
  if(chain.name!=="TakasV4Draft")throw Error("Bu adreste V4 sözleşmesi doğrulanmadı.");
  const found=await tw.contract(artifact.abi,address);
@@ -163,7 +164,7 @@ async function verify(){
  if(chainOwner!==owner)throw Error("Sözleşmenin yönetici cüzdanı eşleşmiyor.");
  tw=window.tron?.tronWeb||window.tronWeb;c=found;liveAddress=address;
  try{localStorage.setItem("takas-v4-nile-address",address)}catch{}
- for(const id of ["create","read","recoverLinks","loadHistory"])$(id).disabled=false;
+ for(const id of ["create","read","recoverLinks","loadHistory","openTest5"])$(id).disabled=false;
  status("inviteStatus","Sözleşme doğrulandı. Hizmet bedelini seçip yeni takas bağlantısı oluşturabilirsin.");
  status("deployStatus","NILE V4 SÖZLEŞMESİ DOĞRULANDI\n"+address+"\nYönetici: "+owner+"\nSonraki davet: "+value(await c.nextId().call()));
 }
@@ -375,7 +376,8 @@ async function read(){
  "Teklif onayı A/B: "+(yes(s.acceptedA)?"Evet":"Hayır")+"/"+(yes(s.acceptedB)?"Evet":"Hayır"),
  "Yatırıldı A/B: "+(yes(s.depositedA)?"Evet":"Hayır")+"/"+(yes(s.depositedB)?"Evet":"Hayır"),
  "İade A/B: "+(yes(s.refundedA)?"Evet":"Hayır")+"/"+(yes(s.refundedB)?"Evet":"Hayır"),
- "Tamamlandı: "+(yes(s.completed)?"Evet":"Hayır"),
+ "Tamamlandı (zincir durumu): "+(yes(s.completed)?"Evet":"Hayır"),
+ "Hizmet bedeli: %"+(Number(value(s.feeBps))/100)+" | Ödeyen: "+(Number(value(s.feePayer))===0?"Yok":"Taraf "+(Number(value(s.feePayer))===1?"A":"B")),
  "Son onay için uygun: "+(readyForFinal?"EVET":"HAYIR")
  ].join("\n");
  status("dealStatus",state);
@@ -407,6 +409,7 @@ async function showExistingLinks(id){
  await read();
  return swap;
 }
+$("openTest5").onclick=async()=>{try{await showExistingLinks("5");status("overviewStatus","Takas #5 zincirden okundu. Taraf A/B durumunu ve alt bölümdeki son onay koşullarını kontrol et.")}catch(e){status("overviewStatus","Takas #5 açılamadı: "+(e?.message||e))}};
 $("recoverLinks").onclick=async()=>{
  try{await showExistingLinks($("dealId").value.trim())}
  catch(e){status("inviteStatus","BAĞLANTILAR GETİRİLEMEDİ: "+(e?.message||e))}
@@ -501,9 +504,17 @@ $("finalize").onclick=async()=>{
   const result=await preflight.json();
   if(!result.result?.result||result.result?.code||result.result?.message)
    throw Error("Ücretsiz son onay kontrolü başarısız; imza istenmedi: "+(result.result?.message||result.result?.code||"Sözleşme reddetti"));
-  if(!confirm("Ücretsiz zincir ön kontrolü geçti. NILE: Takas #"+id+" tamamlanacak, taraflara tokenler ve yöneticiye hizmet bedeli gönderilecek. Devam edilsin mi?"))return;
+  const s=current;
+  const tokenLabel=t=>value(t)===zero?"TRX":addr(t);
+  const feePayer=Number(value(s.feePayer));
+  const finalSummary="NILE TEST · TAKAS #"+id+" SON ONAY\n\n"+
+   "Ali / Taraf A: "+addr(s.partyA)+"\nGönderdiği: "+value(s.amountA)+" (en küçük birim) · "+tokenLabel(s.tokenA)+"\n\n"+
+   "Veli / Taraf B: "+addr(s.partyB)+"\nGönderdiği: "+value(s.amountB)+" (en küçük birim) · "+tokenLabel(s.tokenB)+"\n\n"+
+   "Hizmet bedeli: %"+(Number(value(s.feeBps))/100)+" · "+(feePayer?"Taraf "+(feePayer===1?"A":"B"):"Yok")+"\n\n"+
+   "İki tarafın yatırımı ve onayı zincirden okundu. Son onay varlıkları karşılıklı aktarır. Cüzdan adreslerini, tokenleri ve miktarları kontrol ettin mi?";
+  if(!confirm(finalSummary))return;
   const tx=await c.finalize(id).send({feeLimit:150000000,shouldPollResponse:false});
-  status("actionStatus","Son onay gönderildi, henüz kesinleşmedi. İşlem: "+tx+"\nDurumu yeniden zincirden doğrula.");
+  status("actionStatus","SON ONAY AĞA GÖNDERİLDİ; HENÜZ TAMAMLANMADI. İşlem: "+tx+"\nTakas #"+id+" için zincir durumunu yeniden oku. Tamamlandı yazmadan başarılı sayma.");
   readyForFinal=false;
  }catch(e){status("actionStatus","HATA / BELİRSİZ İŞLEM: "+(e?.message||e))}
  finally{$("finalize").disabled=true}
