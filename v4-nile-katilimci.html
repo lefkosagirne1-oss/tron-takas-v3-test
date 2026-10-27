@@ -37,16 +37,16 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="join" disabled>Katılım talebini zincire gönder</button>
 <pre id="joinStatus">İşlem imzalanmadı.</pre></section>
 <section id="proposalSection"><h2>2 · Varlığını ve miktarını belirle</h2>
-<p>Hangi tokeni ne kadar göndereceğine sen karar verirsin. Diğer tarafın teklifi değişirse iki tarafın da yeniden onayı gerekir.</p>
+<p>Göndereceğin tokeni ve miktarı yaz. Karşı tarafın bilgileri de tamamlandığında aynı sayfada tutarları görüp onaylayacak, ardından yatıracaksın.</p>
 <label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="TOKEN">TRC20 token adresi</option></select>
 <div id="tokenBox" hidden><label for="token">TRC20 sözleşme adresi (T…)</label><input id="token" autocomplete="off" placeholder="T..."></div>
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
-<button id="propose" disabled>Teklifimi onayla</button><pre id="proposalStatus">Teklif gönderilmedi.</pre>
+<button id="propose" disabled>Token ve miktarımı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
 <section id="detailsSection"><h2>Takasın güncel durumu</h2><div class="sides">
 <div class="side"><strong>TARAF A</strong><pre id="sideA">Henüz okunmadı.</pre></div>
 <div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div>
-<pre id="terms">Yönetici hizmet bedeli ve teklifler yükleniyor…</pre>
+<pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <pre id="state">Zincir bekleniyor.</pre>
 <pre id="countdown" aria-live="off">Süre bilgisi bekleniyor.</pre>
 <button class="secondary" id="refresh">Durumu güncelle (ücretsiz)</button>
@@ -59,7 +59,7 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 <button id="refund" hidden disabled>Süresi dolan yatırımımı iade al</button>
 <pre id="txStatus">Henüz işlem imzalanmadı.</pre>
 </section>
-<small>Önemli: “Teklif verildi” para yatırıldığı anlamına gelmez. “Yatırıldı” yalnızca Nile sözleşmesi başarılı yatırımı kaydettiğinde gösterilir. Hizmet bedeli yalnızca başarılı takasta tahsil edilir.</small>
+<small>Önemli: Token ve miktar kaydetmek para yatırmak değildir. “Yatırıldı” yalnızca Nile sözleşmesi başarılı yatırımı kaydettiğinde gösterilir. Hizmet bedeli yalnızca başarılı takasta tahsil edilir.</small>
 <script>
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
 const contractAddress=params.get("contract")||"",dealId=params.get("id")||"",roleParam=params.get("role");
@@ -154,10 +154,10 @@ async function read(){
  const describe=k=>{
   const ok=flag(deal["proposed"+k]),item=assets[k];
   return "Cüzdan: "+address(deal["party"+k])+"\n"+
-   "Teklif: "+(ok?display(deal["amount"+k],item.dp)+" "+item.symbol:"Bekleniyor")+"\n"+
-   "Onay: "+(flag(deal["accepted"+k])?"Evet":"Hayır")+"\n"+
-   "Yatırım: "+(flag(deal["deposited"+k])?"Zincirde doğrulandı":"Yatırılmadı")+"\n"+
-   "İade: "+(flag(deal["refunded"+k])?"Alındı":"Hayır");
+   "Göndereceği: "+(ok?display(deal["amount"+k],item.dp)+" "+item.symbol:"Henüz girilmedi")+"\n"+
+   "Koşulları onayladı: "+(flag(deal["accepted"+k])?"Evet":"Henüz onaylamadı")+"\n"+
+   "Yatırdı: "+(flag(deal["deposited"+k])?"Evet, zincirde doğrulandı":"Henüz yatırmadı")+"\n"+
+   "İade: "+(flag(deal["refunded"+k])?"Alındı":"Alınmadı");
  };
  $("sideA").textContent=describe("A");$("sideB").textContent=describe("B");
  const payer=Number(value(deal.feePayer)),pct=Number(value(deal.feeBps))/100;
@@ -197,12 +197,12 @@ async function read(){
  else if(!wallet)nxt="TronLink cüzdanınızı bağlayın.";
  else if(!isRegistered)nxt="Katılım talebinizi gönderin. Yönetici adresleri doğrulayıp kilitleyecek.";
  else if(!flag(deal.walletsConfirmed))nxt="Yöneticinin katılımcı cüzdanlarını doğrulaması bekleniyor.";
- else if(canAccept)nxt="İki tarafın teklifini ve net tutarları inceleyip onaylayın.";
+ else if(canAccept)nxt="İki tarafın token ve miktarlarını, komisyonu ve net tutarları kontrol edip onaylayın.";
  else if(canDeposit)nxt="Teklifler kabul edildi. Varlığınızı yatırabilirsiniz.";
  else if(deposited&&!fully)nxt="Varlığınız sözleşmede güvence altında. Diğer tarafın yatırması bekleniyor.";
  else if(fully)nxt="İki tarafın yatırımı doğrulandı. Yönetici son onayı bekleniyor.";
  else if(!deposited&&depEnd>0n&&now>=depEnd)nxt="Yatırma süresi doldu. Bu takasa artık yatırılamaz.";
- else nxt="Tokeninizi ve miktarınızı girip teklifinizi onaylayın; diğer tarafın teklifini bekleyin.";
+ else nxt="Tokeninizi ve miktarınızı kaydedin; karşı tarafın bilgilerini bekleyin.";
  $("next").textContent=nxt;
  $("state").textContent="Yönetici son onayı: "+(fully&&!settled?"Bekleniyor":settled?"Tamamlandı":"Henüz hazır değil")+
  "\nYatırma sonu: "+(depEnd?new Date(Number(depEnd)*1000).toLocaleString("tr-TR"):"Başlamadı")+
