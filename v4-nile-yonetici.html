@@ -508,8 +508,8 @@ $("finalize").onclick=async()=>{
   const tokenLabel=t=>value(t)===zero?"TRX":addr(t);
   const feePayer=Number(value(s.feePayer));
   const finalSummary="NILE TEST · TAKAS #"+id+" SON ONAY\n\n"+
-   "Ali / Taraf A: "+addr(s.partyA)+"\nGönderdiği: "+value(s.amountA)+" (en küçük birim) · "+tokenLabel(s.tokenA)+"\n\n"+
-   "Veli / Taraf B: "+addr(s.partyB)+"\nGönderdiği: "+value(s.amountB)+" (en küçük birim) · "+tokenLabel(s.tokenB)+"\n\n"+
+   "Taraf A: "+addr(s.partyA)+"\nGönderdiği: "+value(s.amountA)+" (en küçük birim) · "+tokenLabel(s.tokenA)+"\n\n"+
+   "Taraf B: "+addr(s.partyB)+"\nGönderdiği: "+value(s.amountB)+" (en küçük birim) · "+tokenLabel(s.tokenB)+"\n\n"+
    "Hizmet bedeli: %"+(Number(value(s.feeBps))/100)+" · "+(feePayer?"Taraf "+(feePayer===1?"A":"B"):"Yok")+"\n\n"+
    "İki tarafın yatırımı ve onayı zincirden okundu. Son onay varlıkları karşılıklı aktarır. Cüzdan adreslerini, tokenleri ve miktarları kontrol ettin mi?";
   if(!confirm(finalSummary))return;
