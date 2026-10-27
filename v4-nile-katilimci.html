@@ -66,7 +66,7 @@ const contractAddress=params.get("contract")||"",dealId=params.get("id")||"",rol
 const ZERO="410000000000000000000000000000000000000000";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 let tw=null,c=null,wallet="",deal=null,role="",assets={},pending=false,allowance=0n;
-let expiryRefreshKey="",expiryRefreshPending=false;
+let expiryRefreshKey="",expiryRefreshPending=false,expiryRetryAt=0,expiryRetryCount=0;
 const value=v=>String(v?.toString?.()??v??"");
 const flag=v=>v===true||value(v)==="true"||value(v)==="1";
 const bigint=v=>BigInt(value(v));
@@ -133,9 +133,14 @@ function updateCountdown(){
  el.textContent=remaining>0?label+" için kalan süre: "+mm+":"+ss:label+" süresi doldu. Güncel zincir durumu kontrol ediliyor.";
  if(remaining===0&&c&&!pending&&!expiryRefreshPending){
   const key=dealId+":"+end.toString()+":"+(settlement>0n?"settlement":"deposit");
-  if(expiryRefreshKey!==key){
-   expiryRefreshKey=key;expiryRefreshPending=true;
-   read().catch(e=>{$("txStatus").textContent="Süre doldu; otomatik durum okuması başarısız: "+(e?.message||e)+". Durumu güncelle düğmesini kullanın."}).finally(()=>{expiryRefreshPending=false});
+  if(expiryRefreshKey!==key){expiryRefreshKey=key;expiryRetryAt=0;expiryRetryCount=0}
+  if(expiryRetryCount<4&&Date.now()>=expiryRetryAt){
+   expiryRefreshPending=true;expiryRetryCount++;
+   expiryRetryAt=Date.now()+15000;
+   read().catch(e=>{
+    $("txStatus").textContent="Süre doldu; zincir durumu okunamadı ("+expiryRetryCount+"/4): "+(e?.message||e)+
+      (expiryRetryCount<4?". 15 saniye sonra yeniden denenecek.":". Lütfen Durumu güncelle düğmesini kullanın.");
+   }).finally(()=>{expiryRefreshPending=false});
   }
  }
 }
