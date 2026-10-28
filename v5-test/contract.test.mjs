@@ -50,3 +50,28 @@ test("V5 invalid parties and non-manager invite rejected",async()=>{
  await assert.rejects(swap.connect(a).createInviteWithParties(await a.getAddress(),await b.getAddress(),0,0));
  await assert.rejects(swap.createInviteWithParties(await a.getAddress(),await a.getAddress(),0,0));
 });
+
+test("V5 offer amendment clears prior acceptance and blocks premature deposit",async()=>{
+ const {swap,a,b,one}=await fixture();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ // Native A and B cannot have the same token, but B can propose an EOA? Reject invalid token.
+ await assert.rejects(swap.connect(b).proposeAndAcceptA(1,zero,parseEther("5")));
+ assert.equal((await swap.getSwap(1)).acceptedB,false);
+ await one(swap.connect(a).propose(1,zero,parseEther("3")));
+ await assert.rejects(swap.connect(a).acceptAndDeposit(1,{value:parseEther("3")}));
+});
+test("V5 manager cannot finalize before both deposits",async()=>{
+ const {swap,one,a}=await fixture();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await assert.rejects(swap.finalize(1));
+});
+test("V5 manager cannot cancel an already cancelled invitation twice",async()=>{
+ const {swap,one}=await fixture();
+ await one(swap.cancelUnused(1));
+ assert.equal((await swap.getSwap(1)).cancelled,true);
+ await assert.rejects(swap.cancelUnused(1));
+});
+test("V5 no unauthorized wallet may submit A offer",async()=>{
+ const {swap,other}=await fixture();
+ await assert.rejects(swap.connect(other).propose(1,zero,parseEther("2")));
+});
