@@ -66,7 +66,7 @@ const $=id=>document.getElementById(id),params=new URLSearchParams(location.sear
 const contractAddress=params.get("contract")||"",dealId=params.get("id")||"",roleParam=params.get("role");
 const ZERO="410000000000000000000000000000000000000000";
 const EXPECTED_CONTRACT="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
-const validInvite=contractAddress===EXPECTED_CONTRACT&&/^[1-9]\\d*$/.test(dealId)&&["1","2"].includes(roleParam);
+const validInvite=contractAddress===EXPECTED_CONTRACT&&/^[1-9]\d*$/.test(dealId)&&["1","2"].includes(roleParam);
 if(!validInvite){document.getElementById("inviteLanding").hidden=false;for(const id of ["joinSection","proposalSection","detailsSection","actionSection"])document.getElementById(id).hidden=true;document.getElementById("heading").textContent="Takas daveti bekleniyor · Nile Test";}
 const EXPECTED_MANAGER="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
