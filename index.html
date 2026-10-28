@@ -1,33 +1,19 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101b2c">
-<title>Takas · Nile Test</title><style>
-:root{color-scheme:dark;background:#0c1423;color:#eff5ff;font:16px system-ui}
-*{box-sizing:border-box}body{max-width:640px;margin:0 auto;padding:24px 15px}
-header{padding:12px 0 20px}h1{font-size:28px;margin:0 0 8px}h2{font-size:19px;margin:0 0 8px}p{color:#bbcbdd;line-height:1.5}
-.card{padding:18px;background:#15263d;border:1px solid #34506d;border-radius:15px;margin:14px 0}
-a.action{display:block;min-height:54px;background:#467ce5;color:#fff;text-align:center;text-decoration:none;border-radius:10px;padding:16px;font-weight:700;margin:12px 0}
-a.alt{background:#28496c}
-input{display:block;width:100%;border:1px solid #55749b;background:#081728;color:#fff;border-radius:10px;font-size:18px;padding:15px}
-summary{cursor:pointer;font-weight:650;padding:8px 0}small{color:#9cb2d0}.steps{font-size:14px;line-height:1.7}
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#091321"><title>Güvenli Takas · Nile V4</title>
+<style>
+:root{color-scheme:dark;background:#080f1b;color:#edf5ff;font:16px/1.55 system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}body{max-width:640px;margin:0 auto;padding:clamp(16px,5vw,28px)}
+h1{font-size:clamp(29px,6vw,38px);letter-spacing:-.04em;margin:20px 0 4px}
+p{color:#b6c8df}section{background:#14253a;border:1px solid #34516f;border-radius:18px;padding:22px;margin:18px 0}
+h2{font-size:20px;margin:0 0 8px}a.action{display:block;background:#19866c;color:white;text-align:center;text-decoration:none;font-weight:700;border-radius:13px;padding:17px;margin-top:16px;min-height:56px}
+.note{font-size:14px;color:#b6c8df}.warn{border:1px solid #9a7542;background:#30281b;color:#f1d49b;border-radius:12px;padding:14px}
 </style></head><body>
-<header><h1>Takas</h1><p>Nile test ağı · Telefon uyumlu işlem ekranı</p><small>Gerçek para göndermeyin. Bu sürüm test amaçlıdır.</small></header>
-<div class="card"><h2>Yönetici</h2><p>Yeni takas oluştur veya açık takasın son onayına git.</p>
-<a class="action" href="./takas-v3-yonetici-islem.html">Yönetici panelini aç</a>
-<label for="managerId">Son onay için takas numarası</label><input id="managerId" inputmode="numeric" placeholder="Örn. 3" autocomplete="off">
-<a class="action alt" id="finalGo" href="./takas-v3-yonetici-islem.html#finalSection">Son onaya git</a></div>
-<div class="card"><h2>Katılımcı</h2><p>Size verilen takas bağlantısını açın veya takas numarası girin.</p>
-<label for="participantId">Takas numarası</label><input id="participantId" inputmode="numeric" placeholder="Örn. 3" autocomplete="off">
-<a class="action" id="participantGo" href="./takas-v3-katilimci-nile.html">Takasımı aç</a></div>
-<details class="card"><summary>İşlem adımları ve test araçları</summary><p class="steps">Yönetici takası oluşturur; iki taraf yatırır ve onaylar; yönetici 5 dakikalık süre dolmadan son imzayı verir. Süre dolarsa şartları sağlayan katılımcı iade alabilir.</p><a class="action alt" href="./frhn-izin-kontrol.html">FRHN test iznini kontrol et</a></details>
-<script>
-const a=document.getElementById("participantId"),b=document.getElementById("managerId");
-const p=document.getElementById("participantGo"),m=document.getElementById("finalGo");
-function sync(){
-const val=/^[1-9]\d*$/.test(a.value.trim())?a.value.trim():"";
-p.href="./takas-v3-katilimci-nile.html"+(val?"?id="+encodeURIComponent(val):"");
-const id=/^[1-9]\d*$/.test(b.value.trim())?b.value.trim():"";
-m.href="./takas-v3-yonetici-islem.html"+(id?"?id="+encodeURIComponent(id):"")+"#finalSection";
-}
-a.addEventListener("input",sync);b.addEventListener("input",sync);
-try{const last=localStorage.getItem("takasv3-last-deal");if(/^[1-9]\d*$/.test(last||"")){a.value=last;b.value=last;sync();}}catch{}
-</script></body></html>
+<h1>Güvenli Takas</h1><p>TRON Nile · V4 test sistemi</p>
+<div class="warn">Yalnızca Nile test ağı içindir. Gerçek para veya mainnet varlıkları göndermeyin.</div>
+<section><h2>Yönetici paneli</h2><p>Cüzdanını bağla, iki ayrı davet bağlantısı oluştur, Ali ve Veli'nin durumunu takip et ve son onayı ver.</p>
+<a class="action" href="./v4-nile-yonetici.html">Yönetici panelini aç</a></section>
+<section><h2>Katılımcı</h2><p>Ali ve Veli, yöneticinin kendilerine gönderdiği <strong>ayrı davet bağlantısını</strong> açar. Bağlantı takas numarasını ve taraf rolünü içerir.</p>
+<p class="note">Güvenlik için burada takas numarası yazarak başka bir tarafın daveti oluşturulamaz. Davet bağlantısını yöneticiden alın.</p></section>
+<p class="note">Mevcut Nile V4 sözleşmesi kullanılır; yeni sözleşme dağıtımı gerekmez. Taraflar cüzdanlarını kaydettikten sonra yönetici cüzdanları doğrular; taraflar teklif, onay ve yatırımı tamamlayınca yönetici son imzayı verir.</p>
+</body></html>
