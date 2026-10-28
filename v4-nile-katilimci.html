@@ -28,37 +28,37 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 .warning{border-radius:14px}
 #deposit{background:#19866c}.success{border:1px solid #258d71;background:#123a32;color:#d9fff2;padding:14px;border-radius:13px;font-weight:700}.role-warning{border:1px solid #ad874b;background:#30281b;color:#ffdcad;padding:13px;border-radius:12px;margin:12px 0}
 @media(max-width:520px){.sides{grid-template-columns:1fr}}
-</style></head><body>
+details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}details[open] summary{margin-bottom:12px}#actionSection{border-color:#4974a8}#terms{font-weight:600}#detailsSection .sides{margin-top:10px}</style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <div class="warning">Bu V4 sürümü yalnızca Nile test ağındadır. Mainnet veya gerçek varlıklarla kullanmayın. İşlem başlatmak TronLink imzası ve test TRX gerektirebilir.</div>
 <section id="joinSection"><h2>1 · Cüzdanını bağla</h2>
 <pre id="connection">Davet bilgisi yükleniyor…</pre>
 <button id="wallet">TronLink cüzdanını bağla</button>
-<button id="join" disabled>Katılım talebini zincire gönder</button>
+<button id="join" disabled>Katılım isteği gönder</button>
 <pre id="joinStatus">İşlem imzalanmadı.</pre></section><div id="roleWarning" class="role-warning" hidden></div>
 <section id="proposalSection"><h2>2 · Varlığını ve miktarını belirle</h2>
 <p>Göndereceğin tokeni ve miktarı yaz. Karşı tarafın bilgileri de tamamlandığında aynı sayfada tutarları görüp onaylayacak, ardından yatıracaksın.</p>
 <label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="TOKEN">TRC20 token adresi</option></select>
 <div id="tokenBox" hidden><label for="token">TRC20 sözleşme adresi (T…)</label><input id="token" autocomplete="off" placeholder="T..."></div>
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
-<button id="propose" disabled>Token ve miktarımı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
+<button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
-<section id="detailsSection"><h2>Takasın güncel durumu</h2><div class="sides">
-<div class="side"><strong>TARAF A</strong><pre id="sideA">Henüz okunmadı.</pre></div>
-<div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div><div id="completion" class="success" hidden>Takas zincirde başarıyla tamamlandı. Ali ve Veli cüzdan bakiyelerini kontrol edebilir.</div>
-<pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
-<pre id="state">Zincir bekleniyor.</pre>
-<pre id="countdown" aria-live="off">Süre bilgisi bekleniyor.</pre>
-<button class="secondary" id="refresh">Durumu güncelle (ücretsiz)</button>
-</section>
-<section id="actionSection"><h2>3 · Onayla ve gönder</h2>
+<section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku. İşlem aşaması geldiğinde ilgili düğme burada açılır.</p>
-<button id="accept" hidden disabled>Koşulları onayla ve devam et</button>
+<button id="accept" hidden disabled>Takas koşullarını onayla</button>
 <button id="allow" hidden disabled>Token iznini cüzdanda onayla</button>
-<button id="deposit" hidden disabled>Onayla ve güvenli takasa gönder</button>
-<button id="refund" hidden disabled>Süresi dolan yatırımımı iade al</button>
+<button id="deposit" hidden disabled>Takas tutarını yatır</button>
+<button id="refund" hidden disabled>Yatırdığım tutarı iade al</button>
 <pre id="txStatus">Henüz işlem imzalanmadı.</pre>
 </section>
+<section id="detailsSection"><details><summary><strong>İşlem ayrıntıları ve iki tarafın durumu</strong></summary><div class="sides">
+<div class="side"><strong>TARAF A</strong><pre id="sideA">Henüz okunmadı.</pre></div>
+<div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div><div id="completion" class="success" hidden>Takas zincirde başarıyla tamamlandı. Ali ve Veli cüzdan bakiyelerini kontrol edebilir.</div>
+
+<pre id="state">Zincir bekleniyor.</pre>
+<pre id="countdown" aria-live="off">Süre bilgisi bekleniyor.</pre>
+<button class="secondary" id="refresh">Durumu yenile (ücretsiz)</button>
+</details></section>
 <small>Önemli: Token ve miktar kaydetmek para yatırmak değildir. “Yatırıldı” yalnızca Nile sözleşmesi başarılı yatırımı kaydettiğinde gösterilir. Hizmet bedeli yalnızca başarılı takasta tahsil edilir.</small>
 <script>
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search);
