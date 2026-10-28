@@ -18,3 +18,10 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Run V5 tests
         run: node --test v5-test/contract.test.mjs
+      - name: Build V5 Nile deploy artifact (offline only)
+        run: node v5-test/build-artifact.mjs
+      - name: Upload reproducible V5 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: takas-v5-nile-unsigned-artifact
+          path: v5-build/TakasV5Draft.json
