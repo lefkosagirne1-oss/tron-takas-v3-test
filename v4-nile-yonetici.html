@@ -347,6 +347,8 @@ $("create").onclick=async()=>{
   $("dealId").value=id;$("linkA").value=url(liveAddress,id,1);$("linkB").value=url(liveAddress,id,2);$("links").hidden=false;
   $("dealId").value=id;$("overviewDealId").value=id;
   status("inviteStatus","NILE ZİNCİRİNDE DAVET #"+id+" OLUŞTU\nTaraf A ve B bağlantıları ayrı hazır. Henüz para yatırılmadı.");
+   try{await read()}catch(e){status("overviewStatus","Davet #"+id+" oluşturuldu; durum henüz okunamadı: "+(e?.message||e))}
+
  }catch(e){status("inviteStatus","DURUM DOĞRULANAMADI: "+(e?.message||e))}
  finally{$("create").disabled=false}
 };
