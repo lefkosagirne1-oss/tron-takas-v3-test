@@ -300,7 +300,12 @@ async function sign(action){
   }
   if(tx){$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";void watchSignedTransaction(tx,action);}
  }catch(e){$("txStatus").textContent="HATA / DURUM BELİRSİZ: "+(e?.message||e)+"\nYeniden imzalamadan önce zincirde kontrol edin."}
- finally{pending=false;disable()}
+ finally{
+  pending=false;
+  // Do not hide the next action after a successful approval or a status read.
+  // Re-read chain state; a pending transaction remains unconfirmed until mined.
+  try{await read()}catch(e){$("txStatus").textContent+="\nDurum yenilenemedi: "+(e?.message||e)}
+ }
 }
 $("wallet").onclick=async()=>{
  const button=$("wallet");button.disabled=true;
