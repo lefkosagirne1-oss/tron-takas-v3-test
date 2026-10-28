@@ -75,3 +75,23 @@ test("V5 no unauthorized wallet may submit A offer",async()=>{
  const {swap,other}=await fixture();
  await assert.rejects(swap.connect(other).propose(1,zero,parseEther("2")));
 });
+
+test("V5 one-sided native deposit is refundable after 15-minute timeout",async()=>{
+ const {swap,a,b,node,one}=await fixture();
+ // B proposes a contract token address; no B deposit is needed for the timeout scenario.
+ const tokenSource="pragma solidity ^0.8.20; contract Stub {}";
+ const compiledToken=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:tokenSource}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}})));
+ const stub=compiledToken.contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(stub.abi,"0x"+stub.evm.bytecode.object,a).deploy();
+ await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
+ await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await assert.rejects(one(swap.connect(a).refund(1)));
+ await node.request({method:"evm_increaseTime",params:[901]});
+ await node.request({method:"evm_mine",params:[]});
+ await one(swap.connect(a).refund(1));
+ assert.equal((await swap.getSwap(1)).refundedA,true);
+ await assert.rejects(one(swap.connect(a).refund(1)));
+ await assert.rejects(one(swap.finalize(1)));
+});
