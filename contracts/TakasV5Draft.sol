@@ -193,12 +193,13 @@ contract TakasV5Draft {
         emit OfferUpdated(id, msg.sender == s.partyA ? 1 : 2, token, amount);
     }
 
-    function acceptTerms(uint256 id) external {
+    function acceptTerms(uint256 id, bytes32 expectedTermsHash) external {
         Swap storage s = _swap(id);
         require(s.walletsConfirmed && !s.cancelled && s.depositDeadline == 0, "Offers not open");
         require(block.timestamp < s.offerDeadline, "Offer expired");
         require(s.proposedA && s.proposedB, "Both proposals required");
         require(s.tokenA != s.tokenB, "Different assets required");
+        require(expectedTermsHash == _termsHash(id, s), "Terms changed");
         uint8 role;
         if (msg.sender == s.partyA) { s.acceptedA = true; role = 1; }
         else if (msg.sender == s.partyB) { s.acceptedB = true; role = 2; }
