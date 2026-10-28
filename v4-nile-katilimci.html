@@ -33,6 +33,22 @@ details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}detai
 #simpleFlow{border-color:#4974a8}
 #primaryFeedback{font-size:13px}
 #primaryFeedback[hidden]{display:none!important}#quickTimer{font-variant-numeric:tabular-nums;text-align:center;font-size:16px;color:#bde8db}#quickTimer[hidden]{display:none!important}
+
+/* V4 sade arayüz: zincir ve imza mantığı değiştirilmedi */
+#actionSection{padding:12px 16px;margin:8px 0;background:transparent;border:0;box-shadow:none}
+#actionSection>h2,#actionSection>#next,#actionSection>#txStatus{display:none}
+#actionSection #terms{font-size:14px;line-height:1.55;margin:0;padding:12px;background:#0c1b2c}
+#proposalSection{padding:16px}
+#proposalSection>p{font-size:14px;margin:4px 0 12px}
+#proposalStatus{display:none}
+#detailsSection{padding:8px 16px;margin-top:8px}
+#simpleFlow{margin:10px 0;padding:18px}
+#primaryHint{margin:4px 0 12px}
+#primaryAction{min-height:58px}
+body:has(#completion:not([hidden])) #simpleFlow,
+body:has(#completion:not([hidden])) #proposalSection,
+body:has(#completion:not([hidden])) #actionSection{display:none!important}
+body:has(#completion:not([hidden])) #detailsSection details{display:block}
 </style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <section id="inviteLanding" hidden><h2>Bu sayfa bir takas davetiyle açılır</h2><p>Henüz bir işlem seçilmedi. Yönetici tarafından gönderilen <strong>Taraf A</strong> veya <strong>Taraf B</strong> bağlantısını açtığında yalnızca sana ait işlem adımları görünecek.</p><p>Şu anda cüzdan bağlamana veya işlem imzalamana gerek yok.</p></section>
