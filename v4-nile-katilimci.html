@@ -32,7 +32,7 @@ details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}detai
 #joinSection{display:none!important}
 #simpleFlow{border-color:#4974a8}
 #primaryFeedback{font-size:13px}
-#primaryFeedback[hidden]{display:none!important}
+#primaryFeedback[hidden]{display:none!important}#quickTimer{font-variant-numeric:tabular-nums;text-align:center;font-size:16px;color:#bde8db}#quickTimer[hidden]{display:none!important}
 </style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <section id="inviteLanding" hidden><h2>Bu sayfa bir takas davetiyle açılır</h2><p>Henüz bir işlem seçilmedi. Yönetici tarafından gönderilen <strong>Taraf A</strong> veya <strong>Taraf B</strong> bağlantısını açtığında yalnızca sana ait işlem adımları görünecek.</p><p>Şu anda cüzdan bağlamana veya işlem imzalamana gerek yok.</p></section>
@@ -49,7 +49,7 @@ details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}detai
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
 <button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
-<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="primaryFeedback" hidden></pre></section>
+<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="quickTimer" hidden></pre><pre id="primaryFeedback" hidden></pre></section>
 <section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku. İşlem aşaması geldiğinde ilgili düğme burada açılır.</p>
 <button id="accept" hidden disabled>Takas koşullarını onayla</button>
@@ -132,17 +132,18 @@ async function readSwapRaw(id){
  return out;
 }
 function updateCountdown(){
- const el=$("countdown");if(!deal){el.textContent="Süre bilgisi bekleniyor.";return}
- if(flag(deal.completed)){el.textContent="Takas tamamlandı.";return}
- if(flag(deal.cancelled)){el.textContent="Takas iptal edildi.";return}
+ const el=$("countdown"),quick=$("quickTimer");if(!deal){el.textContent="Süre bilgisi bekleniyor.";quick.hidden=true;return}
+ if(flag(deal.completed)){el.textContent="Takas tamamlandı.";quick.hidden=true;return}
+ if(flag(deal.cancelled)){el.textContent="Takas iptal edildi.";quick.hidden=true;return}
  const now=BigInt(Math.floor(Date.now()/1000));
  const settlement=bigint(deal.settlementDeadline),deposit=bigint(deal.depositDeadline);
  const end=settlement>0n?settlement:deposit>0n?deposit:0n;
- if(end===0n){el.textContent="Geri sayım henüz başlamadı.";return}
+ if(end===0n){el.textContent="Geri sayım henüz başlamadı.";quick.hidden=true;return}
  const remaining=end>now?Number(end-now):0;
  const mm=String(Math.floor(remaining/60)).padStart(2,"0"),ss=String(remaining%60).padStart(2,"0");
  const label=settlement>0n?"Yönetici son onayı":"Varlık yatırma";
  el.textContent=remaining>0?label+" için kalan süre: "+mm+":"+ss:label+" süresi doldu. Güncel zincir durumu kontrol ediliyor.";
+ quick.hidden=false;quick.textContent=el.textContent;
  if(remaining===0&&c&&!pending&&!expiryRefreshPending){
   const key=dealId+":"+end.toString()+":"+(settlement>0n?"settlement":"deposit");
   if(expiryRefreshKey!==key){expiryRefreshKey=key;expiryRetryAt=0;expiryRetryCount=0}

@@ -6,6 +6,7 @@ on:
       - 'v4-test/**'
       - 'v4-nile-yonetici.html'
       - 'v4-nile-katilimci.html'
+      - 'index.html'
       - 'package.json'
       - '.github/workflows/v4-tests.yml'
   workflow_dispatch:
