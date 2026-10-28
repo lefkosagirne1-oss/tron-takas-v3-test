@@ -100,11 +100,12 @@ contract TakasV5Draft {
 
     /// @notice B submits an offer and accepts the already submitted A offer in one transaction.
     ///         Any subsequent change to either offer clears both acceptances.
-    function proposeAndAcceptA(uint256 id, address token, uint256 amount) external {
+    function proposeAndAcceptA(uint256 id, address token, uint256 amount, bytes32 expectedAOfferHash) external {
         Swap storage s = _swap(id);
         require(msg.sender == s.partyB, "Only B");
         require(s.walletsConfirmed && !s.cancelled && !s.completed, "Not ready");
         require(s.proposedA && !s.proposedB, "A must offer first");
+        require(expectedAOfferHash == keccak256(abi.encode(id, s.partyA, s.tokenA, s.amountA)), "A offer changed");
         require(block.timestamp < s.offerDeadline && s.depositDeadline == 0, "Offers closed");
         require(amount > 0 && (token == address(0) || token.code.length > 0), "Invalid asset");
         require(token != s.tokenA, "Different assets required");
@@ -119,12 +120,13 @@ contract TakasV5Draft {
 
     /// @notice A accepts B's final offer and deposits in one transaction.
     ///         For TRC20, prior allowance may still require a separate token approval.
-    function acceptAndDeposit(uint256 id) external payable locked {
+    function acceptAndDeposit(uint256 id, bytes32 expectedTermsHash) external payable locked {
         Swap storage s = _swap(id);
         require(msg.sender == s.partyA, "Only A");
         require(s.walletsConfirmed && !s.cancelled && !s.completed, "Not ready");
         require(s.proposedA && s.proposedB && s.acceptedB && !s.acceptedA, "Terms not ready");
         require(s.tokenA != s.tokenB && s.depositDeadline == 0, "Invalid terms");
+        require(expectedTermsHash == _termsHash(id, s), "Terms changed");
         require(block.timestamp < s.offerDeadline, "Offer expired");
         s.acceptedA = true;
         s.depositDeadline = uint64(block.timestamp + DEPOSIT_WINDOW);
@@ -277,6 +279,22 @@ contract TakasV5Draft {
         require(!s.depositedA && !s.depositedB && !s.completed && !s.cancelled, "Deposits or closed");
         s.cancelled = true;
         emit InviteCancelled(id);
+    }
+
+    function offerAHash(uint256 id) external view returns (bytes32) {
+        Swap storage s = _swap(id);
+        require(s.proposedA, "A offer missing");
+        return keccak256(abi.encode(id, s.partyA, s.tokenA, s.amountA));
+    }
+
+    function termsHash(uint256 id) external view returns (bytes32) {
+        Swap storage s = _swap(id);
+        require(s.proposedA && s.proposedB, "Offers missing");
+        return _termsHash(id, s);
+    }
+
+    function _termsHash(uint256 id, Swap storage s) internal view returns (bytes32) {
+        return keccak256(abi.encode(id, s.partyA, s.partyB, s.tokenA, s.amountA, s.tokenB, s.amountB, s.feeBps, s.feePayer));
     }
 
     function getSwap(uint256 id) external view returns (Swap memory) {
