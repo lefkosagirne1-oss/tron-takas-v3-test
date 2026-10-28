@@ -73,3 +73,11 @@ test("V4 contract preserves required security and time windows",()=>{
  assert.match(solidity,/DEPOSIT_WINDOW = 15 minutes/);
  assert.match(solidity,/SETTLEMENT_WINDOW = 5 minutes/);
 });
+
+test("landing page routes to Nile V4 and never fabricates a participant role",()=>{
+ const landing=read("index.html");
+ assert.match(landing,/href="\.\/v4-nile-yonetici\.html"/);
+ assert.doesNotMatch(landing,/href="\.\/takas-v3-/);
+ assert.doesNotMatch(landing,/role=1|role=2|participantId/);
+ assert.match(landing,/ayrı davet bağlantısını/);
+});
