@@ -43,7 +43,7 @@ test("V5 one-tx invite, B offer+accept, A accept+deposit, B deposit, manager fin
 });
 test("V5 cannot accept or deposit before counterparty offer",async()=>{
  const {swap,a}=await fixture();
- await assert.rejects(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
+ await assert.rejects(swap.connect(a).acceptAndDeposit(1,zero,{value:parseEther("2")}));
 });
 test("V5 invalid parties and non-manager invite rejected",async()=>{
  const {swap,a,b}=await fixture();
@@ -58,7 +58,7 @@ test("V5 offer amendment clears prior acceptance and blocks premature deposit",a
  await assert.rejects(swap.connect(b).proposeAndAcceptA(1,zero,parseEther("5"),await swap.offerAHash(1)));
  assert.equal((await swap.getSwap(1)).acceptedB,false);
  await one(swap.connect(a).propose(1,zero,parseEther("3")));
- await assert.rejects(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("3")}));
+ await assert.rejects(swap.connect(a).acceptAndDeposit(1,zero,{value:parseEther("3")}));
 });
 test("V5 manager cannot finalize before both deposits",async()=>{
  const {swap,one,a}=await fixture();
