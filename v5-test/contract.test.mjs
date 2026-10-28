@@ -88,9 +88,10 @@ test("V5 one-sided native deposit is refundable after 15-minute timeout",async()
  await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
  await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
  await assert.rejects(one(swap.connect(a).refund(1)));
- await node.request({method:"evm_increaseTime",params:[901]});
+ const deadline=Number((await swap.getSwap(1)).depositDeadline);
+ await node.request({method:"evm_setTime",params:[(deadline+2)*1000]});
  await node.request({method:"evm_mine",params:[]});
- await one(swap.connect(a).refund(1));
+ await one(swap.connect(a).refund(1,{gasLimit:350000}));
  assert.equal((await swap.getSwap(1)).refundedA,true);
  await assert.rejects(one(swap.connect(a).refund(1)));
  await assert.rejects(one(swap.finalize(1)));
