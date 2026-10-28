@@ -280,3 +280,18 @@ test("V5 offer hash is bound to this chain and contract address",async()=>{
  const wrong=keccak256(coder.encode(["uint256","address","uint256","address","address","uint256"],[network.chainId,"0x000000000000000000000000000000000000dEaD",1,await a.getAddress(),zero,parseEther("2")]));
  assert.notEqual(actual,wrong);
 });
+
+test("V5 rejects final approval hash from a different network",async()=>{
+ const {swap,a,b,one}=await fixture();
+ const src="pragma solidity ^0.8.20; contract Stub {}";
+ const c=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(c.abi,"0x"+c.evm.bytecode.object,a).deploy();
+ await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
+ const correct=await swap.termsHash(1);
+ const wrong="0x"+"ab".repeat(32);
+ assert.notEqual(correct,wrong);
+ await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,wrong,{value:parseEther("2"),gasLimit:450000})));
+ assert.equal((await swap.getSwap(1)).depositedA,false);
+});
