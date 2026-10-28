@@ -29,10 +29,10 @@ test("V5 one-tx invite, B offer+accept, A accept+deposit, B deposit, manager fin
  const c=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Token.sol":{content:tokenSource}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Token.sol"].Token;
  const token=await new ContractFactory(c.abi,"0x"+c.evm.bytecode.object,f.owner).deploy();await token.waitForDeployment();
  await one(swap.connect(a).propose(1,zero,parseEther("2")));
- await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
  await one(token.mint(await b.getAddress(),parseEther("10")));
  await one(token.connect(b).approve(await swap.getAddress(),parseEther("10")));
- await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await one(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
  assert.equal((await swap.getSwap(1)).depositedA,true);
  await one(swap.connect(b).deposit(1));
  await assert.rejects(swap.connect(a).finalize(1));
@@ -43,7 +43,7 @@ test("V5 one-tx invite, B offer+accept, A accept+deposit, B deposit, manager fin
 });
 test("V5 cannot accept or deposit before counterparty offer",async()=>{
  const {swap,a}=await fixture();
- await assert.rejects(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await assert.rejects(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
 });
 test("V5 invalid parties and non-manager invite rejected",async()=>{
  const {swap,a,b}=await fixture();
@@ -55,10 +55,10 @@ test("V5 offer amendment clears prior acceptance and blocks premature deposit",a
  const {swap,a,b,one}=await fixture();
  await one(swap.connect(a).propose(1,zero,parseEther("2")));
  // Native A and B cannot have the same token, but B can propose an EOA? Reject invalid token.
- await assert.rejects(swap.connect(b).proposeAndAcceptA(1,zero,parseEther("5")));
+ await assert.rejects(swap.connect(b).proposeAndAcceptA(1,zero,parseEther("5"),await swap.offerAHash(1)));
  assert.equal((await swap.getSwap(1)).acceptedB,false);
  await one(swap.connect(a).propose(1,zero,parseEther("3")));
- await assert.rejects(swap.connect(a).acceptAndDeposit(1,{value:parseEther("3")}));
+ await assert.rejects(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("3")}));
 });
 test("V5 manager cannot finalize before both deposits",async()=>{
  const {swap,one,a}=await fixture();
@@ -85,8 +85,8 @@ test("V5 one-sided native deposit is refundable after 15-minute timeout",async()
  const token=await new ContractFactory(stub.abi,"0x"+stub.evm.bytecode.object,a).deploy();
  await token.waitForDeployment();
  await one(swap.connect(a).propose(1,zero,parseEther("2")));
- await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
- await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
+ await one(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
  await assert.rejects(one(swap.connect(a).refund(1)));
  const deadline=Number((await swap.getSwap(1)).depositDeadline);
  await node.request({method:"evm_setTime",params:[(deadline+2)*1000]});
@@ -105,9 +105,9 @@ test("V5 both parties recover deposits after five-minute manager settlement time
  await token.waitForDeployment();
  await one(token.mint(await b.getAddress(),parseEther("10")));
  await one(swap.connect(a).propose(1,zero,parseEther("2")));
- await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
  await one(token.connect(b).approve(await swap.getAddress(),parseEther("10")));
- await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await one(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
  await one(swap.connect(b).deposit(1));
  const deadline=Number((await swap.getSwap(1)).settlementDeadline);
  assert.ok(deadline>0);
@@ -140,8 +140,8 @@ test("V5 rejects unknown swap, zero offers, and forged native amount",async()=>{
  const out=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
  const token=await new ContractFactory(out.abi,"0x"+out.evm.bytecode.object,a).deploy();await token.waitForDeployment();
  await one(swap.connect(a).propose(1,zero,parseEther("2")));
- await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
- await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("1"),gasLimit:350000})));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
+ await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("1"),gasLimit:350000})));
  assert.equal((await swap.getSwap(1)).depositedA,false);
 });
 test("V5 offer expires and unused invite can be cancelled without deposits",async()=>{
