@@ -1,0 +1,20 @@
+name: V5 atomic swap regression tests
+on:
+  push:
+    paths:
+      - 'contracts/TakasV5Draft.sol'
+      - 'v5-test/**'
+      - '.github/workflows/v5-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Run V5 tests
+        run: node --test v5-test/contract.test.mjs
