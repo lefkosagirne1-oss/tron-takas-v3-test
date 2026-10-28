@@ -123,3 +123,33 @@ test("V5 both parties recover deposits after five-minute manager settlement time
  assert.equal(await token.balanceOf(await b.getAddress()),parseEther("10"));
  await assert.rejects(one(swap.connect(b).refund(1,{gasLimit:350000})));
 });
+
+test("V5 fee rules reject invalid combinations and above 10 percent",async()=>{
+ const {swap,a,b}=await fixture();
+ const x=await a.getAddress(),y=await b.getAddress();
+ await assert.rejects(swap.createInviteWithParties(x,y,1001,1));
+ await assert.rejects(swap.createInviteWithParties(x,y,100,0));
+ await assert.rejects(swap.createInviteWithParties(x,y,0,1));
+ await assert.rejects(swap.createInviteWithParties(x,y,100,3));
+});
+test("V5 rejects unknown swap, zero offers, and forged native amount",async()=>{
+ const {swap,a,b,one}=await fixture();
+ await assert.rejects(swap.connect(a).propose(999,zero,parseEther("2")));
+ await assert.rejects(swap.connect(a).propose(1,zero,0));
+ const src="pragma solidity ^0.8.20; contract Stub {}";
+ const out=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(out.abi,"0x"+out.evm.bytecode.object,a).deploy();await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
+ await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("1"),gasLimit:350000})));
+ assert.equal((await swap.getSwap(1)).depositedA,false);
+});
+test("V5 offer expires and unused invite can be cancelled without deposits",async()=>{
+ const {swap,a,b,node,one}=await fixture();
+ const deadline=Number((await swap.getSwap(1)).offerDeadline);
+ await node.request({method:"evm_setTime",params:[(deadline+2)*1000]});
+ await node.request({method:"evm_mine",params:[]});
+ await assert.rejects(one(swap.connect(a).propose(1,zero,parseEther("2"),{gasLimit:350000})));
+ await one(swap.cancelUnused(1));
+ assert.equal((await swap.getSwap(1)).cancelled,true);
+});
