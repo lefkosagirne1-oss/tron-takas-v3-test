@@ -39,7 +39,7 @@ test("V5 one-tx invite, B offer+accept, A accept+deposit, B deposit, manager fin
  await one(swap.finalize(1));
  assert.equal((await swap.getSwap(1)).completed,true);
  assert.equal(await token.balanceOf(await a.getAddress()),parseEther("10"));
- await assert.rejects(swap.finalize(1));
+ await assert.rejects(one(swap.finalize(1,{gasLimit:450000})));
 });
 test("V5 cannot accept or deposit before counterparty offer",async()=>{
  const {swap,a}=await fixture();
