@@ -1,0 +1,23 @@
+name: Takas V4 testleri
+on:
+  push:
+    paths:
+      - 'contracts/TakasV4Draft.sol'
+      - 'v4-test/**'
+      - 'v4-nile-yonetici.html'
+      - 'v4-nile-katilimci.html'
+      - 'package.json'
+      - '.github/workflows/v4-tests.yml'
+  workflow_dispatch:
+jobs:
+  local-v4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node --test v4-test/ui-static.test.mjs
+      - run: npm run test:v4
