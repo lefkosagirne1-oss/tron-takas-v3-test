@@ -105,7 +105,7 @@ contract TakasV5Draft {
         require(msg.sender == s.partyB, "Only B");
         require(s.walletsConfirmed && !s.cancelled && !s.completed, "Not ready");
         require(s.proposedA && !s.proposedB, "A must offer first");
-        require(expectedAOfferHash == keccak256(abi.encode(id, s.partyA, s.tokenA, s.amountA)), "A offer changed");
+        require(expectedAOfferHash == keccak256(abi.encode(block.chainid, address(this), id, s.partyA, s.tokenA, s.amountA)), "A offer changed");
         require(block.timestamp < s.offerDeadline && s.depositDeadline == 0, "Offers closed");
         require(amount > 0 && (token == address(0) || token.code.length > 0), "Invalid asset");
         require(token != s.tokenA, "Different assets required");
@@ -285,7 +285,7 @@ contract TakasV5Draft {
     function offerAHash(uint256 id) external view returns (bytes32) {
         Swap storage s = _swap(id);
         require(s.proposedA, "A offer missing");
-        return keccak256(abi.encode(id, s.partyA, s.tokenA, s.amountA));
+        return keccak256(abi.encode(block.chainid, address(this), id, s.partyA, s.tokenA, s.amountA));
     }
 
     function termsHash(uint256 id) external view returns (bytes32) {
@@ -295,7 +295,7 @@ contract TakasV5Draft {
     }
 
     function _termsHash(uint256 id, Swap storage s) internal view returns (bytes32) {
-        return keccak256(abi.encode(id, s.partyA, s.partyB, s.tokenA, s.amountA, s.tokenB, s.amountB, s.feeBps, s.feePayer));
+        return keccak256(abi.encode(block.chainid, address(this), id, s.partyA, s.partyB, s.tokenA, s.amountA, s.tokenB, s.amountB, s.feeBps, s.feePayer));
     }
 
     function getSwap(uint256 id) external view returns (Swap memory) {
