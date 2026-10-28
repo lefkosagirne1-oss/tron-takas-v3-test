@@ -69,7 +69,7 @@ test("V5 manager cannot cancel an already cancelled invitation twice",async()=>{
  const {swap,one}=await fixture();
  await one(swap.cancelUnused(1));
  assert.equal((await swap.getSwap(1)).cancelled,true);
- await assert.rejects(swap.cancelUnused(1));
+ await assert.rejects(one(swap.cancelUnused(1)));
 });
 test("V5 no unauthorized wallet may submit A offer",async()=>{
  const {swap,other}=await fixture();
