@@ -246,7 +246,7 @@ async function watchSignedTransaction(tx,action){
   await new Promise(resolve=>setTimeout(resolve,3000));
   try{
    const receipt=await tw.trx.getTransactionInfo(tx);
-   if(receipt?.receipt?.result==="REVERT"||receipt?.receipt?.result==="OUT_OF_ENERGY"||receipt?.result==="FAILED"){
+   if(receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS"||receipt?.result==="FAILED"){
     $("txStatus").textContent="İŞLEM BAŞARISIZ: "+tx+"\nZincirde başarısız sonuç görüldü. Yeniden imzalamayın.";
     await read();return;
    }
@@ -298,7 +298,7 @@ async function sign(action){
     if(!confirm("Süresi dolmuş yatırımı komisyonsuz iade almak için Nile cüzdan imzası verilsin mi?"))return;
     tx=await c.refund(dealId).send({feeLimit:80000000,shouldPollResponse:false});
   }
-  if(tx){$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";void watchSignedTransaction(tx,action);}
+  if(tx){$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";await watchSignedTransaction(tx,action);}
  }catch(e){$("txStatus").textContent="HATA / DURUM BELİRSİZ: "+(e?.message||e)+"\nYeniden imzalamadan önce zincirde kontrol edin."}
  finally{
   pending=false;
