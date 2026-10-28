@@ -96,3 +96,30 @@ test("V5 one-sided native deposit is refundable after 15-minute timeout",async()
  await assert.rejects(one(swap.connect(a).refund(1)));
  await assert.rejects(one(swap.finalize(1)));
 });
+
+test("V5 both parties recover deposits after five-minute manager settlement timeout",async()=>{
+ const {swap,a,b,node,one,owner}=await fixture();
+ const tokenSource="pragma solidity ^0.8.20; contract Token {mapping(address=>uint) public balanceOf; mapping(address=>mapping(address=>uint)) public allowance; function mint(address a,uint n) external {balanceOf[a]+=n;} function approve(address a,uint n) external returns(bool){allowance[msg.sender][a]=n;return true;} function transferFrom(address f,address t,uint n) external returns(bool){require(balanceOf[f]>=n&&allowance[f][msg.sender]>=n);balanceOf[f]-=n;allowance[f][msg.sender]-=n;balanceOf[t]+=n;return true;} function transfer(address t,uint n) external returns(bool){require(balanceOf[msg.sender]>=n);balanceOf[msg.sender]-=n;balanceOf[t]+=n;return true;}}";
+ const ct=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Token.sol":{content:tokenSource}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Token.sol"].Token;
+ const token=await new ContractFactory(ct.abi,"0x"+ct.evm.bytecode.object,owner).deploy();
+ await token.waitForDeployment();
+ await one(token.mint(await b.getAddress(),parseEther("10")));
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10")));
+ await one(token.connect(b).approve(await swap.getAddress(),parseEther("10")));
+ await one(swap.connect(a).acceptAndDeposit(1,{value:parseEther("2")}));
+ await one(swap.connect(b).deposit(1));
+ const deadline=Number((await swap.getSwap(1)).settlementDeadline);
+ assert.ok(deadline>0);
+ await node.request({method:"evm_setTime",params:[(deadline+2)*1000]});
+ await node.request({method:"evm_mine",params:[]});
+ await assert.rejects(one(swap.finalize(1,{gasLimit:450000})));
+ await one(swap.connect(a).refund(1,{gasLimit:350000}));
+ await one(swap.connect(b).refund(1,{gasLimit:350000}));
+ const s=await swap.getSwap(1);
+ assert.equal(s.refundedA,true);
+ assert.equal(s.refundedB,true);
+ assert.equal(s.completed,false);
+ assert.equal(await token.balanceOf(await b.getAddress()),parseEther("10"));
+ await assert.rejects(one(swap.connect(b).refund(1,{gasLimit:350000})));
+});
