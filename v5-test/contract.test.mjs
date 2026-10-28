@@ -153,3 +153,27 @@ test("V5 offer expires and unused invite can be cancelled without deposits",asyn
  await one(swap.cancelUnused(1));
  assert.equal((await swap.getSwap(1)).cancelled,true);
 });
+
+test("V5 stale A offer hash cannot be accepted by B",async()=>{
+ const {swap,a,b,one}=await fixture();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ const stale=await swap.offerAHash(1);
+ await one(swap.connect(a).propose(1,zero,parseEther("3")));
+ const src="pragma solidity ^0.8.20; contract Stub {}";
+ const out=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(out.abi,"0x"+out.evm.bytecode.object,a).deploy();await token.waitForDeployment();
+ await assert.rejects(one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),stale,{gasLimit:350000})));
+ assert.equal((await swap.getSwap(1)).acceptedB,false);
+});
+test("V5 stale final terms hash cannot trigger A deposit",async()=>{
+ const {swap,a,b,one}=await fixture();
+ const src="pragma solidity ^0.8.20; contract Stub {}";
+ const out=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(out.abi,"0x"+out.evm.bytecode.object,a).deploy();await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
+ const stale=await swap.termsHash(1);
+ await one(swap.connect(a).propose(1,zero,parseEther("3")));
+ await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,stale,{value:parseEther("2"),gasLimit:350000})));
+ assert.equal((await swap.getSwap(1)).depositedA,false);
+});
