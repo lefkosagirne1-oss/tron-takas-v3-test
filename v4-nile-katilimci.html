@@ -28,11 +28,16 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 .warning{border-radius:14px}
 #deposit{background:#19866c}.success{border:1px solid #258d71;background:#123a32;color:#d9fff2;padding:14px;border-radius:13px;font-weight:700}.role-warning{border:1px solid #ad874b;background:#30281b;color:#ffdcad;padding:13px;border-radius:12px;margin:12px 0}
 @media(max-width:520px){.sides{grid-template-columns:1fr}}
-details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}details[open] summary{margin-bottom:12px}#actionSection{border-color:#4974a8}#terms{font-weight:600}#detailsSection .sides{margin-top:10px}#wallet,#join,#propose,#accept,#allow,#deposit,#refund{display:none!important}#primaryAction{font-size:18px;min-height:66px;background:#19866c}#primaryAction:disabled{background:#38526b}</style></head><body>
+details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}details[open] summary{margin-bottom:12px}#actionSection{border-color:#4974a8}#terms{font-weight:600}#detailsSection .sides{margin-top:10px}#wallet,#join,#propose,#accept,#allow,#deposit,#refund{display:none!important}#primaryAction{font-size:18px;min-height:66px;background:#19866c}#primaryAction:disabled{background:#38526b}
+#joinSection{display:none!important}
+#simpleFlow{border-color:#4974a8}
+#primaryFeedback{font-size:13px}
+#primaryFeedback[hidden]{display:none!important}
+</style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <section id="inviteLanding" hidden><h2>Bu sayfa bir takas davetiyle açılır</h2><p>Henüz bir işlem seçilmedi. Yönetici tarafından gönderilen <strong>Taraf A</strong> veya <strong>Taraf B</strong> bağlantısını açtığında yalnızca sana ait işlem adımları görünecek.</p><p>Şu anda cüzdan bağlamana veya işlem imzalamana gerek yok.</p></section>
 <div class="warning">Bu V4 sürümü yalnızca Nile test ağındadır. Mainnet veya gerçek varlıklarla kullanmayın. İşlem başlatmak TronLink imzası ve test TRX gerektirebilir.</div>
-<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button></section><section id="joinSection"><h2>1 · Cüzdanını bağla</h2>
+<section id="joinSection"><h2>1 · Cüzdanını bağla</h2>
 <pre id="connection">Davet bilgisi yükleniyor…</pre>
 <button id="wallet">TronLink cüzdanını bağla</button>
 <button id="join" disabled>Katılım isteği gönder</button>
@@ -44,6 +49,7 @@ details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}detai
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
 <button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
+<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="primaryFeedback" hidden></pre></section>
 <section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku. İşlem aşaması geldiğinde ilgili düğme burada açılır.</p>
 <button id="accept" hidden disabled>Takas koşullarını onayla</button>
@@ -70,7 +76,7 @@ const validInvite=contractAddress===EXPECTED_CONTRACT&&/^[1-9]\d*$/.test(dealId)
 if(!validInvite){document.getElementById("inviteLanding").hidden=false;for(const id of ["simpleFlow","joinSection","proposalSection","detailsSection","actionSection"])document.getElementById(id).hidden=true;document.getElementById("heading").textContent="Takas daveti bekleniyor · Nile Test";}
 const EXPECTED_MANAGER="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
-let tw=null,c=null,wallet="",deal=null,role="",assets={},pending=false,allowance=0n,allowanceVerified=false;
+let tw=null,c=null,wallet="",deal=null,role="",assets={},pending=false,unverifiedTx="",allowance=0n,allowanceVerified=false;
 let expiryRefreshKey="",expiryRefreshPending=false,expiryRetryAt=0,expiryRetryCount=0;
 const value=v=>String(v?.toString?.()??v??"");
 const flag=v=>v===true||value(v)==="true"||value(v)==="1";
@@ -226,7 +232,7 @@ async function read(){
   allowance=0n;allowanceVerified=!item.token;
   let allowanceReadOk=true;
   if(item.token)try{allowance=bigint(await item.token.allowance(wallet,contractAddress).call())}catch(e){allowanceReadOk=false;$("txStatus").textContent="Token izni okunamadı: "+(e?.message||e)+"\nGüvenlik için imzalama kapatıldı. Zincir okumasını tekrar deneyin."}
-  if(!allowanceReadOk){updateCountdown();return deal}
+  if(!allowanceReadOk){updateCountdown();updatePrimaryAction();return deal}
   allowanceVerified=true;
   const amt=bigint(deal["amount"+mine]),needsApproval=!!item.token&&allowance<amt;
   $("allow").disabled=!needsApproval;$("allow").hidden=!needsApproval;
@@ -253,22 +259,29 @@ async function watchSignedTransaction(tx,action){
   await new Promise(resolve=>setTimeout(resolve,3000));
   try{
    const receipt=await tw.trx.getTransactionInfo(tx);
-   if(receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS"||receipt?.result==="FAILED"){
+   if((receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS")||receipt?.result==="FAILED"){
+    unverifiedTx="";
     $("txStatus").textContent="İŞLEM BAŞARISIZ: "+tx+"\nZincirde başarısız sonuç görüldü. Yeniden imzalamayın.";
-    await read();return;
+    await read();return false;
    }
    if(receipt?.receipt?.result==="SUCCESS"){
     await read();
-    const mine=role==="1"?"A":"B";
-    const confirmed=action==="allow"?(assets[mine]?.token&&allowance>=bigint(deal["amount"+mine])):action==="deposit"?flag(deal["deposited"+mine]):true;
+    const mine=roleParam==="1"?"A":"B";
+    const confirmed=action==="join"?role===roleParam:
+      action==="propose"?flag(deal["proposed"+mine]):
+      action==="allow"?(assets[mine]?.token&&allowance>=bigint(deal["amount"+mine])):
+      action==="deposit"?flag(deal["deposited"+mine]):true;
     if(confirmed){
+     unverifiedTx="";
      $("txStatus").textContent="İŞLEM ZİNCİRDE DOĞRULANDI: "+tx+"\nGüncel takas durumu yukarıda.";
-     return;
+     return true;
     }
    }
-  }catch(e){/* Network reads may fail temporarily; retry without signing. */}
+  }catch(e){/* Geçici okuma hatası: imza atmadan yeniden dene. */}
  }
- $("txStatus").textContent="İşlem sonucu henüz doğrulanamadı: "+tx+"\nDurumu güncelle (ücretsiz) ile tekrar kontrol edin; yeniden imzalamayın.";
+ unverifiedTx=tx;
+ $("txStatus").textContent="İşlem sonucu henüz doğrulanamadı: "+tx+"\nAyrıntılardan durumu yenile; yeniden imzalama.";
+ return null;
 }
 async function sign(action){
  if(pending)return;
@@ -307,7 +320,7 @@ async function sign(action){
     if(!confirm("Süresi dolmuş yatırımı komisyonsuz iade almak için Nile cüzdan imzası verilsin mi?"))return;
     tx=await c.refund(dealId).send({feeLimit:80000000,shouldPollResponse:false});
   }
-  if(tx){$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";await watchSignedTransaction(tx,action);}
+  if(tx){unverifiedTx=tx;$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";await watchSignedTransaction(tx,action);}
  }catch(e){$("txStatus").textContent="HATA / DURUM BELİRSİZ: "+(e?.message||e)+"\nYeniden imzalamadan önce zincirde kontrol edin."}
  finally{
   pending=false;
@@ -317,8 +330,8 @@ async function sign(action){
  }
 }
 function updatePrimaryAction(){
- const b=$("primaryAction"),h=$("primaryHint");if(!validInvite||pending){b.disabled=true;return}
- const steps=[["wallet","Cüzdanımı bağla","TronLink cüzdanını bağla."],["join","Takas davetine katıl","Katılım talebini gönder."],["propose","Varlığımı ve miktarımı kaydet","Token ve miktarı seç."],["accept","Takas koşullarını onayla","Tutarları kontrol ederek onayla."],["allow","Token izni ver","TRC20 token için cüzdan izni gerekir."],["deposit","Takas tutarını yatır","Varlığını sözleşmeye yatır."],["refund","Yatırdığım tutarı iade al","Süresi dolan yatırımı geri al."]];
+ const b=$("primaryAction"),h=$("primaryHint");if(!validInvite||pending||unverifiedTx){b.disabled=true;b.textContent=unverifiedTx?"Önce önceki işlemi doğrula":"İşlem sürüyor";h.textContent=unverifiedTx?"Zincir sonucu belirsiz. Ayrıntılardan ücretsiz yenile; yeniden imzalama.":"İşlem devam ediyor.";return}
+ const steps=[["wallet","Cüzdanımı bağla","TronLink cüzdanını bağla."],["join","Takas davetine katıl","Katılım talebini gönder."],["propose","Onayla ve Gönder · Teklif","Bu adım teklifini kaydeder; henüz para yatırılmaz."],["accept","Onayla ve Gönder · Koşullar","İki tarafın tutarını ve hizmet bedelini kontrol et."],["allow","Token izni ver","TRC20 token için cüzdan izni gerekir."],["deposit","Onayla ve Gönder · Yatır","Bu imza varlığını V4 sözleşmesine yatırır."],["refund","Yatırdığım tutarı iade al","Süresi dolan yatırımı geri al."]];
  let v=null;if(!wallet)v=steps[0];else if(!$("joinSection").hidden&&!$("join").disabled)v=steps[1];else if(!$("proposalSection").hidden&&!$("propose").disabled)v=steps[2];else for(const a of steps.slice(3))if(!$(a[0]).hidden&&!$(a[0]).disabled){v=a;break}
  b.disabled=!v;b.dataset.target=v?.[0]||"";b.textContent=v?.[1]||"İşlem durumu bekleniyor";h.textContent=v?.[2]||$("next").textContent||"Zincir durumu bekleniyor.";
 }
@@ -338,20 +351,39 @@ $("wallet").onclick=async()=>{
   $("joinStatus").textContent="Cüzdan bağlantısı yenilendi. Katılım durumunu zincirden kontrol edin.";
  }catch(e){
   $("connection").textContent="BAĞLANTI HATASI: "+(e?.message||e);
-  $("joinStatus").textContent="Bağlantı kontrolü: "+(e?.message||e);
+  $("joinStatus").textContent="Bağlantı kontrolü: "+(e?.message||e);$("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("joinStatus").textContent;
  }finally{button.disabled=false;updatePrimaryAction()}
 };
-$("refresh").onclick=async()=>{try{await read();$("txStatus").textContent="Zincir durumu yenilendi."}catch(e){$("txStatus").textContent="OKUMA HATASI: "+(e?.message||e)}};
+$("refresh").onclick=async()=>{try{
+ if(unverifiedTx){
+  const receipt=await tw.trx.getTransactionInfo(unverifiedTx);
+  if(receipt?.receipt?.result==="SUCCESS")unverifiedTx="";
+  else if(receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS"){
+   unverifiedTx="";$("txStatus").textContent="Önceki işlem zincirde başarısız. İşlem geçmişini kontrol edin.";
+  }
+ }
+ await read();$("primaryFeedback").hidden=false;
+ $("primaryFeedback").textContent=unverifiedTx?"Önceki işlem hâlâ doğrulanamadı; tekrar imzalamayın.":"Zincir durumu yenilendi.";
+ updatePrimaryAction();
+ }catch(e){$("txStatus").textContent="OKUMA HATASI: "+(e?.message||e);$("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("txStatus").textContent}};
 $("type").onchange=()=>$("tokenBox").hidden=$("type").value!=="TOKEN";
 $("join").onclick=async()=>{
- if(pending||!wallet)return;
- if(!confirm("Bu cüzdanı Taraf "+(roleParam==="1"?"A":"B")+" olarak kaydetmek için Nile işlemi imzalanacak. Yönetici bağımsız doğrulama yapmadan fon yatırılmayacak. Devam edilsin mi?"))return;
- pending=true;$("join").disabled=true;
- try{await setup(true);await preflight("requestRole(uint256,uint8)",word(dealId)+word(Number(roleParam)));const tx=await c.requestRole(dealId,Number(roleParam)).send({feeLimit:50000000,shouldPollResponse:false});$("joinStatus").textContent="Rol talebi gönderildi; kesinleşmesi doğrulanmadı.\n"+tx+"\nZincirden yenile."}catch(e){$("joinStatus").textContent="HATA: "+(e?.message||e)}finally{pending=false}
+ if(pending||unverifiedTx||!wallet)return;
+ if(!confirm("Bu cüzdanı Taraf "+(roleParam==="1"?"A":"B")+" olarak kaydetmek için Nile işlemi imzalanacak. Yönetici cüzdanları doğrulamadan fon yatırılmayacak. Devam edilsin mi?"))return;
+ pending=true;$("join").disabled=true;updatePrimaryAction();
+ try{
+  await setup(true);
+  await preflight("requestRole(uint256,uint8)",word(dealId)+word(Number(roleParam)));
+  const tx=await c.requestRole(dealId,Number(roleParam)).send({feeLimit:50000000,shouldPollResponse:false});
+  unverifiedTx=tx;$("joinStatus").textContent="Katılım işlemi gönderildi; zincirde doğrulanıyor.\n"+tx;
+  $("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("joinStatus").textContent;
+  await watchSignedTransaction(tx,"join");$("primaryFeedback").textContent=$("txStatus").textContent;
+ }catch(e){$("joinStatus").textContent="HATA: "+(e?.message||e);$("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("joinStatus").textContent}
+ finally{pending=false;try{await read()}catch(e){$("primaryFeedback").hidden=false;$("primaryFeedback").textContent+="\nDurum okunamadı: "+(e?.message||e)}updatePrimaryAction()}
 };
 $("propose").onclick=async()=>{
- if(pending||!wallet||$("propose").disabled)return;
- pending=true;$("propose").disabled=true;
+ if(pending||unverifiedTx||!wallet||$("propose").disabled)return;
+ pending=true;$("propose").disabled=true;updatePrimaryAction();
  try{
   await setup(true);await read();
   if(role!==roleParam||!flag(deal.walletsConfirmed)||bigint(deal.depositDeadline)!==0n)throw Error("Henüz teklif verilemez.");
@@ -364,9 +396,11 @@ $("propose").onclick=async()=>{
   await preflight("propose(uint256,address,uint256)",word(dealId)+tw.address.toHex(tokenAddress).slice(2).padStart(64,"0")+word(n));
   if(!confirm("NILE TEST · Takas #"+dealId+"\nGöndereceğin: "+$("amount").value+" "+($("type").value==="TRX"?"TRX":tokenAddress)+"\nBu kayıt para yatırmaz. İki tarafın tutarları ve komisyon daha sonra ayrıca onaylanır. Cüzdan imzası verilsin mi?"))return;
   const tx=await c.propose(dealId,tokenAddress,n.toString()).send({feeLimit:60000000,shouldPollResponse:false});
-  $("proposalStatus").textContent="TEKLİF GÖNDERİLDİ, HENÜZ DOĞRULANMADI\n"+tx+"\nZincirden güncelleyin.";
- }catch(e){$("proposalStatus").textContent="HATA: "+(e?.message||e)}
- finally{pending=false}
+  unverifiedTx=tx;$("proposalStatus").textContent="TEKLİF GÖNDERİLDİ, ZİNCİR DOĞRULANIYOR\n"+tx;
+  $("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("proposalStatus").textContent;
+  await watchSignedTransaction(tx,"propose");$("primaryFeedback").textContent=$("txStatus").textContent;
+ }catch(e){$("proposalStatus").textContent="HATA: "+(e?.message||e);$("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("proposalStatus").textContent}
+ finally{pending=false;try{await read()}catch(e){$("primaryFeedback").hidden=false;$("primaryFeedback").textContent+="\nDurum okunamadı: "+(e?.message||e)}updatePrimaryAction()}
 };
 for(const key of ["accept","allow","deposit","refund"])$(key).onclick=()=>sign(key);
 setInterval(updateCountdown,1000);
