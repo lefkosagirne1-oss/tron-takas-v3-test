@@ -252,3 +252,18 @@ test("V5 B commission remains zero on refund after settlement timeout",async()=>
  assert.equal(await token.balanceOf(await owner.getAddress()),0n);
  assert.equal((await swap.getSwap(2)).completed,false);
 });
+
+test("V5 legacy acceptance requires exact current terms hash",async()=>{
+ const {swap,a,b,one}=await fixture();
+ const src="pragma solidity ^0.8.20; contract Stub {}";
+ const c=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Stub.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Stub.sol"].Stub;
+ const token=await new ContractFactory(c.abi,"0x"+c.evm.bytecode.object,a).deploy();await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).propose(1,await token.getAddress(),parseEther("10")));
+ const stale=await swap.termsHash(1);
+ await one(swap.connect(a).propose(1,zero,parseEther("3")));
+ await assert.rejects(one(swap.connect(b).acceptTerms(1,stale,{gasLimit:350000})));
+ assert.equal((await swap.getSwap(1)).acceptedB,false);
+ await one(swap.connect(b).acceptTerms(1,await swap.termsHash(1)));
+ assert.equal((await swap.getSwap(1)).acceptedB,true);
+});
