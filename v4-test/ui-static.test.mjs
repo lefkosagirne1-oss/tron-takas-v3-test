@@ -81,3 +81,9 @@ test("landing page routes to Nile V4 and never fabricates a participant role",()
  assert.doesNotMatch(landing,/role=1|role=2|participantId/);
  assert.match(landing,/ayrı davet bağlantısını/);
 });
+
+test("participant shows live deposit and settlement countdown beside primary action",()=>{
+ assert.match(participant,/<pre id="quickTimer" hidden><\\/pre>/);
+ assert.match(participant,/quick\.hidden=false;quick\.textContent=el\.textContent/);
+ assert.match(participant,/quick\.hidden=true/);
+});
