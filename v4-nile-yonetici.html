@@ -93,7 +93,7 @@ const owner="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const KNOWN_V4="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
 const zero="410000000000000000000000000000000000000000";
 let artifactMatchesSource=false;
-let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,preparedDeployment=null,lastDeploymentTx="f0898285f24bb6b4cbcbb4d3d24348d1466e8457cfa783a8edc13dfc8d7e6239";
+let tw=null,c=null,artifact=null,liveAddress="",current=null,readyForFinal=false,managerTxPending=false,managerUnverifiedTx="",preparedDeployment=null,lastDeploymentTx="f0898285f24bb6b4cbcbb4d3d24348d1466e8457cfa783a8edc13dfc8d7e6239";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 const value=x=>String(x?.toString?.()??x??"");
 const yes=x=>x===true||value(x)==="true"||value(x)==="1";
@@ -351,6 +351,10 @@ $("create").onclick=async()=>{
 };
 function updateManagerPrimary(){
  const b=$("managerPrimary"),h=$("managerHint");
+ if(managerTxPending||managerUnverifiedTx){
+  b.disabled=true;b.textContent="Zincir işlemi doğrulanıyor";
+  h.textContent="Önceki yönetici işlemi kesinleşmeden yeniden imza istenmez.";return;
+ }
  if(!current){b.disabled=true;b.textContent="Önce takas seç";h.textContent="Yeni takas oluştur veya mevcut takası aç.";return}
  if(yes(current.completed)||yes(current.cancelled)){b.disabled=true;b.textContent=yes(current.completed)?"Takas tamamlandı":"Takas kapandı";h.textContent="Bu işlem için yeni imza gerekmez.";return}
  if(readyForFinal&&!$("finalize").disabled){
@@ -500,9 +504,9 @@ $("precheck").onclick=async()=>{
  }catch(e){$("precheckStatus").textContent="ÖN KONTROL BAŞARISIZ: "+(e?.message||e)+". İmza atma."}
 };
 $("confirm").onclick=async()=>{
- if(!c||$("confirm").disabled)return;
+ if(!c||$("confirm").disabled||managerTxPending||managerUnverifiedTx)return;
  if(!confirm("İki tarafın cüzdan adreslerini bağımsız olarak kontrol ettin mi? Bu işlem adresleri KALICI kilitler. Onaylıyor musun?"))return;
- $("confirm").disabled=true;
+ $("confirm").disabled=true;managerTxPending=true;updateManagerPrimary();
  try{// Simulate the exact manager call on Nile before opening TronLink.
   const check=await fetch("https://nile.trongrid.io/wallet/triggerconstantcontract",{
    method:"POST",headers:{"Content-Type":"application/json"},
@@ -517,11 +521,16 @@ $("confirm").onclick=async()=>{
   const latest=await readSwapRaw($("dealId").value);
   if(latest.partyA===zero||latest.partyB===zero||latest.partyA===latest.partyB||yes(latest.walletsConfirmed))
    throw Error("Katılımcı adresleri doğrulanamadı; işlem durduruldu.");
-  const tx=await c.confirmParticipants($("dealId").value).send({feeLimit:50000000});status("actionStatus","Katılımcı doğrulama işlemi gönderildi: "+tx+"\nZincirden tekrar oku.");await read()}catch(e){status("actionStatus","HATA: "+(e?.message||e))}
+  const tx=await c.confirmParticipants($("dealId").value).send({feeLimit:50000000});
+  managerUnverifiedTx=tx;
+  status("actionStatus","Katılımcı doğrulama işlemi gönderildi: "+tx+"\nZincirde kesinleşmesi bekleniyor.");
+  await read();
+ }catch(e){status("actionStatus","HATA: "+(e?.message||e))}
+ finally{managerTxPending=false;updateManagerPrimary()}
 };
 $("finalize").onclick=async()=>{
- if(!c||!readyForFinal||$("finalize").disabled)return;
- $("finalize").disabled=true;
+ if(!c||!readyForFinal||$("finalize").disabled||managerTxPending||managerUnverifiedTx)return;
+ $("finalize").disabled=true;managerTxPending=true;updateManagerPrimary();
  try{
   await read();
   if(!readyForFinal)throw Error("Son onay koşulları değişti.");
@@ -545,10 +554,11 @@ $("finalize").onclick=async()=>{
    "İki tarafın yatırımı ve onayı zincirden okundu. Son onay varlıkları karşılıklı aktarır. Cüzdan adreslerini, tokenleri ve miktarları kontrol ettin mi?";
   if(!confirm(finalSummary))return;
   const tx=await c.finalize(id).send({feeLimit:150000000,shouldPollResponse:false});
+  managerUnverifiedTx=tx;
   status("actionStatus","SON ONAY AĞA GÖNDERİLDİ; HENÜZ TAMAMLANMADI. İşlem: "+tx+"\nTakas #"+id+" için zincir durumunu yeniden oku. Tamamlandı yazmadan başarılı sayma.");
   readyForFinal=false;
  }catch(e){status("actionStatus","HATA / BELİRSİZ İŞLEM: "+(e?.message||e))}
- finally{$("finalize").disabled=true}
+ finally{$("finalize").disabled=true;managerTxPending=false;updateManagerPrimary()}
 };
 setInterval(()=>{
  updateFinalCountdown();status("overviewTimer",$("finalCountdown").textContent);
@@ -557,10 +567,20 @@ setInterval(()=>{
 },1000);
 let managerPolling=false;
 setInterval(async()=>{
- if(!c||!current||managerPolling||document.hidden)return;
+ if(!c||!current||managerPolling||managerTxPending||document.hidden)return;
  managerPolling=true;
- try{await read()}catch(e){status("managerHint","Zincir durumu yenilenemedi: "+(e?.message||e))}
- finally{managerPolling=false}
+ try{
+  if(managerUnverifiedTx){
+   const receipt=await tw.trx.getTransactionInfo(managerUnverifiedTx);
+   if(receipt?.receipt?.result==="SUCCESS")managerUnverifiedTx="";
+   else if(receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS"){
+    managerUnverifiedTx="";
+    status("actionStatus","Önceki yönetici işlemi zincirde başarısız. Yeniden imzalamadan önce geçmişi incele.");
+   }
+  }
+  await read();
+ }catch(e){status("managerHint","Zincir durumu yenilenemedi: "+(e?.message||e))}
+ finally{managerPolling=false;updateManagerPrimary()}
 },20000);
 $("overviewLoad").onclick=async()=>{
  const list=$("overviewTradeList");list.hidden=false;list.replaceChildren();
