@@ -267,3 +267,16 @@ test("V5 legacy acceptance requires exact current terms hash",async()=>{
  await one(swap.connect(b).acceptTerms(1,await swap.termsHash(1)));
  assert.equal((await swap.getSwap(1)).acceptedB,true);
 });
+
+test("V5 offer hash is bound to this chain and contract address",async()=>{
+ const {swap,a,one}=await fixture();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ const actual=await swap.offerAHash(1);
+ const network=await a.provider.getNetwork();
+ const {AbiCoder,keccak256}=await import("ethers");
+ const coder=AbiCoder.defaultAbiCoder();
+ const expected=keccak256(coder.encode(["uint256","address","uint256","address","address","uint256"],[network.chainId,await swap.getAddress(),1,await a.getAddress(),zero,parseEther("2")]));
+ assert.equal(actual,expected);
+ const wrong=keccak256(coder.encode(["uint256","address","uint256","address","address","uint256"],[network.chainId,"0x000000000000000000000000000000000000dEaD",1,await a.getAddress(),zero,parseEther("2")]));
+ assert.notEqual(actual,wrong);
+});
