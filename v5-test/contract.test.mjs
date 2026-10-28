@@ -177,3 +177,34 @@ test("V5 stale final terms hash cannot trigger A deposit",async()=>{
  await assert.rejects(one(swap.connect(a).acceptAndDeposit(1,stale,{value:parseEther("2"),gasLimit:350000})));
  assert.equal((await swap.getSwap(1)).depositedA,false);
 });
+
+test("V5 charges A commission only on successful finalization",async()=>{
+ const {swap,a,b,owner,one}=await fixture();
+ const tokenSource="pragma solidity ^0.8.20; contract Token {mapping(address=>uint) public balanceOf; mapping(address=>mapping(address=>uint)) public allowance; function mint(address a,uint n) external {balanceOf[a]+=n;} function approve(address a,uint n) external returns(bool){allowance[msg.sender][a]=n;return true;} function transferFrom(address f,address t,uint n) external returns(bool){require(balanceOf[f]>=n&&allowance[f][msg.sender]>=n);balanceOf[f]-=n;allowance[f][msg.sender]-=n;balanceOf[t]+=n;return true;} function transfer(address t,uint n) external returns(bool){require(balanceOf[msg.sender]>=n);balanceOf[msg.sender]-=n;balanceOf[t]+=n;return true;}}";
+ const c=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Token.sol":{content:tokenSource}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Token.sol"].Token;
+ const token=await new ContractFactory(c.abi,"0x"+c.evm.bytecode.object,owner).deploy();await token.waitForDeployment();
+ await one(swap.createInviteWithParties(await a.getAddress(),await b.getAddress(),500,1));
+ await one(token.mint(await b.getAddress(),parseEther("10")));
+ await one(swap.connect(a).propose(2,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(2,await token.getAddress(),parseEther("10"),await swap.offerAHash(2)));
+ await one(token.connect(b).approve(await swap.getAddress(),parseEther("10")));
+ await one(swap.connect(a).acceptAndDeposit(2,await swap.termsHash(2),{value:parseEther("2")}));
+ await one(swap.connect(b).deposit(2));
+ const fee=await swap.preview(2);
+ assert.equal(fee[0],parseEther("0.1"));
+ const before=await owner.provider.getBalance(await owner.getAddress());
+ await one(swap.finalize(2));
+ assert.equal(await token.balanceOf(await a.getAddress()),parseEther("10"));
+ assert.equal((await swap.getSwap(2)).completed,true);
+});
+test("V5 rejects token contract that falsely reports transfers without changing balances",async()=>{
+ const {swap,a,b,owner,one}=await fixture();
+ const src="pragma solidity ^0.8.20; contract Fake {function balanceOf(address) external pure returns(uint){return 0;} function transferFrom(address,address,uint) external pure returns(bool){return true;} function transfer(address,uint) external pure returns(bool){return true;}}";
+ const c=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources:{"Fake.sol":{content:src}},settings:{outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}))).contracts["Fake.sol"].Fake;
+ const token=await new ContractFactory(c.abi,"0x"+c.evm.bytecode.object,owner).deploy();await token.waitForDeployment();
+ await one(swap.connect(a).propose(1,zero,parseEther("2")));
+ await one(swap.connect(b).proposeAndAcceptA(1,await token.getAddress(),parseEther("10"),await swap.offerAHash(1)));
+ await one(swap.connect(a).acceptAndDeposit(1,await swap.termsHash(1),{value:parseEther("2")}));
+ await assert.rejects(one(swap.connect(b).deposit(1,{gasLimit:350000})));
+ assert.equal((await swap.getSwap(1)).depositedB,false);
+});
