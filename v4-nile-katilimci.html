@@ -28,11 +28,11 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 .warning{border-radius:14px}
 #deposit{background:#19866c}.success{border:1px solid #258d71;background:#123a32;color:#d9fff2;padding:14px;border-radius:13px;font-weight:700}.role-warning{border:1px solid #ad874b;background:#30281b;color:#ffdcad;padding:13px;border-radius:12px;margin:12px 0}
 @media(max-width:520px){.sides{grid-template-columns:1fr}}
-details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}details[open] summary{margin-bottom:12px}#actionSection{border-color:#4974a8}#terms{font-weight:600}#detailsSection .sides{margin-top:10px}</style></head><body>
+details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}details[open] summary{margin-bottom:12px}#actionSection{border-color:#4974a8}#terms{font-weight:600}#detailsSection .sides{margin-top:10px}#wallet,#join,#propose,#accept,#allow,#deposit,#refund{display:none!important}#primaryAction{font-size:18px;min-height:66px;background:#19866c}#primaryAction:disabled{background:#38526b}</style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <section id="inviteLanding" hidden><h2>Bu sayfa bir takas davetiyle açılır</h2><p>Henüz bir işlem seçilmedi. Yönetici tarafından gönderilen <strong>Taraf A</strong> veya <strong>Taraf B</strong> bağlantısını açtığında yalnızca sana ait işlem adımları görünecek.</p><p>Şu anda cüzdan bağlamana veya işlem imzalamana gerek yok.</p></section>
 <div class="warning">Bu V4 sürümü yalnızca Nile test ağındadır. Mainnet veya gerçek varlıklarla kullanmayın. İşlem başlatmak TronLink imzası ve test TRX gerektirebilir.</div>
-<section id="joinSection"><h2>1 · Cüzdanını bağla</h2>
+<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button></section><section id="joinSection"><h2>1 · Cüzdanını bağla</h2>
 <pre id="connection">Davet bilgisi yükleniyor…</pre>
 <button id="wallet">TronLink cüzdanını bağla</button>
 <button id="join" disabled>Katılım isteği gönder</button>
@@ -67,7 +67,7 @@ const contractAddress=params.get("contract")||"",dealId=params.get("id")||"",rol
 const ZERO="410000000000000000000000000000000000000000";
 const EXPECTED_CONTRACT="TBdLdLLLZDFQaRdUEwHXeLaYpCH8pfgqXR";
 const validInvite=contractAddress===EXPECTED_CONTRACT&&/^[1-9]\d*$/.test(dealId)&&["1","2"].includes(roleParam);
-if(!validInvite){document.getElementById("inviteLanding").hidden=false;for(const id of ["joinSection","proposalSection","detailsSection","actionSection"])document.getElementById(id).hidden=true;document.getElementById("heading").textContent="Takas daveti bekleniyor · Nile Test";}
+if(!validInvite){document.getElementById("inviteLanding").hidden=false;for(const id of ["simpleFlow","joinSection","proposalSection","detailsSection","actionSection"])document.getElementById(id).hidden=true;document.getElementById("heading").textContent="Takas daveti bekleniyor · Nile Test";}
 const EXPECTED_MANAGER="TUrZ33TzHZrT3CAFmp54MDjh67KRq8WBYU";
 const fields=["partyA","partyB","tokenA","tokenB","amountA","amountB","offerDeadline","depositDeadline","settlementDeadline","feeBps","feePayer","walletsConfirmed","proposedA","proposedB","acceptedA","acceptedB","depositedA","depositedB","refundedA","refundedB","completed","cancelled"];
 let tw=null,c=null,wallet="",deal=null,role="",assets={},pending=false,allowance=0n,allowanceVerified=false;
@@ -233,6 +233,7 @@ async function read(){
   $("deposit").disabled=needsApproval;$("deposit").hidden=needsApproval;
  }}
  updateCountdown();
+ updatePrimaryAction();
  return deal;
 }
 async function preflight(selector,params,callValue=0){
@@ -315,6 +316,13 @@ async function sign(action){
   try{await read()}catch(e){$("txStatus").textContent+="\nDurum yenilenemedi: "+(e?.message||e)}
  }
 }
+function updatePrimaryAction(){
+ const b=$("primaryAction"),h=$("primaryHint");if(!validInvite||pending){b.disabled=true;return}
+ const steps=[["wallet","Cüzdanımı bağla","TronLink cüzdanını bağla."],["join","Takas davetine katıl","Katılım talebini gönder."],["propose","Varlığımı ve miktarımı kaydet","Token ve miktarı seç."],["accept","Takas koşullarını onayla","Tutarları kontrol ederek onayla."],["allow","Token izni ver","TRC20 token için cüzdan izni gerekir."],["deposit","Takas tutarını yatır","Varlığını sözleşmeye yatır."],["refund","Yatırdığım tutarı iade al","Süresi dolan yatırımı geri al."]];
+ let v=null;if(!wallet)v=steps[0];else if(!$("joinSection").hidden&&!$("join").disabled)v=steps[1];else if(!$("proposalSection").hidden&&!$("propose").disabled)v=steps[2];else for(const a of steps.slice(3))if(!$(a[0]).hidden&&!$(a[0]).disabled){v=a;break}
+ b.disabled=!v;b.dataset.target=v?.[0]||"";b.textContent=v?.[1]||"İşlem durumu bekleniyor";h.textContent=v?.[2]||$("next").textContent||"Zincir durumu bekleniyor.";
+}
+$("primaryAction").onclick=()=>{const t=$("primaryAction").dataset.target;if(t&&!$(t).disabled)$(t).click()};
 $("wallet").onclick=async()=>{
  const button=$("wallet");button.disabled=true;
  $("connection").textContent="TronLink bağlantısı kontrol ediliyor…";
@@ -331,7 +339,7 @@ $("wallet").onclick=async()=>{
  }catch(e){
   $("connection").textContent="BAĞLANTI HATASI: "+(e?.message||e);
   $("joinStatus").textContent="Bağlantı kontrolü: "+(e?.message||e);
- }finally{button.disabled=false}
+ }finally{button.disabled=false;updatePrimaryAction()}
 };
 $("refresh").onclick=async()=>{try{await read();$("txStatus").textContent="Zincir durumu yenilendi."}catch(e){$("txStatus").textContent="OKUMA HATASI: "+(e?.message||e)}};
 $("type").onchange=()=>$("tokenBox").hidden=$("type").value!=="TOKEN";
@@ -362,5 +370,5 @@ $("propose").onclick=async()=>{
 };
 for(const key of ["accept","allow","deposit","refund"])$(key).onclick=()=>sign(key);
 setInterval(updateCountdown,1000);
-if(validInvite)(async()=>{try{await setup(false);await read()}catch(e){$("connection").textContent="DAVET HATASI: "+(e?.message||e)}})();
+if(validInvite)(async()=>{try{await setup(false);await read()}catch(e){$("connection").textContent="BAĞLANTI BİLGİSİ: "+(e?.message||e);updatePrimaryAction()}})();
 </script></body></html>
