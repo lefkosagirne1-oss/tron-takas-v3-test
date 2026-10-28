@@ -221,7 +221,7 @@ async function read(){
  $("refund").disabled=!canRefund;if(canRefund)$("refund").hidden=false;
  if(canDeposit){const item=assets[mine];if(item){
   allowance=0n;
-  if(item.token)try{allowance=bigint(await item.token.allowance(wallet,contractAddress).call())}catch{}
+  if(item.token)try{allowance=bigint(await item.token.allowance(wallet,contractAddress).call())}catch(e){$("txStatus").textContent="Token izni okunamadı: "+(e?.message||e)+"\nYeniden izin vermeden önce zincir okumasını tekrar deneyin."}
   const amt=bigint(deal["amount"+mine]),needsApproval=!!item.token&&allowance<amt;
   $("allow").disabled=!needsApproval;$("allow").hidden=!needsApproval;
   $("deposit").disabled=needsApproval;$("deposit").hidden=needsApproval;
@@ -240,6 +240,29 @@ async function preflight(selector,params,callValue=0){
   throw Error("Ücretsiz zincir kontrolü işlemi reddetti; imza istenmedi: "+(data.result?.message||data.result?.code||"Sözleşme reddetti"));
 }
 const word=v=>BigInt(v).toString(16).padStart(64,"0");
+// Read-only follow-up after wallet signing. Never submits another transaction.
+async function watchSignedTransaction(tx,action){
+ for(let attempt=0;attempt<12;attempt++){
+  await new Promise(resolve=>setTimeout(resolve,3000));
+  try{
+   const receipt=await tw.trx.getTransactionInfo(tx);
+   if(receipt?.receipt?.result==="REVERT"||receipt?.receipt?.result==="OUT_OF_ENERGY"||receipt?.result==="FAILED"){
+    $("txStatus").textContent="İŞLEM BAŞARISIZ: "+tx+"\nZincirde başarısız sonuç görüldü. Yeniden imzalamayın.";
+    await read();return;
+   }
+   if(receipt?.receipt?.result==="SUCCESS"){
+    await read();
+    const mine=role==="1"?"A":"B";
+    const confirmed=action==="allow"?(assets[mine]?.token&&allowance>=bigint(deal["amount"+mine])):action==="deposit"?flag(deal["deposited"+mine]):true;
+    if(confirmed){
+     $("txStatus").textContent="İŞLEM ZİNCİRDE DOĞRULANDI: "+tx+"\nGüncel takas durumu yukarıda.";
+     return;
+    }
+   }
+  }catch(e){/* Network reads may fail temporarily; retry without signing. */}
+ }
+ $("txStatus").textContent="İşlem sonucu henüz doğrulanamadı: "+tx+"\nDurumu güncelle (ücretsiz) ile tekrar kontrol edin; yeniden imzalamayın.";
+}
 async function sign(action){
  if(pending)return;
  pending=true;disable();
@@ -275,7 +298,7 @@ async function sign(action){
     if(!confirm("Süresi dolmuş yatırımı komisyonsuz iade almak için Nile cüzdan imzası verilsin mi?"))return;
     tx=await c.refund(dealId).send({feeLimit:80000000,shouldPollResponse:false});
   }
-  if(tx)$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nTekrar imza vermeden önce zincir durumunu yenileyin.";
+  if(tx){$("txStatus").textContent="İŞLEM AĞA GÖNDERİLDİ, KESİNLEŞMESİ HENÜZ DOĞRULANMADI\nİşlem: "+tx+"\nZincir sonucu otomatik kontrol ediliyor; yeniden imzalamayın.";void watchSignedTransaction(tx,action);}
  }catch(e){$("txStatus").textContent="HATA / DURUM BELİRSİZ: "+(e?.message||e)+"\nYeniden imzalamadan önce zincirde kontrol edin."}
  finally{pending=false;disable()}
 }
