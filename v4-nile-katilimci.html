@@ -221,7 +221,9 @@ async function read(){
  $("refund").disabled=!canRefund;if(canRefund)$("refund").hidden=false;
  if(canDeposit){const item=assets[mine];if(item){
   allowance=0n;
-  if(item.token)try{allowance=bigint(await item.token.allowance(wallet,contractAddress).call())}catch(e){$("txStatus").textContent="Token izni okunamadı: "+(e?.message||e)+"\nYeniden izin vermeden önce zincir okumasını tekrar deneyin."}
+  let allowanceReadOk=true;
+  if(item.token)try{allowance=bigint(await item.token.allowance(wallet,contractAddress).call())}catch(e){allowanceReadOk=false;$("txStatus").textContent="Token izni okunamadı: "+(e?.message||e)+"\nGüvenlik için imzalama kapatıldı. Zincir okumasını tekrar deneyin."}
+  if(!allowanceReadOk){updateCountdown();return deal}
   const amt=bigint(deal["amount"+mine]),needsApproval=!!item.token&&allowance<amt;
   $("allow").disabled=!needsApproval;$("allow").hidden=!needsApproval;
   $("deposit").disabled=needsApproval;$("deposit").hidden=needsApproval;
