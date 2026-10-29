@@ -220,10 +220,11 @@ test("participant commits wallet-bound invitation before sending deposit",async(
  const h=await webcrypto.subtle.digest("SHA-256",Buffer.concat([Buffer.from(secretA.slice(2),"hex"),Buffer.from("22".repeat(20),"hex")]));
  assert.equal(x.commits[0].hash,"0x"+Buffer.from(h).toString("hex"));
 });
-test("participant does not pay for duplicate commitment on retry",async()=>{
+test("participant reuses a confirmed commitment without another signature",async()=>{
  const x=await make("participant");
- await x.get("deposit").onclick();
+ const hash=await vm.runInContext("hashWalletCommitment("+JSON.stringify(secretA)+",window.tronWeb)",x.ctx);
+ x.commits.push({id:"1",role:1,hash});
  await x.get("deposit").onclick();
  assert.equal(x.commits.length,1);
- assert.equal(x.sent.length,2);
+ assert.equal(x.sent.length,1);
 });
