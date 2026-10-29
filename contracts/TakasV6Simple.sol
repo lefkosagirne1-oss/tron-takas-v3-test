@@ -27,14 +27,11 @@ contract TakasV6Simple {
     modifier guard() { require(unlocked == 1, "Reentrancy"); unlocked = 2; _; unlocked = 1; }
     constructor() { manager = msg.sender; }
 
-    function create(address walletA, address walletB, uint8 payer, uint256 bps) external owner returns (uint256 id) {
-        require(walletA != address(0) && walletB != address(0) && walletA != walletB, "Invalid wallets");
-        require(walletA != manager && walletB != manager, "Manager cannot deposit");
+    function create(uint8 payer, uint256 bps) external owner returns (uint256 id) {
         require(payer <= 2 && bps <= 1000, "Invalid fee");
         require(payer != 0 || bps == 0, "Fee payer required");
         id = nextId++;
         Deal storage d = deals[id];
-        d.partyA = walletA; d.partyB = walletB;
         d.feePayer = payer; d.feeBps = bps;
         emit Created(id, payer, bps);
     }
@@ -45,7 +42,7 @@ contract TakasV6Simple {
         require(id > 0 && id < nextId, "Unknown deal");
         Deal storage d = deals[id];
         require(!d.cancelled && !d.completed, "Closed");
-        require((role == 1 && msg.sender == d.partyA) || (role == 2 && msg.sender == d.partyB), "Wallet not authorized");
+        require(msg.sender != manager && (role == 1 || role == 2), "Invalid participant");
         require(amount > 0 && (token == address(0) || token.code.length > 0), "Invalid asset");
         require(d.depositDeadline == 0 || block.timestamp < d.depositDeadline, "Deposit expired");
         require(d.finalDeadline == 0, "Both deposited");
@@ -59,9 +56,9 @@ contract TakasV6Simple {
         if (d.feePayer == role) require(amount * d.feeBps / 10000 < amount, "Fee exceeds amount");
         _receive(token, amount);
         if (role == 1) {
-            d.tokenA = token; d.amountA = amount; d.depositedA = true;
+            d.partyA = msg.sender; d.tokenA = token; d.amountA = amount; d.depositedA = true;
         } else {
-            d.tokenB = token; d.amountB = amount; d.depositedB = true;
+            d.partyB = msg.sender; d.tokenB = token; d.amountB = amount; d.depositedB = true;
         }
         if (d.depositDeadline == 0) d.depositDeadline = uint64(block.timestamp + DEPOSIT_WINDOW);
         if (d.depositedA && d.depositedB) d.finalDeadline = uint64(block.timestamp + FINAL_WINDOW);
