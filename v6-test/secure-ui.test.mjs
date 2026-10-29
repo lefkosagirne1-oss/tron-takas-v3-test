@@ -16,25 +16,29 @@ async function make(page,secret=secretA,amount="100"){
  };
  const owner="T"+"a".repeat(33),user="T"+"b".repeat(33);
  const deal={partyA:"0x"+"0".repeat(64),partyB:"0x"+"0".repeat(64),tokenA:"0x"+"0".repeat(64),tokenB:"0x"+"0".repeat(64),amountA:"0",amountB:"0",feeAmount:"50000000",feePayer:1,depositDeadline:"0",finalDeadline:"0",depositedA:false,depositedB:false,refundedA:false,refundedB:false,completed:false,cancelled:false,inviteHashA:await sha(secretA),inviteHashB:await sha(secretB)};
- let next=1n;const sent=[];
+ let next=1n;const sent=[],commits=[];
  const c={
   manager:()=>({call:async()=> "0x"+"1".repeat(40)}),
   inviteVersion:()=>({call:async()=>8}),
   nextId:()=>({call:async()=>next.toString()}),
   getDeal:()=>({call:async()=>deal}),
+  committedHash:()=>({call:async()=>commits.at(-1)?.hash||"0x"+"0".repeat(64)}),
+  commitRole:(id,role,hash)=>({send:async()=>{commits.push({id,role,hash});return "a".repeat(64);}}),
   create:(payer,fee,ha,hb)=>({send:async()=>{deal.feePayer=payer;deal.feeAmount=fee;deal.inviteHashA=ha;deal.inviteHashB=hb;next++;return "a".repeat(64);}}),
   deposit:(id,role,token,n,s)=>({send:async opts=>{sent.push({id,role,token,n,s,opts});deal.depositedA=true;deal.partyA="0x"+"2".repeat(40);return "a".repeat(64);}})
  };
- const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user},contract:async()=>c,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"}}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000}}})}};
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async()=>c,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"}}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000}}})}};
  const store=new Map();
  const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(secret),href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
- return {ctx,get,deal,sent};
+ return {ctx,get,deal,sent,commits};
 }
 test("secure frontend scripts parse and have V8 ABI",()=>{
  for(const s of [common,manager,participant])assert.doesNotThrow(()=>new vm.Script(s));
  assert.match(common,/"name":"inviteVersion"/);
  assert.match(common,/"name":"inviteSecret"/);
+ assert.match(common,/"name":"commitRole"/);
+ assert.match(common,/"name":"committedHash"/);
  assert.match(read("takas-kurulum.html"),/TakasV8Invite.json/);
 });
 test("manager creates distinct private A and B invitation URLs",async()=>{
@@ -153,7 +157,7 @@ test("V8 frontend deal ABI matches the official TRON artifact address types",()=
  assert.ok(match,"Frontend ABI not found");
  const ui=JSON.parse(match[1]);
  const compiled=JSON.parse(read("v6-test/dist/TakasV8Invite.json")).abi;
- for(const name of ["getDeal","create","deposit","finalize","refund","manager","inviteVersion"]){
+ for(const name of ["getDeal","create","deposit","commitRole","committedHash","finalize","refund","manager","inviteVersion"]){
   const actual=ui.find(x=>x.name===name);
   const official=compiled.find(x=>x.name===name);
   assert.ok(actual&&official,"Missing ABI function: "+name);
@@ -205,4 +209,21 @@ test("recovered deployment is tied to official bytecode and selected manager",()
  assert.match(setup,/deployedCode!==expectedCode/);
  assert.match(setup,/deployedOwner!==w\.address\.toHex\(selectedWallet\(\)\)\.toLowerCase\(\)/);
  assert.match(setup,/deployment\?\.type!=="CreateSmartContract"/);
+});
+
+test("participant commits wallet-bound invitation before sending deposit",async()=>{
+ const x=await make("participant");
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.commits[0].role,1);
+ assert.equal(x.sent.length,1);
+ const h=await webcrypto.subtle.digest("SHA-256",Buffer.concat([Buffer.from(secretA.slice(2),"hex"),Buffer.from("22".repeat(20),"hex")]));
+ assert.equal(x.commits[0].hash,"0x"+Buffer.from(h).toString("hex"));
+});
+test("participant does not pay for duplicate commitment on retry",async()=>{
+ const x=await make("participant");
+ await x.get("deposit").onclick();
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.sent.length,2);
 });
