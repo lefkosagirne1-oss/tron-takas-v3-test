@@ -185,10 +185,10 @@ test("V8 frontend deal ABI matches the official TRON artifact address types",()=
 });
 test("V8 setup prevents duplicate deployments and verifies saved manager",()=>{
  const setup=read("takas-kurulum.html");
- assert.match(setup,/const installed=localStorage\.getItem\(installedKey\)/);
+ assert.ok(setup.includes("const installed=localStorage.getItem(installedKey())"));
  assert.match(setup,/existing\.inviteVersion\(\)\.call\(\)/);
  assert.match(setup,/existing\.manager\(\)\.call\(\)/);
- assert.match(setup,/if\(localStorage\.getItem\(installedKey\)\)throw Error\("V8 sözleşmesi zaten kurulu/);
+ assert.ok(setup.includes('if(localStorage.getItem(installedKey()))throw Error("V8 sözleşmesi zaten kurulu'));
 });
 
 
