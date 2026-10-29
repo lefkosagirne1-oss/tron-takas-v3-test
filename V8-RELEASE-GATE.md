@@ -75,3 +75,12 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - Resmi tron-solc 0.8.31 ile **yalnız yerel TronNile TVM** üzerinde optimizer `runs=200` ve `runs=1` kıyaslandı: mevcut artifact **7394 bayt / 1.505.683 Energy**, deneysel `runs=1` **7382 bayt / 1.503.277 Energy**. Kazanç yalnızca **2406 Energy (yaklaşık %0,16)**; mevcut güvenli artifact ve derleme ayarları **değiştirilmedi**. Test: [GitHub Actions #40947147139](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/40947147139) başarılı.
 - Bu Energy değerleri gerçek Nile maliyeti değildir. Kurulum maliyetini anlamlı biçimde azaltmak için sözleşme tasarımı / bytecode boyutu üzerinde ayrıca çalışma gerekir; güvenlik kontrollerini kaldırarak maliyet düşürülmemelidir.
 - **Yayın engeli devam ediyor:** V8 Nile'a kurulmadı ve gerçek zincirde takas/iade yapılmadı. Kullanıcıdan cüzdan imzası veya test TRX harcaması istenmedi.
+
+
+## 30 Ekim 2026, 00:15 TRT: resmi TRON derleyicisiyle yerel TVM TRC20 komisyon/iade testi
+
+- `v8-test/tvm-state.mjs` genişletildi. Ayrı `LocalTRC20` mock token'ı, SHA'sı sabitlenmiş **resmi tron-solc 0.8.31** derleyicisiyle test anında derlenip `@tvmjs/tvm` TronNile ortamına dağıtıldı. `transferFrom`, `balanceOf`, `approve`, `transfer` çağrıları gerçek TVM simülatörü içinde çalıştırıldı.
+- B tarafının **200 token + ayrı 50 TRX komisyon teminatı** yatırdığı, A tarafının 100 TRX yatırdığı başarılı takasta: A 200 token aldı, B 100 TRX aldı, yönetici yalnız finalize sonrasında 50 TRX aldı. Komisyonun finalize öncesi yöneticiye geçmediği doğrulandı.
+- Başka takasta B yalnız 75 token + 50 TRX yatırdı; 15 dakika geçince **75 token ve 50 TRX'in tamamını geri aldı**, yöneticiye komisyon gitmedi. Token escrow bakiyesi sıfırlandı.
+- CI sırası güncellendi: sabit SHA'lı resmi compiler, yerel TVM testlerinden **önce** indiriliyor. [GitHub Actions #40956129307](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/40956129307) **başarılı**. Commit'ler `bd430464af3517fbbe8e76613cd151b87d563110` ve `a28699516d46712fda1d5c728160ea30e0c2b7fc`. Önceki commit'e göre dosya silinmedi; yalnız test ve CI değişti. İlk ara commit'in CI başarısızlığı, derleyicinin indirilme sırasından kaynaklandı ve ikinci commit'te giderildi.
+- **Yayın engeli değişmedi:** Bu sonuçlar yalnızca yerel TVM simülasyonudur. V8 gerçek Nile ağına kurulmadı; gerçek zincirde takas veya iade yapılmadı. Kullanıcıdan imza/TRX/ekran görüntüsü istenmedi. Sonraki öncelik: gerçek Nile read-only kurulum Energy simülasyonu ve daha geniş kötü niyetli TRC20 testleri.
