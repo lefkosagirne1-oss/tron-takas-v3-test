@@ -1,6 +1,6 @@
 <!doctype html><html lang="tr"><head><title>V6 · Yönetici</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{font:16px system-ui;color:#edf4ff;background:#0b1425}body{max-width:560px;margin:30px auto;padding:16px}main{display:grid;gap:14px}section{padding:18px;border:1px solid #31435f;border-radius:16px;background:#132139}h1{font-size:1.6rem}h2{font-size:1.1rem}label{display:block;margin:10px 0 4px}input,select,button{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid #61718b}input,select{background:#0b1425;color:white}button{margin-top:12px;background:#3b82f6;color:white;font-weight:700;border:0}button:disabled{background:#475569}small{color:#cbd5e1;overflow-wrap:anywhere}#status{overflow-wrap:anywhere;color:#facc15}a{color:#93c5fd}
 button{cursor:pointer}button:disabled{cursor:wait}input[readonly]{font-size:.86rem}#details{line-height:1.6;overflow-wrap:anywhere}.hint{color:#cbd5e1}</style></head><body><main>
-<h1>Yönetici · Takas</h1>
+<h1>Eski V6 yönetici</h1><p style="color:#facc15">Bu sürümde yeni takas oluşturma kapalıdır. Mevcut takasların durumu ve son onayı görüntülenebilir.</p>
 <section><h2>1. Yeni takas</h2>
 <label>Komisyonu kim öder?</label><select id="payer"><option value="0">Komisyon yok</option><option value="1">A tarafı</option><option value="2">B tarafı</option></select>
 <label>Sabit komisyon (TRX)</label><input id="fee" inputmode="decimal" value="0" placeholder="Örn. 5">
@@ -100,4 +100,4 @@ try{
   if(id){$("id").value=id;showLinks(id,window.tronWeb);}
  }
 }catch(_){}
-</script></body></html>
+$("create").onclick=()=>status("Eski sözleşmede yeni takas oluşturma kapalı.");$("create").disabled=true;</script></body></html>
