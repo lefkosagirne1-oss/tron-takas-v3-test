@@ -78,6 +78,8 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   if(allowance<BigInt(amount)){
    status("Token izni için TronLink imzası bekleniyor...");
    await send(t.approve(address,amount));
+   const approved=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
+   if(approved<BigInt(amount))throw Error("Token izni zincirde yeterli değil. Yatırım gönderilmedi.");
   }
  }
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:0});
