@@ -28,7 +28,7 @@ fs.writeFileSync("v6-test/dist/TakasV6Fixed.json",JSON.stringify({contractName:"
 console.log("V6 fixed-commission compilation OK; bytecode bytes:",fixed.evm.bytecode.object.length/2);
 
 const inviteSource=fs.readFileSync("contracts/TakasV8Invite.sol","utf8");
-const inviteInput={language:"Solidity",sources:{"TakasV8Invite.sol":{content:inviteSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object","evm.deployedBytecode.object"]}}}};
+const inviteInput={language:"Solidity",sources:{"TakasV8Invite.sol":{content:inviteSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object","evm.deployedBytecode.object","evm.deployedBytecode.immutableReferences"]}}}};
 const compilerPath=path.resolve(process.env.TRON_SOLC_PATH||"v6-test/.cache/tron-soljson.cjs");
 const tronSolc=solc.setupMethods(require(compilerPath));
 if(!tronSolc.version().startsWith("0.8.31"))throw Error("Unexpected TRON compiler version: "+tronSolc.version());
@@ -38,5 +38,5 @@ if(inviteErrors.length)throw Error(inviteErrors.map(x=>x.formattedMessage).join(
 const invite=inviteOut.contracts["TakasV8Invite.sol"].TakasV8Invite;
 if(!invite?.evm?.bytecode?.object||!invite?.evm?.deployedBytecode?.object)throw Error("Invite contract creation or runtime bytecode missing");
 if(invite.abi.find(x=>x.name==="create")?.inputs?.length!==4||invite.abi.find(x=>x.name==="deposit")?.inputs?.length!==5||!invite.abi.some(x=>x.name==="inviteVersion"))throw Error("V8 ABI mismatch");
-fs.writeFileSync("v6-test/dist/TakasV8Invite.json",JSON.stringify({contractName:"TakasV8Invite",abi:invite.abi,bytecode:invite.evm.bytecode.object,runtimeBytecode:invite.evm.deployedBytecode.object,network:"Nile",compiler:"tron-solc 0.8.31"},null,2));
+fs.writeFileSync("v6-test/dist/TakasV8Invite.json",JSON.stringify({contractName:"TakasV8Invite",abi:invite.abi,bytecode:invite.evm.bytecode.object,runtimeBytecode:invite.evm.deployedBytecode.object,immutableReferences:invite.evm.deployedBytecode.immutableReferences||{},network:"Nile",compiler:"tron-solc 0.8.31"},null,2));
 console.log("V8 secure invitation compilation OK; bytecode bytes:",invite.evm.bytecode.object.length/2);
