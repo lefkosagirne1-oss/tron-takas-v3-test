@@ -103,7 +103,8 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
 });
 $("refund").onclick=()=>run($("refund"),async()=>{
- const tw=await wallet(),{c,d}=await readDeal();
+ const tw=await wallet(),expectedWallet=tw.defaultAddress.base58,{c,d}=await readDeal();
+ ensureWallet(tw,expectedWallet);
  if(d.completed)throw Error("Takas tamamlanmış, iade yapılamaz.");
  const mine=role===1?d.partyA:d.partyB,refunded=role===1?d.refundedA:d.refundedB;
  if(readableAddress(mine,tw)!==tw.defaultAddress.base58)throw Error("Bu cüzdan ilgili tarafın yatırımcısı değil.");
@@ -112,7 +113,7 @@ $("refund").onclick=()=>run($("refund"),async()=>{
  if(!deadline)throw Error("Henüz yatırım yapılmamış.");
  const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
  if(now&&now<deadline)throw Error("İade süresi henüz gelmedi.");
- await send(c.refund(id));await check();status("İade işlemi zincirde doğrulandı.");
+ await send(c.refund(id),{expectedWallet});await check();status("İade işlemi zincirde doğrulandı.");
 });
 if(fixedReady()&&/^[1-9]\d*$/.test(id||"")&&[1,2].includes(role)&&validSecret(secret)){
  readDeal().catch(e=>{$("feeInfo").textContent="Takas bilgisi okunamadı: "+e.message;});
