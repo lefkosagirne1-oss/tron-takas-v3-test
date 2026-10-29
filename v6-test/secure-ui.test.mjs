@@ -29,14 +29,15 @@ async function make(page,secret=secretA,amount="100"){
  };
  const tokenContract={
   decimals:()=>({call:async()=>6}),
+  balanceOf:()=>({call:async()=>"1000000000"}),
   allowance:()=>({call:async()=>"1000000000"}),
   approve:()=>({send:async()=>"a".repeat(64)})
  };
- const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getBalance:async()=>1000000000,getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
  const store=new Map();
  const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(secret),href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
- return {ctx,get,deal,sent,commits};
+ return {ctx,get,deal,sent,commits,tw,tokenContract};
 }
 test("secure frontend scripts parse and have V8 ABI",()=>{
  for(const s of [common,manager,participant])assert.doesNotThrow(()=>new vm.Script(s));
@@ -271,4 +272,33 @@ test("V8 waits until a later Nile block before depositing after commitment",asyn
  const result=await vm.runInContext('waitNextBlock(window.tronWeb,"a".repeat(64))',x.ctx);
  assert.equal(result,undefined);
  assert.match(read("takas-katilimci.html"),/await waitNextBlock\(tw,commitTx\)/);
+});
+
+test("insufficient TRX prevents commitment and deposit signatures",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getBalance=async()=>parseInt("90000000",10);
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/TRX bakiyesi yetersiz/);
+});
+test("insufficient token balance prevents approve and commitment",async()=>{
+ const x=await make("participant");
+ x.get("asset").value="OTHER";
+ x.get("token").value="T"+"c".repeat(33);
+ x.tokenContract.balanceOf=()=>({call:async()=>"10"});
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Token bakiyesi yetersiz/);
+});
+test("token payer needs separate TRX fee before approving token",async()=>{
+ const x=await make("participant");
+ x.get("asset").value="OTHER";
+ x.get("token").value="T"+"c".repeat(33);
+ x.tw.trx.getBalance=async()=>1000000;
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/TRX bakiyesi yetersiz/);
 });
