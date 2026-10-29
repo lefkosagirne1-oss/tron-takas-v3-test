@@ -438,3 +438,21 @@ test("refund refuses to sign if Nile block timestamp cannot be read",async()=>{
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/Nile blok saati okunamadı/);
 });
+
+test("manager refuses last-second final approval without a signature",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;
+ x.deal.finalDeadline="1010"; // Nile time is 1000 seconds
+ await x.get("final").onclick();
+ assert.match(x.get("status").textContent,/Son onay süresi doldu veya bitmek üzere/);
+});
+test("manager refuses final approval when Nile block time is unavailable",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;
+ x.deal.finalDeadline="2000";
+ x.tw.trx.getCurrentBlock=async()=>({block_header:{raw_data:{number:101}}});
+ await x.get("final").onclick();
+ assert.match(x.get("status").textContent,/Nile blok saati okunamadı/);
+});
