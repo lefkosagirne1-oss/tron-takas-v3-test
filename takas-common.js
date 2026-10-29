@@ -94,8 +94,12 @@ async function waitNextBlock(tw,txid){
   }
   throw Error("Güvenlik kaydı sonraki blokta henüz doğrulanmadı. Yatırım gönderilmedi; daha sonra tekrar deneyin.");
 }
+function ensureWallet(tw,expected){
+  if(expected&&tw.defaultAddress?.base58!==expected)throw Error("Cüzdan değişti. İşlem imzalanmadı; yeniden kontrol edin.");
+}
 async function send(method,opts={}){
   const tw=await wallet();
+  ensureWallet(tw,opts.expectedWallet);
   const hash=await method.send({feeLimit:150000000,callValue:opts.value||0,shouldPollResponse:false});
   if(!/^[0-9a-f]{64}$/i.test(String(hash)))throw Error("İşlem kimliği alınamadı.");
   status("Zincir onayı bekleniyor: "+hash);
