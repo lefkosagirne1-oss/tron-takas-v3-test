@@ -5,6 +5,10 @@ on:
       - 'contracts/TakasV5FixedFee.sol'
       - 'v5-test/fixed-fee.test.mjs'
       - 'v5-test/compile.mjs'
+      - 'v5-test/check-ui.mjs'
+      - 'v5-common.js'
+      - 'v5-nile-yonetici.html'
+      - 'v5-nile-katilimci.html'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/v5-fixed-fee.yml'
@@ -24,3 +28,5 @@ jobs:
         run: npm run build:v5
       - name: Test fixed-fee swaps
         run: npm run test:v5:fixed
+      - name: Check V5 browser syntax and contract schema
+        run: node v5-test/check-ui.mjs
