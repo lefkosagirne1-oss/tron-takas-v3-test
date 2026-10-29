@@ -20,7 +20,12 @@ contract TakasV8Invite {
         bytes32 inviteHashA; bytes32 inviteHashB;
     }
     mapping(uint256 => Deal) private deals;
+    // A public deposit reveals its invitation secret. A wallet-bound, prior-block
+    // commitment prevents an observer from copying that secret into a competing deposit.
+    mapping(uint256 => mapping(uint8 => mapping(address => bytes32))) private roleCommitments;
+    mapping(uint256 => mapping(uint8 => mapping(address => uint256))) private roleCommitBlocks;
     event Created(uint256 indexed id, uint8 feePayer, uint256 feeAmount);
+    event RoleCommitted(uint256 indexed id, uint8 role, address indexed wallet);
     event Deposited(uint256 indexed id, uint8 role, address wallet, address token, uint256 amount);
     event Completed(uint256 indexed id);
     event Refunded(uint256 indexed id, uint8 role);
@@ -40,6 +45,20 @@ contract TakasV8Invite {
         emit Created(id, payer, amount);
     }
 
+    /// @dev Commit SHA-256(secret || 20-byte wallet address) before revealing the secret.
+    ///      Commitments are per wallet, so an unrelated wallet cannot block a role.
+    function commitRole(uint256 id, uint8 role, bytes32 commitment) external {
+        Deal storage d = _deal(id);
+        require(!d.cancelled && !d.completed && d.finalDeadline == 0, "Closed");
+        require(msg.sender != manager && (role == 1 || role == 2), "Invalid participant");
+        require(commitment != bytes32(0), "Invalid commitment");
+        require(d.depositDeadline == 0 || block.timestamp < d.depositDeadline, "Deposit expired");
+        require(role == 1 ? !d.depositedA && msg.sender != d.partyB : !d.depositedB && msg.sender != d.partyA, "Role unavailable");
+        roleCommitments[id][role][msg.sender] = commitment;
+        roleCommitBlocks[id][role][msg.sender] = block.number;
+        emit RoleCommitted(id, role, msg.sender);
+    }
+
     /// @dev Each participant must present the unguessable secret sent in their own invitation.
     ///      First deposit binds that wallet and starts the 15-minute funding window.
     function deposit(uint256 id, uint8 role, address token, uint256 amount, bytes32 inviteSecret) external payable guard {
@@ -48,6 +67,8 @@ contract TakasV8Invite {
         require(!d.cancelled && !d.completed, "Closed");
         require(msg.sender != manager && (role == 1 || role == 2), "Invalid participant");
         require(sha256(abi.encodePacked(inviteSecret)) == (role == 1 ? d.inviteHashA : d.inviteHashB), "Invalid invitation");
+        require(roleCommitments[id][role][msg.sender] == sha256(abi.encodePacked(inviteSecret, msg.sender)), "Wallet not committed");
+        require(roleCommitBlocks[id][role][msg.sender] < block.number, "Wait one block");
         require(amount > 0 && (token == address(0) || token.code.length > 0), "Invalid asset");
         require(d.depositDeadline == 0 || block.timestamp < d.depositDeadline, "Deposit expired");
         require(d.finalDeadline == 0, "Both deposited");
