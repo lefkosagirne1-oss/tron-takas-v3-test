@@ -11,7 +11,7 @@ import solc from "solc";
 
 const require=createRequire(import.meta.url);
 const compiler=solc.setupMethods(require("../v6-test/.cache/tron-soljson.cjs"));
-assert.match(compiler.version(),/^0\\.8\\.31/);
+assert.ok(compiler.version().startsWith("0.8.31"),"Official compiler version mismatch");
 const source=readFileSync(new URL("../contracts/TakasV8Invite.sol",import.meta.url),"utf8");
 const reference=JSON.parse(readFileSync(new URL("../v6-test/dist/TakasV8Invite.json",import.meta.url),"utf8"));
 assert.equal(reference.compiler,"tron-solc 0.8.31");
