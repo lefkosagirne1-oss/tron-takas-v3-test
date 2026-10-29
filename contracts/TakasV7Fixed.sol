@@ -53,7 +53,7 @@ contract TakasV7Fixed {
             require(!d.depositedB && msg.sender != d.partyA, "B unavailable");
             if (d.depositedA) require(token != d.tokenA, "Assets must differ");
         }
-        if (d.feePayer == role) require(amount * d.feeBps / 10000 < amount, "Fee exceeds amount");
+        if (d.feePayer == role) require(d.feeAmount < amount, "Fee exceeds amount");
         _receive(token, amount);
         if (role == 1) {
             d.partyA = msg.sender; d.tokenA = token; d.amountA = amount; d.depositedA = true;
@@ -69,8 +69,8 @@ contract TakasV7Fixed {
         Deal storage d = _deal(id);
         require(!d.cancelled && !d.completed && d.depositedA && d.depositedB, "Not ready");
         require(d.finalDeadline != 0 && block.timestamp < d.finalDeadline, "Final window expired");
-        uint256 feeA = d.feePayer == 1 ? d.amountA * d.feeBps / 10000 : 0;
-        uint256 feeB = d.feePayer == 2 ? d.amountB * d.feeBps / 10000 : 0;
+        uint256 feeA = d.feePayer == 1 ? d.feeAmount : 0;
+        uint256 feeB = d.feePayer == 2 ? d.feeAmount : 0;
         d.completed = true;
         _send(d.tokenA, d.partyB, d.amountA - feeA);
         _send(d.tokenB, d.partyA, d.amountB - feeB);
