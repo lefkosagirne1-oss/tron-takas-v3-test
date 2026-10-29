@@ -34,6 +34,7 @@ function netPreview(amount,fee,payer,role,type,decimals=6){
 function readableAddress(raw,tw){
   if(raw==null)return "—";
   const s=String(raw);
+  if(s===ZERO||/^(?:0x)?0{40}$/i.test(s)||/^41(?:0){40}$/i.test(s))return "—";
   if(/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(s))return s;
   const hex=s.replace(/^0x/i,"");
   if(/^[0-9a-fA-F]{64}$/.test(hex)){
