@@ -17,6 +17,8 @@ assert.equal(netA.forA,20000000000000000000n);
 const netB=v5.net({feePayer:2n,feeAmount:2000000000000000000n,amountA:3000000n,amountB:20000000000000000000n});
 assert.equal(netB.forA,18000000000000000000n);
 assert.equal(netB.forB,3000000n);
+assert.equal(v5.feeValid({feePayer:1n,feeAmount:3000000n,amountA:3000000n,amountB:1n}),false);
+assert.equal(v5.feeValid({feePayer:1n,feeAmount:250000n,amountA:3000000n,amountB:1n}),true);
 
 const struct=source.match(/struct Swap\s*\{([\s\S]*?)\}/)?.[1];
 assert.ok(struct,"Swap struct missing");
