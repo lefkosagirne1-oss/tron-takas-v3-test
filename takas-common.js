@@ -47,7 +47,7 @@ function readableAddress(raw,tw){
 }
 async function wallet(){
   if(!window.tronWeb?.ready)throw Error("TronLink içinde Nile ağına bağlı cüzdan açın.");
-  if(!ready())throw Error("Geçerli V6 davet bağlantısı gerekli.");
+  if(!ready())throw Error("Geçerli güvenli V8 sözleşme veya davet bağlantısı gerekli.");
   const tw=window.tronWeb;
   const host=String(tw.fullNode?.host||tw.fullNode?.url||"").toLowerCase();
   if(!host.includes("nile"))throw Error("TronLink ağını Nile Testnet seçin; başka ağda işlem yapılmaz.");
