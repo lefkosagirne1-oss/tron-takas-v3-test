@@ -92,3 +92,13 @@ test("A can deposit TRX even if B already deposited TRX",async()=>{
  assert.equal(x.sent.length,1);
  assert.equal(x.sent[0].n,"100000000");
 });
+
+test("Nile deployment requires official TRON compiler artifact",()=>{
+ const setup=read("takas-kurulum.html");
+ const workflow=read(".github/workflows/v6-tests.yml");
+ const build=read("v6-test/build.mjs");
+ assert.match(setup,/a\.compiler!=="tron-solc 0\.8\.31"/);
+ assert.match(workflow,/tronprotocol\/solc-bin/);
+ assert.match(workflow,/a45a82d014fadd6d8ea9086ecec221be5bcb5b93/);
+ assert.match(build,/tronSolc\.compile/);
+});

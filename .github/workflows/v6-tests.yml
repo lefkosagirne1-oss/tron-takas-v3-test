@@ -33,6 +33,11 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs v6-test/secure-ui.test.mjs
+      - name: Download pinned official TRON Solidity compiler
+        run: |
+          mkdir -p v6-test/.cache
+          curl --fail --location --retry 3 --silent --show-error --output v6-test/.cache/tron-soljson.js 'https://raw.githubusercontent.com/tronprotocol/solc-bin/main/wasm/soljson-v0.8.31+commit.c2812a3d.js'
+          test "$(git hash-object v6-test/.cache/tron-soljson.js)" = "a45a82d014fadd6d8ea9086ecec221be5bcb5b93"
       - run: node v6-test/build.mjs
       - name: Publish compiled V6 artifact
         run: |
