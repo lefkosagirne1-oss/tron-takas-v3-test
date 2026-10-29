@@ -7,6 +7,7 @@ import ganache from "ganache";
 import {BrowserProvider,ContractFactory,parseEther,parseUnits} from "ethers";
 const inviteA="0x"+"11".repeat(32),inviteB="0x"+"22".repeat(32);
 const inviteHash=secret=>"0x"+createHash("sha256").update(Buffer.from(secret.slice(2),"hex")).digest("hex");
+const walletCommitHash=(secret,wallet)=>"0x"+createHash("sha256").update(Buffer.concat([Buffer.from(secret.slice(2),"hex"),Buffer.from(wallet.slice(2),"hex")])).digest("hex");
 const tokenSource=`pragma solidity ^0.8.20; contract Token {mapping(address=>uint256) public balanceOf; mapping(address=>mapping(address=>uint256)) public allowance; function mint(address a,uint256 n) external {balanceOf[a]+=n;} function approve(address s,uint256 n) external returns(bool){allowance[msg.sender][s]=n;return true;} function transfer(address to,uint256 n) external returns(bool){require(balanceOf[msg.sender]>=n);balanceOf[msg.sender]-=n;balanceOf[to]+=n;return true;} function transferFrom(address from,address to,uint256 n) external returns(bool){require(balanceOf[from]>=n&&allowance[from][msg.sender]>=n);allowance[from][msg.sender]-=n;balanceOf[from]-=n;balanceOf[to]+=n;return true;}}`;
 const input={language:"Solidity",sources:{"V8.sol":{content:readFileSync(new URL("../contracts/TakasV8Invite.sol",import.meta.url),"utf8")},"Token.sol":{content:tokenSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
 const out=JSON.parse(solc.compile(JSON.stringify(input)));
@@ -19,6 +20,8 @@ async function setup(payer=0,bps=0){
  const token=await new ContractFactory(...artifact("Token.sol","Token"),owner).deploy();await token.waitForDeployment();
  const send=async tx=>(await tx).wait();
  await send(swap.create(payer,bps,inviteHash(inviteA),inviteHash(inviteB)));
+ await send(swap.connect(a).commitRole(1,1,walletCommitHash(inviteA,await a.getAddress())));
+ await send(swap.connect(b).commitRole(1,2,walletCommitHash(inviteB,await b.getAddress())));
  await send(token.mint(await b.getAddress(),parseEther("20")));
  await send(token.connect(b).approve(await swap.getAddress(),parseEther("20")));
  const depositA=()=>send(swap.connect(a).deposit(1,1,"0x0000000000000000000000000000000000000000",parseUnits("3",6),inviteA,{value:parseUnits("3",6)}));
@@ -97,4 +100,27 @@ test("B-side TRX commission is deducted only after manager finalization",async()
  assert.equal(after-before,parseUnits("1.75",6));
  assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("30"));
  assert.equal((await x.swap.getDeal(1)).completed,true);
+});
+
+test("publicly revealed A secret cannot be front-run by an uncommitted wallet",async()=>{
+ const x=await setup();
+ const zero="0x0000000000000000000000000000000000000000";
+ const n=parseUnits("100",6);
+ await assert.rejects(x.send(x.swap.connect(x.other).deposit(1,1,zero,n,x.inviteA,{value:n})));
+ await x.depositA();
+ assert.equal((await x.swap.getDeal(1)).partyA,await x.a.getAddress());
+});
+test("copied wallet commitment cannot authorize another wallet",async()=>{
+ const x=await setup();
+ const zero="0x0000000000000000000000000000000000000000";
+ const copied=walletCommitHash(x.inviteA,await x.a.getAddress());
+ await x.send(x.swap.connect(x.other).commitRole(1,1,copied));
+ await assert.rejects(x.send(x.swap.connect(x.other).deposit(1,1,zero,parseUnits("100",6),x.inviteA,{value:parseUnits("100",6)})));
+ assert.equal((await x.swap.getDeal(1)).depositedA,false);
+});
+test("wallet commitment can be read for recovery without revealing invitation",async()=>{
+ const x=await setup();
+ const commitment=await x.swap.committedHash(1,1,await x.a.getAddress());
+ assert.equal(commitment,walletCommitHash(x.inviteA,await x.a.getAddress()));
+ assert.notEqual(commitment,inviteHash(x.inviteA));
 });
