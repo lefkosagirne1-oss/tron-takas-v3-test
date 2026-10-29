@@ -185,3 +185,15 @@ test("zero TRX address decodes as native asset for address-typed V8 ABI",async()
  await x.get("check").onclick();
  assert.match(x.get("details").textContent,/yatırdı: 100 TRX/);
 });
+
+
+test("Nile deployment Energy check uses official read-only deploy simulation before fallback",()=>{
+ const setup=read("takas-kurulum.html");
+ const estimate=setup.match(/\$\("estimate"\)\.onclick=async\(\)=>\{([\s\S]*?)\};\$\("deploy"\)/)?.[1];
+ assert.ok(estimate,"Energy estimate handler missing");
+ assert.match(estimate,/transactionBuilder\?\.deployConstantContract/);
+ assert.match(estimate,/ownerAddress:selectedWallet\(\),input:"0x"\+artifact\.bytecode,callValue:0,confirmed:false/);
+ assert.match(estimate,/e\.result\?\.result===true/);
+ assert.doesNotMatch(estimate,/\.sign\(|sendRawTransaction|broadcasttransaction/);
+ assert.match(estimate,/if\(!estimatedEnergy\)throw Error/);
+});
