@@ -25,7 +25,8 @@ async function make(page,secret=secretA,amount="100"){
   committedHash:()=>({call:async()=>commits.at(-1)?.hash||"0x"+"0".repeat(64)}),
   commitRole:(id,role,hash)=>({send:async()=>{commits.push({id,role,hash});return "a".repeat(64);}}),
   create:(payer,fee,ha,hb)=>({send:async()=>{deal.feePayer=payer;deal.feeAmount=fee;deal.inviteHashA=ha;deal.inviteHashB=hb;next++;return "a".repeat(64);}}),
-  deposit:(id,role,token,n,s)=>({send:async opts=>{sent.push({id,role,token,n,s,opts});deal.depositedA=true;deal.partyA="0x"+"2".repeat(40);return "a".repeat(64);}})
+  deposit:(id,role,token,n,s)=>({send:async opts=>{sent.push({id,role,token,n,s,opts});deal.depositedA=true;deal.partyA="0x"+"2".repeat(40);return "a".repeat(64);}}),
+  refund:id=>({send:async()=>{sent.push({refund:id});return "a".repeat(64);}})
  };
  const tokenContract={
   decimals:()=>({call:async()=>6}),
@@ -375,4 +376,18 @@ test("V8 runtime comparison permits only compiler-declared immutable manager off
  const corrupted=code.slice(0,outside)+(code[outside]==="f"?"0":"f")+code.slice(outside+1);
  const bad=vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(corrupted)+","+JSON.stringify(refs)+")",x.ctx);
  assert.equal(bad,false);
+});
+
+test("participant refund rejects wallet change before signing",async()=>{
+ const x=await make("participant");
+ x.deal.depositedA=true;
+ x.deal.partyA="0x"+"2".repeat(40);
+ x.deal.depositDeadline="100";
+ x.tw.trx.getCurrentBlock=async()=>{
+  x.tw.defaultAddress.base58="T"+"c".repeat(33);
+  return {block_header:{raw_data:{timestamp:1000000,number:101}}};
+ };
+ await x.get("refund").onclick();
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Cüzdan değişti/);
 });
