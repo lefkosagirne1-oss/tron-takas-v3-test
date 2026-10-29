@@ -64,7 +64,7 @@ contract TakasV5FixedFee {
 
     constructor() { manager = msg.sender; }
 
-    function createInvite(uint16 feeAmount, uint8 feePayer)
+    function createInvite(uint256 feeAmount, uint8 feePayer)
         external onlyManager returns (uint256 id)
     {
         require(feePayer <= 2, "Invalid fee payer");
