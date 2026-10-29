@@ -51,7 +51,8 @@ async function check(){
 }
 $("check").onclick=()=>run($("check"),async()=>{await check();status("Güncel durum zincirden okundu.");});
 $("deposit").onclick=()=>run($("deposit"),async()=>{
- const tw=await wallet(),{c,d}=await readDeal();
+ const tw=await wallet(),expectedWallet=tw.defaultAddress.base58,{c,d}=await readDeal();
+ ensureWallet(tw,expectedWallet);
  if(d.completed||d.cancelled||d.refundedA||d.refundedB)throw Error("Bu takas kapalı.");
  const deadline=Number(d.depositDeadline.toString());
  if(deadline){
@@ -84,7 +85,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   const allowance=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
   if(allowance<BigInt(amount)){
    status("Token izni için TronLink imzası bekleniyor...");
-   await send(t.approve(address,amount));
+   await send(t.approve(address,amount),{expectedWallet});
    const approved=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
    if(approved<BigInt(amount))throw Error("Token izni zincirde yeterli değil. Yatırım gönderilmedi.");
   }
@@ -93,11 +94,11 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const prior=await c.committedHash(id,role,tw.defaultAddress.base58).call();
  if(!sameHash(prior,commitment)){
   status("Davet güvenliği için cüzdan kayıt imzası bekleniyor. Ardından yatırım imzası istenecek.");
-  const commitTx=await send(c.commitRole(id,role,commitment));
+  const commitTx=await send(c.commitRole(id,role,commitment),{expectedWallet});
   status("Güvenlik kaydı onaylandı. Yatırım için sonraki Nile bloğu bekleniyor...");
   await waitNextBlock(tw,commitTx);
  }
- await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee});
+ await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee,expectedWallet});
  await check();
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
 });
