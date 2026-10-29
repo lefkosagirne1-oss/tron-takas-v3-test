@@ -1,0 +1,26 @@
+name: V5 Fixed Fee Tests
+on:
+  push:
+    paths:
+      - 'contracts/TakasV5FixedFee.sol'
+      - 'v5-test/fixed-fee.test.mjs'
+      - 'v5-test/compile.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/v5-fixed-fee.yml'
+  workflow_dispatch:
+jobs:
+  fixed-fee:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Compile V5
+        run: npm run build:v5
+      - name: Test fixed-fee swaps
+        run: npm run test:v5:fixed
