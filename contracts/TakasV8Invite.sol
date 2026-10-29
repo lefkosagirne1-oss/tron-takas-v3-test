@@ -121,6 +121,11 @@ contract TakasV8Invite {
         require(!d.depositedA && !d.depositedB && !d.completed, "Already used");
         d.cancelled = true;
     }
+    function committedHash(uint256 id, uint8 role, address who) external view returns (bytes32) {
+        _deal(id);
+        require(role == 1 || role == 2, "Invalid participant");
+        return roleCommitments[id][role][who];
+    }
     function getDeal(uint256 id) external view returns (Deal memory) { return _deal(id); }
     function _deal(uint256 id) private view returns (Deal storage d) {
         require(id > 0 && id < nextId, "Unknown deal"); d = deals[id];
