@@ -77,8 +77,14 @@ contract TakasV8Invite {
         } else {
             require(!d.depositedB && msg.sender != d.partyA, "B unavailable");
         }
-        if (d.feePayer == role) { require(d.feeAmount < amount, "Fee exceeds amount"); if (d.feeAmount > 0) require(token == address(0), "Fee payer must deposit TRX"); }
-        _receive(token, amount);
+        // Native-TRX payer: fee is deducted from the TRX amount on success.
+        // TRC20 payer: full token amount swaps; an additional TRX fee is held in escrow.
+        uint256 extraTrxFee = 0;
+        if (d.feePayer == role) {
+            if (token == address(0)) require(d.feeAmount < amount, "Fee exceeds amount");
+            else extraTrxFee = d.feeAmount;
+        }
+        _receive(token, amount, extraTrxFee);
         if (role == 1) {
             d.partyA = msg.sender; d.tokenA = token; d.amountA = amount; d.depositedA = true;
         } else {
@@ -93,13 +99,12 @@ contract TakasV8Invite {
         Deal storage d = _deal(id);
         require(!d.cancelled && !d.completed && d.depositedA && d.depositedB, "Not ready");
         require(d.finalDeadline != 0 && block.timestamp < d.finalDeadline, "Final window expired");
-        uint256 feeA = d.feePayer == 1 ? d.feeAmount : 0;
-        uint256 feeB = d.feePayer == 2 ? d.feeAmount : 0;
+        uint256 feeA = d.feePayer == 1 && d.tokenA == address(0) ? d.feeAmount : 0;
+        uint256 feeB = d.feePayer == 2 && d.tokenB == address(0) ? d.feeAmount : 0;
         d.completed = true;
         _send(d.tokenA, d.partyB, d.amountA - feeA);
         _send(d.tokenB, d.partyA, d.amountB - feeB);
-        if (feeA > 0) _send(d.tokenA, manager, feeA);
-        if (feeB > 0) _send(d.tokenB, manager, feeB);
+        if (d.feePayer != 0 && d.feeAmount > 0) _send(address(0), manager, d.feeAmount);
         emit Completed(id);
     }
 
@@ -109,10 +114,14 @@ contract TakasV8Invite {
         require(block.timestamp >= (d.finalDeadline != 0 ? d.finalDeadline : d.depositDeadline), "Not expired");
         if (msg.sender == d.partyA) {
             require(d.depositedA && !d.refundedA, "No A refund");
-            d.refundedA = true; _send(d.tokenA, msg.sender, d.amountA); emit Refunded(id, 1);
+            d.refundedA = true; _send(d.tokenA, msg.sender, d.amountA);
+            if (d.feePayer == 1 && d.tokenA != address(0)) _send(address(0), msg.sender, d.feeAmount);
+            emit Refunded(id, 1);
         } else if (msg.sender == d.partyB) {
             require(d.depositedB && !d.refundedB, "No B refund");
-            d.refundedB = true; _send(d.tokenB, msg.sender, d.amountB); emit Refunded(id, 2);
+            d.refundedB = true; _send(d.tokenB, msg.sender, d.amountB);
+            if (d.feePayer == 2 && d.tokenB != address(0)) _send(address(0), msg.sender, d.feeAmount);
+            emit Refunded(id, 2);
         } else revert("Not a depositor");
     }
 
@@ -130,10 +139,10 @@ contract TakasV8Invite {
     function _deal(uint256 id) private view returns (Deal storage d) {
         require(id > 0 && id < nextId, "Unknown deal"); d = deals[id];
     }
-    function _receive(address token, uint256 amount) private {
+    function _receive(address token, uint256 amount, uint256 extraTrxFee) private {
         if (token == address(0)) require(msg.value == amount, "Wrong TRX amount");
         else {
-            require(msg.value == 0, "Unexpected TRX");
+            require(msg.value == extraTrxFee, "Wrong TRX fee");
             uint256 beforeBal = _balance(token, address(this));
             _call(token, abi.encodeWithSelector(0x23b872dd, msg.sender, address(this), amount));
             require(_balance(token, address(this)) - beforeBal == amount, "Received amount mismatch");
