@@ -27,7 +27,12 @@ async function make(page,secret=secretA,amount="100"){
   create:(payer,fee,ha,hb)=>({send:async()=>{deal.feePayer=payer;deal.feeAmount=fee;deal.inviteHashA=ha;deal.inviteHashB=hb;next++;return "a".repeat(64);}}),
   deposit:(id,role,token,n,s)=>({send:async opts=>{sent.push({id,role,token,n,s,opts});deal.depositedA=true;deal.partyA="0x"+"2".repeat(40);return "a".repeat(64);}})
  };
- const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async()=>c,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"}}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000}}})}};
+ const tokenContract={
+  decimals:()=>({call:async()=>6}),
+  allowance:()=>({call:async()=>"1000000000"}),
+  approve:()=>({send:async()=>"a".repeat(64)})
+ };
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"}}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000}}})}};
  const store=new Map();
  const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(secret),href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
@@ -227,4 +232,26 @@ test("participant reuses a confirmed commitment without another signature",async
  await x.get("deposit").onclick();
  assert.equal(x.commits.length,1);
  assert.equal(x.sent.length,1);
+});
+
+test("token-paying participant deposits token and separate refundable TRX fee",async()=>{
+ const x=await make("participant");
+ x.get("asset").value="OTHER";
+ x.get("token").value="T"+"c".repeat(33);
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.sent.length,1);
+ assert.equal(x.sent[0].n,"100000000");
+ assert.equal(x.sent[0].opts.callValue,"50000000");
+ assert.equal(x.sent[0].token,x.get("token").value);
+});
+test("manager displays full token amount rather than subtracting TRX fee from token",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ x.deal.tokenA="0x"+"2".repeat(40);
+ await x.get("check").onclick();
+ assert.match(x.get("details").textContent,/B'ye gidecek: 100 token/);
+ assert.match(x.get("details").textContent,/Komisyon: 50 TRX/);
 });
