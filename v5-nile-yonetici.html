@@ -53,7 +53,7 @@ async function refresh(){
  const d=await V5.readSwap(id);current=d;linkInputs(id);
  const a=d.proposedA?await V5.asset(d.tokenA):null,b=d.proposedB?await V5.asset(d.tokenB):null;
  const feeAsset=d.feePayer!==0n?await V5.asset(d.feeAsset):null;
- const n=d.proposedA&&d.proposedB&&V5.feeMatches(d)?V5.net(d):null;
+ const n=d.proposedA&&d.proposedB&&V5.feeMatches(d)&&V5.feeValid(d)?V5.net(d):null;
  const payer=d.feePayer===0n?"Yok":d.feePayer===1n?"A":"B";
  const lines=["Takas #"+id,"A: "+(d.partyA===V5.ZERO?"Henüz yok":d.partyA),"B: "+(d.partyB===V5.ZERO?"Henüz yok":d.partyB),"Cüzdanlar kilitli: "+(d.walletsConfirmed?"Evet":"Hayır"),
  "A teklifi: "+(a?V5.format(d.amountA,a.dp)+" "+a.symbol:"Bekleniyor"),"B teklifi: "+(b?V5.format(d.amountB,b.dp)+" "+b.symbol:"Bekleniyor"),
@@ -63,16 +63,17 @@ async function refresh(){
  "İade A/B: "+(d.refundedA?"Evet":"Hayır")+"/"+(d.refundedB?"Evet":"Hayır"),
  "Tamamlandı: "+(d.completed?"Evet":"Hayır")+" · İptal: "+(d.cancelled?"Evet":"Hayır")];
  if(d.proposedA&&d.proposedB&&!V5.feeMatches(d))lines.push("UYARI: Komisyon ödeyen taraf yanlış varlık teklif etti.");
+ if(d.proposedA&&d.proposedB&&!V5.feeValid(d))lines.push("UYARI: Sabit komisyon yatırılan miktara eşit veya daha büyük. Onaylanamaz.");
  if(n&&a&&b)lines.push("A'nın alacağı: "+V5.format(n.forA,b.dp)+" "+b.symbol+"\nB'nin alacağı: "+V5.format(n.forB,a.dp)+" "+a.symbol);
  if(d.settlementDeadline)lines.push("Son onay son zamanı: "+new Date(Number(d.settlementDeadline)*1000).toLocaleString("tr-TR"));
  $("swapStatus").textContent=lines.join("\n");
  $("confirm").hidden=d.cancelled||d.walletsConfirmed||d.partyA===V5.ZERO||d.partyB===V5.ZERO;
  $("reject").hidden=d.cancelled||d.walletsConfirmed||(d.partyA===V5.ZERO&&d.partyB===V5.ZERO);
  $("cancel").hidden=d.cancelled||d.completed||d.depositedA||d.depositedB;
- $("finalize").hidden=d.cancelled||d.completed||!d.depositedA||!d.depositedB||!d.acceptedA||!d.acceptedB||!V5.feeMatches(d)||!d.settlementDeadline||BigInt(Math.floor(Date.now()/1000))>=d.settlementDeadline;
+ $("finalize").hidden=d.cancelled||d.completed||!d.depositedA||!d.depositedB||!d.acceptedA||!d.acceptedB||!V5.feeMatches(d)||!V5.feeValid(d)||!d.settlementDeadline||BigInt(Math.floor(Date.now()/1000))>=d.settlementDeadline;
 }
 $("refresh").onclick=()=>run(async()=>{await refresh();note("Durum zincirden okundu.")});
-async function action(name,message){if(!current)throw Error("Önce takası oku.");if(!confirm(message))return;await V5.send(V5.contract()[name]($("id").value.trim()));await refresh();note("İşlem zincirde doğrulandı: "+name)}
+async function action(name,message){if(!current)throw Error("Önce takası oku.");if(!window.confirm(message))return;await V5.send(V5.contract()[name]($("id").value.trim()));await refresh();note("İşlem zincirde doğrulandı: "+name)}
 $("confirm").onclick=()=>run(()=>action("confirmParticipants","A ve B cüzdan adreslerini ayrı kanaldan doğruladın mı? Kilitlendikten sonra değiştirilemez."));
 $("reject").onclick=()=>run(()=>action("rejectRequests","Her iki cüzdan talebini sıfırlamak istiyor musun?"));
 $("finalize").onclick=()=>run(()=>action("finalize","Son onay takası GERİ DÖNÜŞSÜZ tamamlar. Tüm miktarları ve adresleri kontrol ettin mi?"));
