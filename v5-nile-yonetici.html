@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1424">
+<title>Güvenli Takas · V5 Yönetici</title>
+<style>
+:root{color-scheme:dark;background:#091322;color:#edf4ff;font:16px/1.55 system-ui,-apple-system,sans-serif}*{box-sizing:border-box}body{max-width:680px;margin:auto;padding:18px}h1{font-size:29px;letter-spacing:-.04em;margin:16px 0 0}h2{font-size:19px;margin:0 0 10px}p{color:#bed0e5}section{background:#14243a;border:1px solid #34516f;border-radius:17px;padding:19px;margin:16px 0}label{display:block;font-size:14px;font-weight:650;margin:11px 0 4px}input,select,button,textarea{width:100%;font:inherit;border-radius:11px;padding:12px;min-height:49px}input,select,textarea{background:#0b1a2c;color:white;border:1px solid #506b8a}textarea{min-height:85px;resize:vertical;overflow-wrap:anywhere}button{border:0;background:#497ce6;color:white;font-weight:750;margin:8px 0;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.green{background:#16836a}.secondary{background:#2c496a}.warn{border:1px solid #977343;background:#30271c;color:#f4d6a3;padding:13px;border-radius:12px;font-size:14px}.small{font-size:13px;color:#b6c9e1}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a192a;border:1px solid #2e4967;border-radius:12px;padding:14px;line-height:1.6;font-size:13px}a{color:#a8ceff}[hidden]{display:none!important}
+</style></head><body>
+<h1>Güvenli Takas</h1><p>V5 · Yönetici · TRON Nile Testnet</p>
+<div class="warn">V5 ayrı bir test sürümüdür; mevcut V4 değişmedi. V5 sözleşmesi Nile'a dağıtılmadan bu panel işlem yapamaz. Yalnız test varlıkları kullanın. Sözleşme bağımsız denetimden geçmedi.</div>
+<section><h2>1. Yönetici cüzdanı</h2>
+<button id="connect">TronLink cüzdanımı bağla</button>
+<label for="contract">V5 Nile sözleşme adresi</label><input id="contract" placeholder="T ile başlayan V5 adresi" autocomplete="off" spellcheck="false">
+<button id="verify" class="secondary">V5 sözleşmesini doğrula</button>
+<pre id="connection">Bağlantı bekleniyor.</pre></section>
+<section id="createSection" hidden><h2>2. Yeni takas oluştur</h2>
+<label for="payer">Hizmet bedelini kim ödeyecek?</label><select id="payer"><option value="0">Komisyon yok</option><option value="1">Taraf A</option><option value="2">Taraf B</option></select>
+<div id="feeFields" hidden><label for="feeAssetType">Komisyon hangi varlıktan alınacak?</label><select id="feeAssetType"><option value="trx">TRX</option><option value="token">TRC20 token (USDT, SUN veya özel)</option></select>
+<div id="feeTokenField" hidden><label for="feeToken">Komisyon varlığının token sözleşme adresi</label><input id="feeToken" placeholder="T..." autocomplete="off"></div>
+<label for="feeAmount">Sabit komisyon tutarı (yüzde değil)</label><input id="feeAmount" inputmode="decimal" placeholder="Örn. 2.5" value="0.25">
+<p class="small">Komisyon seçilen varlığın ondalık hanesine çevrilir. Ücret yalnızca başarılı takasta kesilir. Komisyon ödeyen taraf bu varlığı teklif etmelidir.</p></div>
+<button id="create" class="green">Takas bağlantılarını oluştur</button>
+<p id="createStatus" class="small"></p></section>
+<section id="linksSection" hidden><h2>3. Davet bağlantıları</h2><p class="small">Bağlantılar kimlik doğrulaması değildir. Tarafların cüzdan adreslerini ayrıca kontrol ederek kilitle.</p>
+<label for="linkA">Taraf A bağlantısı</label><textarea id="linkA" readonly></textarea><button class="secondary" data-copy="linkA">A bağlantısını kopyala</button>
+<label for="linkB">Taraf B bağlantısı</label><textarea id="linkB" readonly></textarea><button class="secondary" data-copy="linkB">B bağlantısını kopyala</button>
+<label for="linkManager">Yönetici takip bağlantısı</label><textarea id="linkManager" readonly></textarea><button class="secondary" data-copy="linkManager">Takip bağlantısını kopyala</button></section>
+<section id="trackSection" hidden><h2>4. Takip ve son onay</h2>
+<label for="id">Takas numarası</label><input id="id" type="number" min="1" step="1" placeholder="1">
+<button id="refresh" class="secondary">Takas durumunu yenile</button>
+<pre id="swapStatus">Henüz takas seçilmedi.</pre>
+<button id="confirm" hidden>Katılımcı cüzdanlarını doğrula ve kilitle</button>
+<button id="reject" class="secondary" hidden>Yanlış cüzdan taleplerini sıfırla</button>
+<button id="finalize" class="green" hidden>Son onay · Takası tamamla</button>
+<button id="cancel" class="secondary" hidden>Kullanılmayan daveti iptal et</button>
+<p class="small">Son onay yalnızca iki yatırım zincirde doğrulanmışsa ve 5 dakikalık süre dolmamışsa kullanılabilir. İşlemler TronLink imzası ve test TRX ağ ücreti gerektirir.</p></section>
+<pre id="feedback" role="status" aria-live="polite">Hazır.</pre>
+<script src="./v5-common.js"></script><script>
+"use strict";
+const $=id=>document.getElementById(id);
+let verified=false,current=null,busy=false;
+const params=new URLSearchParams(location.search);
+$("contract").value=params.get("contract")||localStorage.getItem("takas-v5-contract")||"";
+$("id").value=params.get("id")||"";
+function note(s){$("feedback").textContent=s}
+function updateFeeFields(){$("feeFields").hidden=$("payer").value==="0";$("feeTokenField").hidden=$("feeAssetType").value!=="token"}
+$("payer").addEventListener("change",updateFeeFields);$("feeAssetType").addEventListener("change",updateFeeFields);
+async function run(task){if(busy)return;busy=true;document.querySelectorAll("button").forEach(x=>x.disabled=true);try{await task()}catch(e){note("Hata: "+(e?.message||e))}finally{busy=false;document.querySelectorAll("button").forEach(x=>x.disabled=false)}}
+$("connect").onclick=()=>run(async()=>{$("connection").textContent="Bağlanıyor...";const w=await V5.connect();$("connection").textContent="Nile cüzdanı: "+w+"\nŞimdi V5 sözleşmesini doğrula.";note("Cüzdan bağlandı. İşlem yapılmadı.")});
+$("verify").onclick=()=>run(async()=>{const info=await V5.verify($("contract").value.trim());if(!V5.same(info.manager,V5.wallet()))throw Error("Bu cüzdan sözleşmenin yöneticisi değil.");verified=true;localStorage.setItem("takas-v5-contract",V5.contractAddress());$("connection").textContent="V5 doğrulandı\nYönetici: "+info.manager+"\nSözleşme: "+V5.contractAddress()+"\nSonraki davet: "+info.nextId;$("createSection").hidden=false;$("trackSection").hidden=false;note("Sözleşme okundu. Henüz zincir işlemi yapılmadı.");if($("id").value)await refresh()});
+function linkInputs(id){const l=V5.links(id);$("linksSection").hidden=false;$("linkA").value=l.a;$("linkB").value=l.b;$("linkManager").value=l.manager}
+$("create").onclick=()=>run(async()=>{if(!verified)throw Error("Önce V5 doğrula.");const payer=Number($("payer").value);let fee=0n,feeAsset=V5.ZERO;if(payer){const info=await V5.asset($("feeAssetType").value==="trx"?V5.ZERO:$("feeToken").value.trim());feeAsset=info.address;fee=V5.units($("feeAmount").value,info.dp,false);note("Komisyon: "+V5.format(fee,info.dp)+" "+info.symbol+". TronLink imzası bekleniyor.");}const c=V5.contract();const before=V5.asBig(await c.nextId().call());await V5.send(c.createInvite(fee.toString(),payer,feeAsset));const after=V5.asBig(await c.nextId().call());if(after!==before+1n)throw Error("Yeni takas numarası belirsiz. Zincir geçmişini kontrol et.");$("id").value=before.toString();linkInputs(before);$("createStatus").textContent="Takas #"+before+" oluşturuldu. A/B bağlantılarını gönder.";await refresh();note("Takas #"+before+" zincirde oluşturuldu.")});
+async function refresh(){
+ if(!verified)throw Error("Önce V5 doğrula.");const id=$("id").value.trim();if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası gir.");
+ const d=await V5.readSwap(id);current=d;linkInputs(id);
+ const a=d.proposedA?await V5.asset(d.tokenA):null,b=d.proposedB?await V5.asset(d.tokenB):null;
+ const feeAsset=d.feePayer!==0n?await V5.asset(d.feeAsset):null;
+ const n=d.proposedA&&d.proposedB&&V5.feeMatches(d)?V5.net(d):null;
+ const payer=d.feePayer===0n?"Yok":d.feePayer===1n?"A":"B";
+ const lines=["Takas #"+id,"A: "+(d.partyA===V5.ZERO?"Henüz yok":d.partyA),"B: "+(d.partyB===V5.ZERO?"Henüz yok":d.partyB),"Cüzdanlar kilitli: "+(d.walletsConfirmed?"Evet":"Hayır"),
+ "A teklifi: "+(a?V5.format(d.amountA,a.dp)+" "+a.symbol:"Bekleniyor"),"B teklifi: "+(b?V5.format(d.amountB,b.dp)+" "+b.symbol:"Bekleniyor"),
+ "Sabit ücret: "+(feeAsset?V5.format(d.feeAmount,feeAsset.dp)+" "+feeAsset.symbol+" (ödeyen "+payer+")":"Yok"),
+ "A onayı: "+(d.acceptedA?"Evet":"Hayır")+" · B onayı: "+(d.acceptedB?"Evet":"Hayır"),
+ "A yatırdı: "+(d.depositedA?"Evet":"Hayır")+" · B yatırdı: "+(d.depositedB?"Evet":"Hayır"),
+ "İade A/B: "+(d.refundedA?"Evet":"Hayır")+"/"+(d.refundedB?"Evet":"Hayır"),
+ "Tamamlandı: "+(d.completed?"Evet":"Hayır")+" · İptal: "+(d.cancelled?"Evet":"Hayır")];
+ if(d.proposedA&&d.proposedB&&!V5.feeMatches(d))lines.push("UYARI: Komisyon ödeyen taraf yanlış varlık teklif etti.");
+ if(n&&a&&b)lines.push("A'nın alacağı: "+V5.format(n.forA,b.dp)+" "+b.symbol+"\nB'nin alacağı: "+V5.format(n.forB,a.dp)+" "+a.symbol);
+ if(d.settlementDeadline)lines.push("Son onay son zamanı: "+new Date(Number(d.settlementDeadline)*1000).toLocaleString("tr-TR"));
+ $("swapStatus").textContent=lines.join("\n");
+ $("confirm").hidden=d.cancelled||d.walletsConfirmed||d.partyA===V5.ZERO||d.partyB===V5.ZERO;
+ $("reject").hidden=d.cancelled||d.walletsConfirmed||(d.partyA===V5.ZERO&&d.partyB===V5.ZERO);
+ $("cancel").hidden=d.cancelled||d.completed||d.depositedA||d.depositedB;
+ $("finalize").hidden=d.cancelled||d.completed||!d.depositedA||!d.depositedB||!d.acceptedA||!d.acceptedB||!V5.feeMatches(d)||!d.settlementDeadline||BigInt(Math.floor(Date.now()/1000))>=d.settlementDeadline;
+}
+$("refresh").onclick=()=>run(async()=>{await refresh();note("Durum zincirden okundu.")});
+async function action(name,message){if(!current)throw Error("Önce takası oku.");if(!confirm(message))return;await V5.send(V5.contract()[name]($("id").value.trim()));await refresh();note("İşlem zincirde doğrulandı: "+name)}
+$("confirm").onclick=()=>run(()=>action("confirmParticipants","A ve B cüzdan adreslerini ayrı kanaldan doğruladın mı? Kilitlendikten sonra değiştirilemez."));
+$("reject").onclick=()=>run(()=>action("rejectRequests","Her iki cüzdan talebini sıfırlamak istiyor musun?"));
+$("finalize").onclick=()=>run(()=>action("finalize","Son onay takası GERİ DÖNÜŞSÜZ tamamlar. Tüm miktarları ve adresleri kontrol ettin mi?"));
+$("cancel").onclick=()=>run(()=>action("cancelUnused","Henüz yatırılmamış daveti iptal etmek istiyor musun?"));
+document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{const el=$(b.dataset.copy);try{await navigator.clipboard.writeText(el.value);note("Bağlantı kopyalandı.")}catch{el.focus();el.select();note("Bağlantıyı seçtim. Kopyala komutunu kullan.")}});
+</script></body></html>
