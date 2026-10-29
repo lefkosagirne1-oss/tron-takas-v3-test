@@ -1,0 +1,15 @@
+import fs from "node:fs";
+import solc from "solc";
+const source=fs.readFileSync("contracts/TakasV6Simple.sol","utf8");
+const input={language:"Solidity",sources:{"TakasV6Simple.sol":{content:source}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
+const out=JSON.parse(solc.compile(JSON.stringify(input)));
+const errors=(out.errors||[]).filter(x=>x.severity==="error");
+if(errors.length)throw Error(errors.map(x=>x.formattedMessage).join("\n"));
+const c=out.contracts["TakasV6Simple.sol"].TakasV6Simple;
+if(!c?.evm?.bytecode?.object)throw Error("Missing bytecode");
+const create=c.abi.find(x=>x.name==="create"&&x.type==="function");
+const deposit=c.abi.find(x=>x.name==="deposit"&&x.type==="function");
+if(create.inputs.length!==2||deposit.inputs.length!==4)throw Error("ABI mismatch");
+fs.mkdirSync("v6-test/dist",{recursive:true});
+fs.writeFileSync("v6-test/dist/TakasV6Simple.json",JSON.stringify({contractName:"TakasV6Simple",abi:c.abi,bytecode:c.evm.bytecode.object,network:"Nile",compiler:"solc 0.8.31"},null,2));
+console.log("V6 compilation OK; bytecode bytes:",c.evm.bytecode.object.length/2);
