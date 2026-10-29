@@ -160,7 +160,7 @@ test("deployment cannot be signed with zero or invalid Energy estimate",()=>{
 
 
 test("V8 frontend deal ABI matches the official TRON artifact address types",()=>{
- const match=common.match(/const ABI=(\[[\s\S]*?\]);const FRHN=/);
+ const match=common.match(/const ABI=(\[[\s\S]*?\]);\s*const \$=/);
  assert.ok(match,"Frontend ABI not found");
  const ui=JSON.parse(match[1]);
  const compiled=JSON.parse(read("v6-test/dist/TakasV8Invite.json")).abi;
