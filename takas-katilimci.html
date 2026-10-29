@@ -32,6 +32,25 @@ function updatePreview(){
 }
 $("asset").onchange=()=>{$("tokenWrap").hidden=$("asset").value!=="OTHER";updatePreview();};
 $("amount").oninput=updatePreview;
+// Re-read the chain before each costly signature: a prior wallet approval or
+// commitment can take long enough for the other participant to close the deal.
+async function ensureDepositStillOpen(c,tw,expectedWallet,marginSeconds){
+ ensureWallet(tw,expectedWallet);
+ const latest=await c.getDeal(id).call();
+ if(latest.completed||latest.cancelled||latest.refundedA||latest.refundedB)throw Error("Bu takas kapalı. Yeni işlem imzalanmadı.");
+ if(Number(latest.finalDeadline.toString())>0)throw Error("İki taraf da yatırmış; yeni yatırım imzalanmadı.");
+ if(role===1&&latest.depositedA||role===2&&latest.depositedB)throw Error("Bu taraf zaten yatırım yaptı. Tekrar imzalanmadı.");
+ if(readableAddress(role===1?latest.partyB:latest.partyA,tw)===expectedWallet)throw Error("A ve B farklı cüzdanlar olmalıdır.");
+ const deadline=Number(latest.depositDeadline.toString());
+ if(deadline){
+  const block=await tw.trx.getCurrentBlock();
+  const now=Number(block?.block_header?.raw_data?.timestamp)/1000;
+  if(!Number.isFinite(now)||now<=0)throw Error("Nile blok saati okunamadı; yatırım imzalanmadı.");
+  if(now+marginSeconds>=deadline)throw Error("Yatırım süresinin bitmesine çok az kaldı. Masraflı işlem başlatılmadı; süre dolunca iade yapılabilir.");
+ }
+ ensureWallet(tw,expectedWallet);
+ return latest;
+}
 async function readDeal(){
  validInvite();
  const c=await contract();
@@ -78,6 +97,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const requiredTrx=BigInt(type==="TRX"?amount:extraFee);
  const availableTrx=BigInt(await tw.trx.getBalance(tw.defaultAddress.base58));
  if(availableTrx<requiredTrx)throw Error("TRX bakiyesi yetersiz. Gerekli: "+displayUnits(requiredTrx)+" TRX, mevcut: "+displayUnits(availableTrx)+" TRX. Hiçbir işlem imzalanmadı.");
+ await ensureDepositStillOpen(c,tw,expectedWallet,60);
  if(type!=="TRX"){
   const t=await tw.contract(TOKEN_ABI,token);
   const tokenBalance=BigInt((await t.balanceOf(tw.defaultAddress.base58).call()).toString());
@@ -90,6 +110,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
    if(approved<BigInt(amount))throw Error("Token izni zincirde yeterli değil. Yatırım gönderilmedi.");
   }
  }
+ await ensureDepositStillOpen(c,tw,expectedWallet,40);
  const commitment=await hashWalletCommitment(secret,tw);
  const prior=await c.committedHash(id,role,tw.defaultAddress.base58).call();
  if(!sameHash(prior,commitment)){
@@ -98,6 +119,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   status("Güvenlik kaydı onaylandı. Yatırım için sonraki Nile bloğu bekleniyor...");
   await waitNextBlock(tw,commitTx);
  }
+ await ensureDepositStillOpen(c,tw,expectedWallet,15);
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee,expectedWallet});
  await check();
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
@@ -111,8 +133,9 @@ $("refund").onclick=()=>run($("refund"),async()=>{
  if(refunded)throw Error("Yatırım zaten iade edilmiş.");
  const deadline=Number((d.finalDeadline&&Number(d.finalDeadline.toString())>0?d.finalDeadline:d.depositDeadline).toString());
  if(!deadline)throw Error("Henüz yatırım yapılmamış.");
- const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
- if(now&&now<deadline)throw Error("İade süresi henüz gelmedi.");
+ const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp)/1000;
+ if(!Number.isFinite(now)||now<=0)throw Error("Nile blok saati okunamadı; iade imzalanmadı.");
+ if(now<deadline)throw Error("İade süresi henüz gelmedi.");
  await send(c.refund(id),{expectedWallet});await check();status("İade işlemi zincirde doğrulandı.");
 });
 if(fixedReady()&&/^[1-9]\d*$/.test(id||"")&&[1,2].includes(role)&&validSecret(secret)){
