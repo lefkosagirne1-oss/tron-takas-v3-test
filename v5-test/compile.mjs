@@ -19,5 +19,7 @@ for(const name of required){
 }
 const getter=c.abi.find(x=>x.type==="function"&&x.name==="getSwap");
 if(!getter||getter.inputs?.[0]?.type!=="uint256"||getter.outputs?.[0]?.type!=="tuple")throw Error("getSwap ABI mismatch");
+fs.mkdirSync("v5-test/dist",{recursive:true});
+fs.writeFileSync("v5-test/dist/TakasV5FixedFee.json",JSON.stringify({contractName:"TakasV5FixedFee",abi:c.abi,bytecode:"0x"+c.evm.bytecode.object,compiler:"solc 0.8.31"},null,2));
 console.log("V5 UI ABI verified against compiled Solidity:",required.length,"functions");
 console.log("V5 fixed-fee compilation OK:",c.evm.bytecode.object.length/2,"bytes");
