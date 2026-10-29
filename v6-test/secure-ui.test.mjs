@@ -197,3 +197,12 @@ test("Nile deployment Energy check uses official read-only deploy simulation bef
  assert.doesNotMatch(estimate,/\.sign\(|sendRawTransaction|broadcasttransaction/);
  assert.match(estimate,/if\(!estimatedEnergy\)throw Error/);
 });
+
+
+test("recovered deployment is tied to official bytecode and selected manager",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/wallet\/gettransactionbyid/);
+ assert.match(setup,/deployedCode!==expectedCode/);
+ assert.match(setup,/deployedOwner!==w\.address\.toHex\(selectedWallet\(\)\)\.toLowerCase\(\)/);
+ assert.match(setup,/deployment\?\.type!=="CreateSmartContract"/);
+});
