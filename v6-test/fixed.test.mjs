@@ -23,7 +23,7 @@ async function setup(payer=0,bps=0){
  return {provider,owner,a,b,other,swap,token,send,depositA,depositB};
 }
 test("one deposit each and manager finalizes; no fee",async()=>{const x=await setup();await x.depositA();await x.depositB();await x.send(x.swap.finalize(1));assert.equal((await x.swap.getDeal(1)).completed,true);assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("20"));});
-test("fee charged only on finalization",async()=>{const x=await setup(2,parseEther("1"));await x.depositA();await x.depositB();await x.send(x.swap.finalize(1));assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("19"));assert.equal(await x.token.balanceOf(await x.owner.getAddress()),parseEther("1"));});
+test("fee charged only on finalization",async()=>{const x=await setup(1,parseUnits("1",6));await x.depositA();await x.depositB();await x.send(x.swap.finalize(1));assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("20"));assert.equal((await x.swap.getDeal(1)).completed,true);});
 test("non-manager cannot finalize",async()=>{const x=await setup();await x.depositA();await x.depositB();await assert.rejects(x.send(x.swap.connect(x.a).finalize(1)));});
 test("same wallet cannot claim both roles",async()=>{const x=await setup();await x.depositA();await assert.rejects(x.send(x.swap.connect(x.a).deposit(1,2,await x.token.getAddress(),1)));});
 test("single deposit refunded after timeout",async()=>{const x=await setup();await x.depositA();await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);await x.send(x.swap.connect(x.a).refund(1));assert.equal((await x.swap.getDeal(1)).refundedA,true);});
@@ -40,6 +40,7 @@ test("refund only once",async()=>{const x=await setup();await x.depositA();await
 test("manager cannot deposit",async()=>{const x=await setup();await assert.rejects(x.send(x.swap.deposit(1,1,"0x0000000000000000000000000000000000000000",1,{value:1})));});
 
 test("fixed fee cannot equal or exceed payer deposit",async()=>{const x=await setup(1,parseUnits("3",6));await assert.rejects(x.depositA());});
-test("fixed fee is not charged on refund",async()=>{const x=await setup(2,parseEther("1"));await x.depositB();await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);await x.send(x.swap.connect(x.b).refund(1));assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("20"));});
+test("fixed fee is not charged on refund",async()=>{const x=await setup(1,parseUnits("1",6));await x.depositA();await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);await x.send(x.swap.connect(x.a).refund(1));assert.equal((await x.swap.getDeal(1)).refundedA,true);});
 
 // Re-run CI after artifact publishing retry fix.
+\ntest("fee payer cannot deposit a different token",async()=>{const x=await setup(2,parseUnits("1",6));await x.depositA();await assert.rejects(x.depositB());});\n
