@@ -98,7 +98,7 @@ test("landing page routes only to secure V8 setup and saved manager",()=>{
 test("deployment recovery persists V8 contract and decodes padded manager address",()=>{
  const setup=read("takas-kurulum.html");
  assert.match(setup,/function normalizeManager/);
- assert.match(setup,/localStorage\.setItem\(installedKey,addr\)/);
+ assert.match(setup,/localStorage\.setItem\(installedKey\(\),addr\)/);
  assert.match(setup,/secure-takas-v8-contract/);
 });
 
@@ -457,4 +457,27 @@ test("manager refuses final approval when Nile block time is unavailable",async(
  x.tw.trx.getCurrentBlock=async()=>({block_header:{raw_data:{number:101}}});
  await x.get("final").onclick();
  assert.match(x.get("status").textContent,/Nile blok saati okunamadı/);
+});
+
+test("V8 setup isolates pending and installed contracts by selected manager wallet",()=>{
+ const html=read("takas-kurulum.html");
+ const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+ assert.ok(script,"Setup script must exist");
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const tw={defaultAddress:{base58:walletA}};
+ const elements=new Map();
+ const ctx={window:{tronWeb:tw},document:{getElementById:id=>{
+  if(!elements.has(id))elements.set(id,{disabled:false,hidden:false,value:"",textContent:""});
+  return elements.get(id);
+ }},localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ const first=vm.runInContext("({installed:installedKey(),pending:lastKey()})",ctx);
+ tw.defaultAddress.base58=walletB;
+ const second=vm.runInContext("({installed:installedKey(),pending:lastKey()})",ctx);
+ assert.notEqual(first.installed,second.installed);
+ assert.notEqual(first.pending,second.pending);
+ assert.match(first.installed,/secure-takas-v8-contract:/);
+ assert.match(first.pending,/secure-takas-deploy-pending:/);
+ const home=read("index.html");
+ assert.match(home,/secure-takas-v8-contract:"\\+wallet/);
 });
