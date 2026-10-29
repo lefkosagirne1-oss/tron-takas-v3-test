@@ -50,7 +50,31 @@ test("fixed fee is not charged on refund",async()=>{const x=await setup(1,parseU
 
 // Re-run CI after artifact publishing retry fix.
 
-test("fee payer cannot deposit a different token",async()=>{const x=await setup(2,parseUnits("1",6));await x.depositA();await assert.rejects(x.depositB());});
+test("token fee payer must escrow exact additional TRX fee",async()=>{
+ const x=await setup(2,parseUnits("1",6));
+ await assert.rejects(x.depositB());
+ await assert.rejects(x.send(x.swap.connect(x.b).deposit(1,2,await x.token.getAddress(),parseEther("20"),x.inviteB,{value:parseUnits("2",6)})));
+ await x.send(x.swap.connect(x.b).deposit(1,2,await x.token.getAddress(),parseEther("20"),x.inviteB,{value:parseUnits("1",6)}));
+ assert.equal(await x.provider.getBalance(await x.swap.getAddress()),parseUnits("1",6));
+});
+test("token fee payer receives full token and extra TRX fee back after timeout",async()=>{
+ const x=await setup(2,parseUnits("1",6));
+ await x.send(x.swap.connect(x.b).deposit(1,2,await x.token.getAddress(),parseEther("20"),x.inviteB,{value:parseUnits("1",6)}));
+ await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);
+ await x.send(x.swap.connect(x.b).refund(1));
+ assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("20"));
+ assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
+});
+test("token fee payer pays native TRX only when manager finalizes",async()=>{
+ const x=await setup(2,parseUnits("1",6));
+ await x.depositA();
+ await x.send(x.swap.connect(x.b).deposit(1,2,await x.token.getAddress(),parseEther("20"),x.inviteB,{value:parseUnits("1",6)}));
+ assert.equal(await x.provider.getBalance(await x.swap.getAddress()),parseUnits("4",6));
+ await x.send(x.swap.finalize(1));
+ assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("20"));
+ assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
+ assert.equal((await x.swap.getDeal(1)).completed,true);
+});
 
 test("guessed deal id cannot hijack A role without secret",async()=>{
  const x=await setup();
