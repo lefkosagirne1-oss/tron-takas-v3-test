@@ -302,3 +302,33 @@ test("token payer needs separate TRX fee before approving token",async()=>{
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/TRX bakiyesi yetersiz/);
 });
+
+test("participant refuses signatures when selected TronLink wallet changes mid-flow",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getBalance=async()=>{x.tw.defaultAddress.base58="T"+"c".repeat(33);return 1000000000;};
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Cüzdan değişti/);
+});
+test("manager refuses to create when selected wallet changes after reading next deal id",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ const original=x.tw.contract;
+ x.tw.contract=async(abi,addr)=>{
+  const c=await original(abi,addr);
+  if(addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"){
+   return {...c,nextId:()=>({call:async()=>{x.tw.defaultAddress.base58="T"+"c".repeat(33);return "1";}})};
+  }
+  return c;
+ };
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/Cüzdan değişti/);
+ assert.equal(x.get("a").value,"");
+ assert.equal(x.get("b").value,"");
+});
+test("V8 transaction sender enforces the expected wallet before TronLink signing",()=>{
+ assert.match(common,/ensureWallet\(tw,opts\.expectedWallet\)/);
+ assert.match(participant,/expectedWallet:expectedWallet|expectedWallet\}/);
+ assert.match(manager,/send\(c\.finalize\(idValue\(\)\),\{expectedWallet\}\)/);
+});
