@@ -40,17 +40,13 @@ function context(script,role=1,amount="100"){
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(script==="manager"?manager:participant,ctx);
  return {get,deal,sent,ctx};
 }
-test("100 TRX minus 50 TRX fee is valid, 30 TRX is rejected before signing",async()=>{
- const good=context("participant",1,"100");
- await good.get("deposit").onclick();
- assert.equal(good.sent.length,1);
- assert.equal(good.sent[0].n,"100000000");
- assert.equal(good.sent[0].opts.callValue,"100000000");
- assert.match(good.get("status").textContent,/doğrulandı/i);
- const low=context("participant",1,"30");
- await low.get("deposit").onclick();
- assert.equal(low.sent.length,0);
- assert.match(low.get("status").textContent,/Komisyon 50 TRX/);
+test("legacy participant cannot sign new deposit but can still view refund control",async()=>{
+ const old=context("participant",1,"100");
+ assert.equal(old.get("deposit").disabled,true);
+ await old.get("deposit").onclick();
+ assert.equal(old.sent.length,0);
+ assert.match(old.get("status").textContent,/yeni yatırım kapalı/);
+ assert.equal(old.get("refund").disabled,false);
 });
 test("fee preview shows exact net TRX and no fee for non-payer",()=>{
  const ctx={window:{},document:{getElementById:()=>({})},location:{search:"",href:"https://example.com/"},URLSearchParams,URL,BigInt};
@@ -64,14 +60,13 @@ test("zero address in deal is displayed safely",()=>{
  vm.createContext(ctx);vm.runInContext(common,ctx);
  assert.equal(vm.runInContext('readableAddress("0x"+"0".repeat(64),{address:{fromHex:()=>{throw Error("should not decode zero")}}})',ctx),"—");
 });
-test("manager can create and reconstruct participant links",async()=>{
+test("legacy manager cannot create but can recover an existing link",async()=>{
  const x=context("manager");
- x.get("payer").value="1";x.get("fee").value="50";
+ assert.equal(x.get("create").disabled,true);
  await x.get("create").onclick();
- assert.match(x.get("a").value,/role=1/);
- assert.match(x.get("b").value,/role=2/);
- assert.equal(x.get("id").value,"1");
- x.get("a").value="";x.get("b").value="";
+ assert.match(x.get("status").textContent,/yeni takas oluşturma kapalı/);
+ x.get("id").value="1";
  await x.get("recover").onclick();
  assert.match(x.get("a").value,/role=1/);
+ assert.match(x.get("b").value,/role=2/);
 });
