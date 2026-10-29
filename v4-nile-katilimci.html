@@ -69,7 +69,7 @@ body:has(#completion:not([hidden])) #detailsSection details{display:block}
 <pre id="joinStatus">İşlem imzalanmadı.</pre></section><div id="roleWarning" class="role-warning" hidden></div>
 <section id="proposalSection"><h2>Göndereceğin varlık</h2>
 <p>Göndereceğin tokeni ve miktarı yaz. Karşı tarafın bilgileri de tamamlandığında aynı sayfada tutarları görüp onaylayacak, ardından yatıracaksın.</p>
-<label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="TOKEN">TRC20 token adresi</option></select>
+<label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="FRHN">FRHN · Ferhane (test)</option><option value="TOKEN">Diğer TRC20 token adresi</option></select>
 <div id="tokenBox" hidden><label for="token">TRC20 sözleşme adresi (T…)</label><input id="token" autocomplete="off" placeholder="T..."></div>
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
 <button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
@@ -393,7 +393,7 @@ $("refresh").onclick=async()=>{try{
  $("primaryFeedback").textContent=unverifiedTx?"Önceki işlem hâlâ doğrulanamadı; tekrar imzalamayın.":"Zincir durumu yenilendi.";
  updatePrimaryAction();
  }catch(e){$("txStatus").textContent="OKUMA HATASI: "+(e?.message||e);$("primaryFeedback").hidden=false;$("primaryFeedback").textContent=$("txStatus").textContent}};
-$("type").onchange=()=>$("tokenBox").hidden=$("type").value!=="TOKEN";
+$("type").onchange=()=>{$("tokenBox").hidden=$("type").value!=="TOKEN";if($("type").value==="FRHN")$("token").value="TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx";};
 $("join").onclick=async()=>{
  if(pending||unverifiedTx||!wallet)return;
  if(!confirm("Bu cüzdanı Taraf "+(roleParam==="1"?"A":"B")+" olarak kaydetmek için Nile işlemi imzalanacak. Yönetici cüzdanları doğrulamadan fon yatırılmayacak. Devam edilsin mi?"))return;
@@ -415,8 +415,8 @@ $("propose").onclick=async()=>{
   await setup(true);await read();
   if(role!==roleParam||!flag(deal.walletsConfirmed)||bigint(deal.depositDeadline)!==0n)throw Error("Henüz teklif verilemez.");
   let tokenAddress=ZERO,dp=6;
-  if($("type").value==="TOKEN"){
-   tokenAddress=$("token").value.trim();if(!tw.isAddress(tokenAddress))throw Error("TRC20 token adresi geçersiz.");
+  if($("type").value==="TOKEN"||$("type").value==="FRHN"){
+   tokenAddress=$("type").value==="FRHN"?"TGXxEhuyu1AHQdQ2ZwnHGzmJfjtRUhZMWx":$("token").value.replace(/[\u200B-\u200D\uFEFF\s]/g,"").trim();if(!tw.isAddress(tokenAddress))throw Error("TRC20 token adresi geçersiz. T ile başlayan sözleşme adresini kullan.");
    dp=(await asset(tokenAddress)).dp;
   }else if($("type").value!=="TRX")throw Error("Token türünü seç.");
   const n=units($("amount").value.trim().replace(",","."),dp);
