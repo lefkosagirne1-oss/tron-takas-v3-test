@@ -48,7 +48,7 @@ details{margin-top:8px}summary{cursor:pointer;padding:12px 0;color:#d9e9ff}detai
 body:has(#completion:not([hidden])) #simpleFlow,
 body:has(#completion:not([hidden])) #proposalSection,
 body:has(#completion:not([hidden])) #actionSection{display:none!important}
-body:has(#completion:not([hidden])) #detailsSection details{display:block}
+#completion[hidden]{display:none!important}
 /* Katılımcı: yalnızca işlem girişi ve tek eylem görünür; teknik bilgiler isteğe bağlı. */
 #proposalSection{margin:10px 0;padding:18px}
 #proposalSection>p{display:none}
@@ -83,9 +83,10 @@ body:has(#completion:not([hidden])) #detailsSection details{display:block}
 <button id="refund" hidden disabled>Yatırdığım tutarı iade al</button>
 <pre id="txStatus">Henüz işlem imzalanmadı.</pre>
 </section>
+<div id="completion" class="success" role="status" aria-live="polite" hidden>Takas zincirde başarıyla tamamlandı. Cüzdan bakiyenizi kontrol edebilirsiniz.</div>
 <section id="detailsSection"><details><summary><strong>İşlem ayrıntıları ve iki tarafın durumu</strong></summary><div class="sides">
 <div class="side"><strong>TARAF A</strong><pre id="sideA">Henüz okunmadı.</pre></div>
-<div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div><div id="completion" class="success" hidden>Takas zincirde başarıyla tamamlandı. Ali ve Veli cüzdan bakiyelerini kontrol edebilir.</div>
+<div class="side"><strong>TARAF B</strong><pre id="sideB">Henüz okunmadı.</pre></div></div>
 
 <pre id="state">Zincir bekleniyor.</pre>
 <pre id="countdown" aria-live="off">Süre bilgisi bekleniyor.</pre>
