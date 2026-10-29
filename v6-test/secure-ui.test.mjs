@@ -36,6 +36,12 @@ async function make(page,secret=secretA,amount="100"){
  const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getBalance:async()=>1000000000,getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
  const store=new Map();
  const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(secret),href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
+ ctx.fetch=async url=>({
+  ok:true,
+  json:async()=>String(url).includes("TakasV8Invite.json")
+    ?JSON.parse(read("v6-test/dist/TakasV8Invite.json"))
+    :{runtimecode:JSON.parse(read("v6-test/dist/TakasV8Invite.json")).runtimeBytecode}
+ });
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
  return {ctx,get,deal,sent,commits,tw,tokenContract};
 }
@@ -331,4 +337,25 @@ test("V8 transaction sender enforces the expected wallet before TronLink signing
  assert.match(common,/ensureWallet\(tw,opts\.expectedWallet\)/);
  assert.match(participant,/expectedWallet:expectedWallet|expectedWallet\}/);
  assert.match(manager,/send\(c\.finalize\(idValue\(\)\),\{expectedWallet\}\)/);
+});
+
+test("V8 refuses fake contract code even if its ABI, version and manager look valid",async()=>{
+ const x=await make("participant");
+ vm.runInContext('verifiedV8Code=""',x.ctx);
+ x.ctx.fetch=async url=>({
+  ok:true,
+  json:async()=>String(url).includes("TakasV8Invite.json")
+    ?JSON.parse(read("v6-test/dist/TakasV8Invite.json"))
+    :{runtimecode:"0x60006000"}
+ });
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/sözleşme kodu resmi V8 derlemesiyle eşleşmiyor/);
+});
+test("official TRON runtime bytecode is required before V8 signing",()=>{
+ const build=read("v6-test/build.mjs");
+ assert.match(build,/evm\.deployedBytecode\.object/);
+ assert.match(common,/wallet\/getcontractinfo/);
+ assert.match(common,/actual!==expected/);
 });
