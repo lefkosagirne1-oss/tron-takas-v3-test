@@ -391,3 +391,10 @@ test("participant refund rejects wallet change before signing",async()=>{
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/Cüzdan değişti/);
 });
+
+test("Nile deployment pins wallet before and after TronLink signature",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/const deploymentWallet=selectedWallet\(\)/);
+ assert.match(setup,/if\(selectedWallet\(\)!==deploymentWallet\)throw Error\("Cüzdan değişti\. Kurulum imzalanmadı\."\)/);
+ assert.match(setup,/if\(selectedWallet\(\)!==deploymentWallet\)throw Error\("Cüzdan değişti\. Kurulum yayınlanmadı\."\)/);
+});
