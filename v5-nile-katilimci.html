@@ -33,7 +33,7 @@ function render(){
  else if(d.depositDeadline===0n&&BigInt(Math.floor(Date.now()/1000))>=d.offerDeadline){stage="expired";b.textContent="Teklif süresi doldu";disabled=true}
  else if(!mine("proposed")){stage="propose";b.textContent="Teklifimi gönder";$("offerForm").hidden=false}
  else if(!d.proposedA||!d.proposedB){stage="wait";b.textContent="Karşı tarafın teklifi bekleniyor";disabled=true;$("edit").hidden=false}
- else if(!V5.feeMatches(d)){stage="mismatch";b.textContent="Komisyon varlığı eşleşmiyor";disabled=true;$("edit").hidden=false}
+ else if(!V5.feeMatches(d)||!V5.feeValid(d)){stage="mismatch";b.textContent="Komisyon şartları geçersiz";disabled=true;$("edit").hidden=false}
  else if(!mine("accepted")){stage="accept";b.textContent="Takas şartlarını onayla";$("edit").hidden=false}
  else if(!d.acceptedA||!d.acceptedB){stage="wait";b.textContent="Karşı tarafın onayı bekleniyor";disabled=true;$("edit").hidden=false}
  else if(!mine("deposited")&&!expired()){stage="deposit";b.textContent="Varlığımı yatır ve gönder"}
@@ -44,7 +44,7 @@ function render(){
 async function refresh(){
  d=await V5.readSwap(id);
  const a=d.proposedA?await V5.asset(d.tokenA):null,b=d.proposedB?await V5.asset(d.tokenB):null,fee=d.feePayer!==0n?await V5.asset(d.feeAsset):null;
- const n=d.proposedA&&d.proposedB&&V5.feeMatches(d)?V5.net(d):null;
+ const n=d.proposedA&&d.proposedB&&V5.feeMatches(d)&&V5.feeValid(d)?V5.net(d):null;
  const lines=["Takas #"+id+" · Taraf "+side,"A cüzdanı: "+(d.partyA===V5.ZERO?"Bekleniyor":d.partyA),"B cüzdanı: "+(d.partyB===V5.ZERO?"Bekleniyor":d.partyB),
  "Cüzdanlar kilitli: "+(d.walletsConfirmed?"Evet":"Hayır"),
  "A gönderir: "+(a?V5.format(d.amountA,a.dp)+" "+a.symbol:"Bekleniyor"),"B gönderir: "+(b?V5.format(d.amountB,b.dp)+" "+b.symbol:"Bekleniyor"),
@@ -53,6 +53,7 @@ async function refresh(){
  "Tamamlandı: "+(d.completed?"Evet":"Hayır")];
  if(n&&a&&b)lines.push("A net alır: "+V5.format(n.forA,b.dp)+" "+b.symbol+"\nB net alır: "+V5.format(n.forB,a.dp)+" "+a.symbol);
  if(d.proposedA&&d.proposedB&&!V5.feeMatches(d))lines.push("UYARI: Komisyon ödeyen taraf yanlış varlık teklif etti.");
+ if(d.proposedA&&d.proposedB&&!V5.feeValid(d))lines.push("UYARI: Sabit komisyon yatırılacak miktardan küçük olmalıdır.");
  if(d.refundedA||d.refundedB)lines.push("İade A/B: "+(d.refundedA?"Evet":"Hayır")+"/"+(d.refundedB?"Evet":"Hayır"));
  $("summary").textContent=lines.join("\n");
  if(payer()&&d.depositDeadline===0n){$("assetType").value=V5.native(d.feeAsset)?"trx":"token";$("assetType").disabled=true;if(!V5.native(d.feeAsset)){$("token").value=V5.address(d.feeAsset);$("token").readOnly=true}showToken()}
@@ -64,12 +65,12 @@ $("edit").onclick=()=>{$("offerForm").hidden=false;$("edit").hidden=true;$("prim
 $("primary").onclick=()=>run(async()=>{
  if(!connected||!d)throw Error("Önce cüzdanı bağla.");
  if(stage==="join"){const other=side==="A"?d.partyB:d.partyA;if(other!==V5.ZERO&&V5.same(other,V5.wallet()))throw Error("Aynı cüzdan iki taraf olamaz.");await V5.send(V5.contract().requestRole(id,myRole))}
- else if(stage==="propose"){const t=tokenInput(),info=await V5.asset(t),n=V5.units($("amount").value,info.dp,false);if(payer()&&!V5.same(t,d.feeAsset))throw Error("Komisyon ödeyen taraf seçilen varlığı teklif etmeli.");if(!confirm(V5.format(n,info.dp)+" "+info.symbol+" teklifini kaydediyor musun?"))return;await V5.send(V5.contract().propose(id,info.address,n.toString()))}
- else if(stage==="accept"){if(!d.proposedA||!d.proposedB||!V5.feeMatches(d))throw Error("Önce iki teklif ve komisyon eşleşmeli.");if(!confirm("Varlıkları, sabit komisyonu ve net tutarları kontrol ettin mi?"))return;await V5.send(V5.contract().acceptTerms(id))}
- else if(stage==="deposit"){if(expired())throw Error("Yatırma süresi doldu.");const t=mine("token"),amount=mine("amount"),info=await V5.asset(t);if(!confirm(V5.format(amount,info.dp)+" "+info.symbol+" test varlığını sözleşmeye yatırıyor musun?"))return;
+ else if(stage==="propose"){const t=tokenInput(),info=await V5.asset(t),n=V5.units($("amount").value,info.dp,false);if(payer()&&!V5.same(t,d.feeAsset))throw Error("Komisyon ödeyen taraf seçilen varlığı teklif etmeli.");if(!window.confirm(V5.format(n,info.dp)+" "+info.symbol+" teklifini kaydediyor musun?"))return;await V5.send(V5.contract().propose(id,info.address,n.toString()))}
+ else if(stage==="accept"){if(!d.proposedA||!d.proposedB||!V5.feeMatches(d)||!V5.feeValid(d))throw Error("Önce iki teklif ve komisyon eşleşmeli.");if(!window.confirm("Varlıkları, sabit komisyonu ve net tutarları kontrol ettin mi?"))return;await V5.send(V5.contract().acceptTerms(id))}
+ else if(stage==="deposit"){if(expired())throw Error("Yatırma süresi doldu.");const t=mine("token"),amount=mine("amount"),info=await V5.asset(t);if(!window.confirm(V5.format(amount,info.dp)+" "+info.symbol+" test varlığını sözleşmeye yatırıyor musun?"))return;
  if(info.token){const allowance=V5.asBig(await info.token.allowance(V5.wallet(),V5.contractAddress()).call());if(allowance<amount){note("Token harcama izni için TronLink imzası bekleniyor.");await V5.send(info.token.approve(V5.contractAddress(),amount.toString()))}}
  note("Yatırım imzası bekleniyor.");await V5.send(V5.contract().deposit(id),V5.native(t)?{callValue:amount.toString()}:{})}
- else if(stage==="refund"){if(!confirm("Süresi dolan yatırımı komisyonsuz geri almak istiyor musun?"))return;await V5.send(V5.contract().refund(id))}
+ else if(stage==="refund"){if(!window.confirm("Süresi dolan yatırımı komisyonsuz geri almak istiyor musun?"))return;await V5.send(V5.contract().refund(id))}
  else throw Error("Bu aşamada işlem yapılamaz.");
  await refresh();note("İşlem zincirde doğrulandı.");
 });
