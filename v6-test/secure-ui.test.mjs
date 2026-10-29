@@ -32,7 +32,7 @@ async function make(page,secret=secretA,amount="100"){
   allowance:()=>({call:async()=>"1000000000"}),
   approve:()=>({send:async()=>"a".repeat(64)})
  };
- const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"}}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000}}})}};
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
  const store=new Map();
  const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(secret),href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
@@ -264,4 +264,11 @@ test("V8 participant only offers TRX or explicit custom TRC20, without FRHN test
  assert.match(page,/<option value="OTHER">/);
  assert.doesNotMatch(page,/value="FRHN"|type==="FRHN"/);
  assert.doesNotMatch(read("takas-common.js"),/const FRHN=/);
+});
+
+test("V8 waits until a later Nile block before depositing after commitment",async()=>{
+ const x=await make("participant");
+ const result=await vm.runInContext('waitNextBlock(window.tronWeb,"a".repeat(64))',x.ctx);
+ assert.equal(result,undefined);
+ assert.match(read("takas-katilimci.html"),/await waitNextBlock\(tw,commitTx\)/);
 });
