@@ -50,7 +50,7 @@ async function wallet(){
   if(!ready())throw Error("Geçerli güvenli V8 sözleşme veya davet bağlantısı gerekli.");
   const tw=window.tronWeb;
   const host=String(tw.fullNode?.host||tw.fullNode?.url||"").toLowerCase();
-  if(!host.includes("nile"))throw Error("TronLink ağını Nile Testnet seçin; başka ağda işlem yapılmaz.");
+  if(!/^https:\/\/nile\.trongrid\.io(?::443)?\/?$/i.test(host))throw Error("Güvenlik: TronLink ağını resmi Nile Testnet (nile.trongrid.io) olarak seçin.");
   if(!tw.defaultAddress?.base58)throw Error("TronLink cüzdanını seçin.");
   return tw;
 }
