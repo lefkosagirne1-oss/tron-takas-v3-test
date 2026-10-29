@@ -3,6 +3,9 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
+import {createRequire} from "node:module";
+import {fileURLToPath} from "node:url";
+import solc from "solc";
 import {Interface} from "ethers";
 import {createTVM} from "@tvmjs/tvm";
 import {Common,TronNile} from "@tvmjs/common";
@@ -91,3 +94,91 @@ assert.equal(await balance(alice),200_000_000n,"Expired A deposit must be refund
 assert.equal(await balance(bob),200_000_000n,"Expired B deposit must be refunded");
 console.log("Local Nile TVM full TRX/TRX escrow and timeout refund OK; deploy Energy",deployed.execResult.executionGasUsed.toString());
 console.log("No Nile broadcast, no wallet signature, no on-chain swap.");
+
+
+// The mock TRC20 is compiled with the SAME pinned official TRON compiler.
+// Exercise real TVM CALL / STATICCALL / transferFrom / transfer and native fee
+// transfers, not just the EVM/Ganache equivalent.
+const require=createRequire(import.meta.url);
+const tronSolc=solc.setupMethods(require(fileURLToPath(new URL("../v6-test/.cache/tron-soljson.cjs",import.meta.url))));
+assert.ok(tronSolc.version().startsWith("0.8.31"),"Official TRON compiler required for token TVM test");
+const tokenSource=`// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+contract LocalTRC20 {
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+    function mint(address who, uint256 amount) external { balanceOf[who] += amount; }
+    function approve(address spender, uint256 amount) external returns (bool) {
+        allowance[msg.sender][spender] = amount; return true;
+    }
+    function transfer(address to, uint256 amount) external returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "balance");
+        balanceOf[msg.sender] -= amount; balanceOf[to] += amount; return true;
+    }
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        require(balanceOf[from] >= amount && allowance[from][msg.sender] >= amount, "allowance");
+        allowance[from][msg.sender] -= amount;
+        balanceOf[from] -= amount; balanceOf[to] += amount; return true;
+    }
+}`;
+const tokenInput={language:"Solidity",sources:{"LocalTRC20.sol":{content:tokenSource}},settings:{
+ optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,
+ outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}
+}};
+const tokenOutput=JSON.parse(tronSolc.compile(JSON.stringify(tokenInput)));
+assert.deepEqual((tokenOutput.errors||[]).filter(x=>x.severity==="error").map(x=>x.formattedMessage),[]);
+const tokenArtifact=tokenOutput.contracts["LocalTRC20.sol"].LocalTRC20;
+const tokenIface=new Interface(tokenArtifact.abi);
+const tokenDeployment=expectSuccess(await tvm.runCall({
+ caller:manager,origin:manager,data:hexToBytes("0x"+tokenArtifact.evm.bytecode.object),
+ gasLimit:20_000_000n,rootTransactionId:txid(2),skipBalance:true,block:block(22,2262),
+}),"deploy TRC20");
+assert.ok(tokenDeployment.createdAddress,"Local TVM token deployment missing");
+const token=tokenDeployment.createdAddress;
+async function tokenCall(caller,fn,args,n,t){
+ const result=expectSuccess(await tvm.runCall({
+  caller,origin:caller,to:token,data:hexToBytes(tokenIface.encodeFunctionData(fn,args)),
+  gasLimit:10_000_000n,skipBalance:true,block:block(n,t),
+ }),"TRC20 "+fn);
+ return tokenIface.decodeFunctionResult(fn,bytesToHex(result.execResult.returnValue));
+}
+const tokenBalance=async who=>(await tokenCall(manager,"balanceOf",[who.toString()],31,2300))[0];
+const tokenAddress=token.toString();
+
+// B pays a 50 TRX fee while sending TRC20: the whole token amount must go to A.
+// The extra 50 TRX must reach the manager ONLY after finalize.
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],23,2265);
+await tokenCall(manager,"mint",[bob.toString(),200n],24,2268);
+await tokenCall(bob,"approve",[contract.toString(),200n],25,2271);
+await call(alice,contract,"commitRole",[4,1,commitment(secretA,alice)],26,2274);
+await call(bob,contract,"commitRole",[4,2,commitment(secretB,bob)],26,2274);
+const beforeTokenFee=await balance(manager);
+await call(alice,contract,"deposit",[4,1,zero,100_000_000n,"0x"+secretA.toString("hex")],27,2277,100_000_000n);
+await call(bob,contract,"deposit",[4,2,tokenAddress,200n,"0x"+secretB.toString("hex")],28,2280,50_000_000n);
+assert.equal(await tokenBalance(contract),200n,"TRC20 amount must reach escrow");
+assert.equal(await balance(manager),beforeTokenFee,"Manager must not receive token payer fee before finalization");
+await call(manager,contract,"finalize",[4],29,2283);
+assert.equal(await tokenBalance(alice),200n,"A must receive all 200 TRC20 units");
+assert.equal(await tokenBalance(contract),0n,"Escrow must not retain swapped token");
+assert.equal(await balance(manager)-beforeTokenFee,50_000_000n,"Manager receives exactly 50 TRX fee on success");
+assert.equal((await call(manager,contract,"getDeal",[4],30,2286))[0].completed,true);
+
+// Token payer alone: after 15 minutes both TRC20 and the separate native TRX
+// fee are refunded. Manager receives no fee on failed deal.
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],32,2310);
+await tokenCall(manager,"mint",[bob.toString(),75n],33,2313);
+await tokenCall(bob,"approve",[contract.toString(),75n],34,2316);
+await call(bob,contract,"commitRole",[5,2,commitment(secretB,bob)],35,2319);
+const beforeRefundToken=await tokenBalance(bob);
+const beforeRefundTrx=await balance(bob);
+const beforeRefundManager=await balance(manager);
+await call(bob,contract,"deposit",[5,2,tokenAddress,75n,"0x"+secretB.toString("hex")],36,2322,50_000_000n);
+assert.equal(await tokenBalance(contract),75n,"Failed-deal TRC20 remains in escrow before refund");
+await call(bob,contract,"refund",[5],37,3223);
+assert.equal(await tokenBalance(bob),beforeRefundToken,"B must recover all TRC20 tokens");
+assert.equal(await tokenBalance(contract),0n,"Refund must empty token escrow");
+assert.equal(await balance(bob),beforeRefundTrx,"B must recover entire separate TRX fee");
+assert.equal(await balance(manager),beforeRefundManager,"No manager fee on expired TRC20 swap");
+assert.equal((await call(manager,contract,"getDeal",[5],38,3226))[0].refundedB,true);
+console.log("Official tron-solc mock TRC20 local Nile TVM fee finalize and fee+token timeout refund OK.");
+console.log("Only local TVM tests: no real Nile deployment, signature, or transaction.");
