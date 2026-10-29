@@ -92,5 +92,6 @@ function baseLink(file){return new URL("./"+file,window.location.href);}
 function links(id){requireReady();const mk=(file,role)=>{const u=baseLink(file);u.searchParams.set("contract",contractAddress);u.searchParams.set("id",String(id));if(role)u.searchParams.set("role",String(role));return u.toString()};return {a:mk("v5-nile-katilimci.html",1),b:mk("v5-nile-katilimci.html",2),manager:mk("v5-nile-yonetici.html")};}
 function net(d){const fee=d.feePayer===0n?0n:d.feeAmount;return {forA:d.amountB-(d.feePayer===2n?fee:0n),forB:d.amountA-(d.feePayer===1n?fee:0n)};}
 function feeMatches(d){return d.feePayer===0n||same(d.feePayer===1n?d.tokenA:d.tokenB,d.feeAsset);}
-window.V5={ZERO,FEE_LIMIT,connect,verify,readSwap,asset,units,format,asBig,value,address,toHex,native,same,wallet,send,waitTx,links,net,feeMatches,contract:()=>contract,manager:()=>manager,contractAddress:()=>contractAddress,tron:()=>tw};
+function feeValid(d){return d.feePayer===0n||(d.feePayer===1n?d.feeAmount<d.amountA:d.feeAmount<d.amountB);}
+window.V5={ZERO,FEE_LIMIT,connect,verify,readSwap,asset,units,format,asBig,value,address,toHex,native,same,wallet,send,waitTx,links,net,feeMatches,feeValid,contract:()=>contract,manager:()=>manager,contractAddress:()=>contractAddress,tron:()=>tw};
 })();
