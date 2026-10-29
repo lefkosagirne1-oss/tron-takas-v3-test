@@ -8,5 +8,5 @@ if(errors.length)throw Error(errors.map(x=>x.formattedMessage).join("\n"));
 const c=compiled.contracts["TakasV5FixedFee.sol"].TakasV5FixedFee;
 if(!c?.evm?.bytecode?.object)throw Error("Missing V5 bytecode");
 const invite=c.abi.find(x=>x.type==="function"&&x.name==="createInvite");
-if(invite?.inputs?.[0]?.type!=="uint256")throw Error("Fixed fee ABI mismatch");
+if(invite?.inputs?.length!==3||invite.inputs[0].type!=="uint256"||invite.inputs[1].type!=="uint8"||invite.inputs[2].type!=="address")throw Error("Fixed fee ABI mismatch");
 console.log("V5 fixed-fee compilation OK:",c.evm.bytecode.object.length/2,"bytes");
