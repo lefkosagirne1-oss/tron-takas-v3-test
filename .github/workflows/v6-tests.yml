@@ -33,6 +33,31 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs v6-test/secure-ui.test.mjs
+      - name: Check Nile chain read-only (no signatures or transactions)
+        continue-on-error: true
+        run: |
+          node --input-type=module <<'NODE'
+          const endpoint = "https://nile.trongrid.io/wallet/";
+          async function read(path) {
+            const response = await fetch(endpoint + path, {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: "{}",
+              signal: AbortSignal.timeout(15000)
+            });
+            if (!response.ok) throw Error(path + " HTTP " + response.status);
+            return response.json();
+          }
+          const [block, params] = await Promise.all([read("getnowblock"), read("getchainparameters")]);
+          const number = Number(block?.block_header?.raw_data?.number);
+          const timestamp = Number(block?.block_header?.raw_data?.timestamp);
+          const energyFee = Number(params?.chainParameter?.find(p => p.key === "getEnergyFee")?.value);
+          if (!Number.isFinite(number) || number < 1 || !Number.isFinite(timestamp) ||
+              Math.abs(Date.now() - timestamp) > 600000 || !Number.isFinite(energyFee) || energyFee <= 0)
+            throw Error("Nile read-only RPC returned invalid block time or Energy price");
+          console.log("Nile read-only OK: block", number, "Energy price (SUN)", energyFee);
+          console.log("No deployment, deposit, approval, or TRX transfer performed.");
+          NODE
       - name: Download pinned official TRON Solidity compiler
         run: |
           mkdir -p v6-test/.cache
