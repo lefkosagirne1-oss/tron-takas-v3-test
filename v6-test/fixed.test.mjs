@@ -31,7 +31,7 @@ test("both deposits refunded after final timeout",async()=>{const x=await setup(
 test("cannot deposit twice",async()=>{const x=await setup();await x.depositA();await assert.rejects(x.depositA());});
 
 test("A-side fixed fee deducted on finalize",async()=>{const x=await setup(1,parseUnits("0.15",6));await x.depositA();await x.depositB();await x.send(x.swap.finalize(1));assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);assert.equal((await x.swap.getDeal(1)).completed,true);});
-test("reject invalid fee configurations",async()=>{const x=await setup();await assert.rejects(x.send(x.swap.create(0,100)));await assert.rejects(x.send(x.swap.create(2,1001)));});
+test("reject invalid fee configurations",async()=>{const x=await setup();await assert.rejects(x.send(x.swap.create(0,100)));await assert.rejects(x.send(x.swap.create(3,1001)));});
 test("cannot finalize with only one deposit",async()=>{const x=await setup();await x.depositA();await assert.rejects(x.send(x.swap.finalize(1)));});
 test("refund cannot be taken before deadline",async()=>{const x=await setup();await x.depositA();await assert.rejects(x.send(x.swap.connect(x.a).refund(1)));});
 test("cannot finalize after five minute final window",async()=>{const x=await setup();await x.depositA();await x.depositB();await x.provider.send("evm_increaseTime",[301]);await x.provider.send("evm_mine",[]);await assert.rejects(x.send(x.swap.finalize(1)));});
