@@ -45,6 +45,8 @@ test("secure frontend scripts parse and have V8 ABI",()=>{
  assert.match(common,/"name":"commitRole"/);
  assert.match(common,/"name":"committedHash"/);
  assert.match(read("takas-kurulum.html"),/TakasV8Invite.json/);
+ assert.match(read("takas-kurulum.html"),/a\.abi\.some\(x=>x\.name==="commitRole"\)/);
+ assert.match(read("takas-kurulum.html"),/a\.abi\.some\(x=>x\.name==="committedHash"\)/);
 });
 test("manager creates distinct private A and B invitation URLs",async()=>{
  const x=await make("manager");
