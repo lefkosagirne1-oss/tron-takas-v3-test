@@ -118,7 +118,11 @@ contract LocalTRC20 {
     }
     function transfer(address to, uint256 amount) external returns (bool) {
         require(balanceOf[msg.sender] >= amount, "balance");
-        balanceOf[msg.sender] -= amount; balanceOf[to] += amount; return true;
+        balanceOf[msg.sender] -= amount;
+        uint256 credited = amount * (100 - transferFeePercent) / 100;
+        balanceOf[to] += credited;
+        balanceOf[address(0)] += amount - credited;
+        return true;
     }
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         require(balanceOf[from] >= amount && allowance[from][msg.sender] >= amount, "allowance");
@@ -216,3 +220,42 @@ assert.equal(await tokenBalance(contract),beforeBadEscrow,"Failed token deposit 
 assert.equal(await balance(bob),beforeBadTrx,"Failed token deposit must not trap the extra TRX fee");
 assert.equal(await balance(manager),beforeBadManager,"Manager must not receive a fee on failed deposit");
 console.log("Local Nile TVM fee-on-transfer underfunding rejection and atomic rollback OK.");
+
+
+// Outgoing fee-on-transfer must not silently short-pay A after B has deposited.
+// The entire manager finalize must revert atomically, including the preceding
+// native-TRX transfer, and a normal finalize remains possible after fee removal.
+await tokenCall(manager,"setTransferFeePercent",[0n],46,3251);
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],47,3254);
+await tokenCall(manager,"mint",[bob.toString(),100n],48,3257);
+await tokenCall(bob,"approve",[contract.toString(),100n],49,3260);
+await call(alice,contract,"commitRole",[7,1,commitment(secretA,alice)],50,3263);
+await call(bob,contract,"commitRole",[7,2,commitment(secretB,bob)],50,3263);
+await call(alice,contract,"deposit",[7,1,zero,100_000_000n,"0x"+secretA.toString("hex")],51,3266,100_000_000n);
+await call(bob,contract,"deposit",[7,2,tokenAddress,100n,"0x"+secretB.toString("hex")],52,3269,50_000_000n);
+const outgoingEscrowBefore=await tokenBalance(contract);
+const outgoingAliceBefore=await tokenBalance(alice);
+const outgoingBobTrxBefore=await balance(bob);
+const outgoingManagerBefore=await balance(manager);
+await tokenCall(manager,"setTransferFeePercent",[10n],53,3272);
+await assert.rejects(
+  ()=>call(manager,contract,"finalize",[7],54,3275),
+  /finalize:/,
+  "Outgoing fee-on-transfer must not complete a short-paid swap"
+);
+assert.equal((await call(manager,contract,"getDeal",[7],55,3278))[0].completed,false,
+ "Failed finalize must leave the deal open for refund or retry");
+assert.equal(await tokenBalance(contract),outgoingEscrowBefore,
+ "Failed finalize must restore escrow token balance");
+assert.equal(await tokenBalance(alice),outgoingAliceBefore,
+ "Failed finalize must not short-pay A");
+assert.equal(await balance(bob),outgoingBobTrxBefore,
+ "Failed finalize must roll back prior native-TRX transfer to B");
+assert.equal(await balance(manager),outgoingManagerBefore,
+ "Failed finalize must not pay manager fee");
+await tokenCall(manager,"setTransferFeePercent",[0n],56,3281);
+await call(manager,contract,"finalize",[7],57,3284);
+assert.equal((await call(manager,contract,"getDeal",[7],58,3287))[0].completed,true);
+assert.equal(await tokenBalance(alice),outgoingAliceBefore+100n);
+assert.equal(await balance(manager),outgoingManagerBefore+50_000_000n);
+console.log("Local Nile TVM outgoing fee-on-transfer finalize rollback and retry OK.");
