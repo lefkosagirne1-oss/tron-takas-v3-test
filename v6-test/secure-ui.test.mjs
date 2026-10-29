@@ -252,7 +252,7 @@ test("token-paying participant deposits token and separate refundable TRX fee",a
  assert.equal(x.commits.length,1);
  assert.equal(x.sent.length,1);
  assert.equal(x.sent[0].n,"100000000");
- assert.equal(x.sent[0].opts.callValue,"50000000");
+ assert.equal(x.sent[0].opts.callValue,50000000);
  assert.equal(x.sent[0].token,x.get("token").value);
 });
 test("manager displays full token amount rather than subtracting TRX fee from token",async()=>{
@@ -397,4 +397,14 @@ test("Nile deployment pins wallet before and after TronLink signature",()=>{
  assert.match(setup,/const deploymentWallet=selectedWallet\(\)/);
  assert.match(setup,/if\(selectedWallet\(\)!==deploymentWallet\)throw Error\("Cüzdan değişti\. Kurulum imzalanmadı\."\)/);
  assert.match(setup,/if\(selectedWallet\(\)!==deploymentWallet\)throw Error\("Cüzdan değişti\. Kurulum yayınlanmadı\."\)/);
+});
+
+test("V8 TronWeb send receives a safe numeric SUN callValue",async()=>{
+ const x=await make("participant");
+ await x.get("deposit").onclick();
+ assert.equal(x.sent[0].opts.callValue,100000000);
+ assert.equal(typeof x.sent[0].opts.callValue,"number");
+ assert.equal(vm.runInContext('safeCallValue("50000000")',x.ctx),50000000);
+ assert.throws(()=>vm.runInContext('safeCallValue("9007199254740992")',x.ctx),/güvenli sayı sınırını/);
+ assert.throws(()=>vm.runInContext('safeCallValue("-1")',x.ctx),/güvenli sayı sınırını/);
 });
