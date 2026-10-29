@@ -72,8 +72,15 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const amount=units($("amount").value.trim(),decimals);
  if(BigInt(amount)===0n)throw Error("Miktar sıfırdan büyük olmalı.");
  if(type==="TRX"&&Number(d.feePayer)===role&&BigInt(d.feeAmount)>=BigInt(amount))throw Error("Komisyon "+displayUnits(d.feeAmount)+" TRX. Yatırım bunun üzerinde olmalı; örn. 100 TRX yatırıp 50 TRX komisyon ödeyebilirsiniz.");
+ const extraFee=type!=="TRX"&&Number(d.feePayer)===role?d.feeAmount.toString():"0";
+ // Reject underfunded deposits before spending TRX on token approval or role commitment.
+ const requiredTrx=BigInt(type==="TRX"?amount:extraFee);
+ const availableTrx=BigInt(await tw.trx.getBalance(tw.defaultAddress.base58));
+ if(availableTrx<requiredTrx)throw Error("TRX bakiyesi yetersiz. Gerekli: "+displayUnits(requiredTrx)+" TRX, mevcut: "+displayUnits(availableTrx)+" TRX. Hiçbir işlem imzalanmadı.");
  if(type!=="TRX"){
   const t=await tw.contract(TOKEN_ABI,token);
+  const tokenBalance=BigInt((await t.balanceOf(tw.defaultAddress.base58).call()).toString());
+  if(tokenBalance<BigInt(amount))throw Error("Token bakiyesi yetersiz. İzin veya yatırım işlemi gönderilmedi.");
   const allowance=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
   if(allowance<BigInt(amount)){
    status("Token izni için TronLink imzası bekleniyor...");
@@ -90,7 +97,6 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   status("Güvenlik kaydı onaylandı. Yatırım için sonraki Nile bloğu bekleniyor...");
   await waitNextBlock(tw,commitTx);
  }
- const extraFee=type!=="TRX"&&Number(d.feePayer)===role?d.feeAmount.toString():"0";
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee});
  await check();
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
