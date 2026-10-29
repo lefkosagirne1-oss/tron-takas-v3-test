@@ -30,5 +30,9 @@ jobs:
           git add -f v6-test/dist/TakasV6Simple.json v6-test/dist/TakasV6Fixed.json
           if ! git diff --cached --quiet; then
             git commit -m "build(v6): publish compiled contract artifact [skip ci]"
-            git push
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push origin HEAD:main && break
+              if [ "$i" -eq 3 ]; then exit 1; fi
+              sleep 3
+            done
           fi
