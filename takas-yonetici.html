@@ -44,14 +44,16 @@ $("payer").onchange=updateFeeHint;$("fee").oninput=updateFeeHint;updateFeeHint()
 $("create").onclick=()=>run($("create"),async()=>{
  if(!fixedReady())throw Error("Güvenli takas sözleşme bağlantısı gerekli.");
  const {tw,c}=await assertManager();
+ const expectedWallet=tw.defaultAddress.base58;
  const payer=Number($("payer").value),fee=units($("fee").value.trim(),6);
  if(payer===0&&fee!=="0")throw Error("Komisyon yok seçiliyken miktar 0 olmalı.");
  if(payer!==0&&BigInt(fee)===0n)throw Error("Komisyon ödeyen taraf seçildiyse tutar sıfırdan büyük olmalı.");
  const next=BigInt((await c.nextId().call()).toString());
  const secretA=randomSecret(),secretB=randomSecret();
  const [hashA,hashB]=await Promise.all([hashSecret(secretA),hashSecret(secretB)]);
+ ensureWallet(tw,expectedWallet);
  saveInvite(next.toString(),secretA,secretB,tw);
- await send(c.create(payer,fee,hashA,hashB));
+ await send(c.create(payer,fee,hashA,hashB),{expectedWallet});
  const after=BigInt((await c.nextId().call()).toString());
  if(after!==next+1n)throw Error("Birden fazla takas oluşturulmuş olabilir. Takas numarasını kontrol edin.");
  const d=await c.getDeal(next.toString()).call();
@@ -107,13 +109,14 @@ async function showDeal(){
 $("check").onclick=()=>run($("check"),async()=>{await showDeal();status("Zincirden güncel durum okundu.");});
 $("final").onclick=()=>run($("final"),async()=>{
  const {d,tw,c}=await showDeal();
+ const expectedWallet=tw.defaultAddress.base58;
  if(d.completed||d.cancelled)throw Error("Takas zaten kapalı.");
  if(!d.depositedA||!d.depositedB)throw Error("Her iki taraf da yatırmadan son onay yapılamaz.");
  if(d.refundedA||d.refundedB)throw Error("İade başlamış; takas tamamlanamaz.");
  const block=await tw.trx.getCurrentBlock();
  const now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
  if(now&&now>=Number(d.finalDeadline.toString()))throw Error("5 dakikalık son onay süresi doldu. İade yapılmalı.");
- await send(c.finalize(idValue()));
+ await send(c.finalize(idValue()),{expectedWallet});
  await showDeal();
  status("Takas zincirde başarıyla tamamlandı.");
 });
