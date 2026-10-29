@@ -28,6 +28,12 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Compile V5
         run: npm run build:v5
+      - name: Save V5 deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v5-fixed-fee-compiled
+          path: v5-test/dist/TakasV5FixedFee.json
+          if-no-files-found: error
       - name: Test fixed-fee swaps
         run: npm run test:v5:fixed
       - name: Check V5 browser syntax and contract schema
