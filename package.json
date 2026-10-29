@@ -5,7 +5,8 @@
   "scripts": {
     "test:v4": "node --test v4-test/contract.test.mjs",
     "build:v4": "node v4-test/build-artifact.mjs",
-    "build:v5": "node v5-test/compile.mjs"
+    "build:v5": "node v5-test/compile.mjs",
+    "test:v5:fixed": "node --test v5-test/fixed-fee.test.mjs"
   },
   "devDependencies": {
     "solc": "0.8.31",
