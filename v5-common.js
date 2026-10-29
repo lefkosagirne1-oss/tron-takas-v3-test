@@ -79,8 +79,9 @@ async function waitTx(txid){
  for(let i=0;i<30;i++){
   const info=await tw.trx.getTransactionInfo(txid).catch(()=>null);
   if(info&&info.id){
-   if(info.receipt?.result&&info.receipt.result!=="SUCCESS")throw Error("Zincir işlemi başarısız: "+info.receipt.result+" · "+txid);
-   return txid;
+   const result=info.receipt?.result||info.result;
+   if(result==="SUCCESS")return txid;
+   if(result&&result!=="SUCCESS")throw Error("Zincir işlemi başarısız: "+result+" · "+txid);
   }
   await new Promise(r=>setTimeout(r,2000));
  }
