@@ -56,6 +56,23 @@ async function wallet(){
   return tw;
 }
 let verifiedV8Code="";
+function sameV8Runtime(expected,actual,refs){
+  if(!/^[0-9a-f]+$/.test(expected)||!(/^[0-9a-f]+$/.test(actual))||expected.length!==actual.length)return false;
+  const spans=Object.values(refs||{}).flat();
+  // The constructor inserts the immutable manager into the runtime bytecode.
+  // Only compiler-declared immutable offsets may differ; manager() is checked separately.
+  if(!spans.length)return false;
+  let left=expected,right=actual;
+  for(const span of spans){
+    const start=Number(span.start),length=Number(span.length);
+    if(!Number.isSafeInteger(start)||!Number.isSafeInteger(length)||length<=0||start<0||(start+length)*2>expected.length)return false;
+    const begin=start*2,end=(start+length)*2;
+    const mask="0".repeat(end-begin);
+    left=left.slice(0,begin)+mask+left.slice(end);
+    right=right.slice(0,begin)+mask+right.slice(end);
+  }
+  return left===right;
+}
 async function verifyV8Code(){
   if(verifiedV8Code===address)return;
   const artifactResponse=await fetch("./v6-test/dist/TakasV8Invite.json",{cache:"no-store"});
@@ -71,7 +88,7 @@ async function verifyV8Code(){
   if(!response.ok)throw Error("Nile sözleşme kodu okunamadı.");
   const info=await response.json();
   const actual=String(info.runtimecode||"").replace(/^0x/i,"").toLowerCase();
-  if(actual!==expected)throw Error("Güvenlik: Nile sözleşme kodu resmi V8 derlemesiyle eşleşmiyor. İşlem imzalanmadı.");
+  if(!sameV8Runtime(expected,actual,artifact.immutableReferences))throw Error("Güvenlik: Nile sözleşme kodu resmi V8 derlemesiyle eşleşmiyor. İşlem imzalanmadı.");
   verifiedV8Code=address;
 }
 async function contract(){
