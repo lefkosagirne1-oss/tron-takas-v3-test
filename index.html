@@ -11,7 +11,8 @@ small{display:block;color:#cbd5e1;margin-top:16px}</style></head>
 <small>Yalnızca Nile test varlıkları içindir. Gerçek para göndermeyin.</small>
 </main><script>
 try{
- const saved=localStorage.getItem("secure-takas-v8-contract");
+ const wallet=window.tronWeb?.ready?window.tronWeb.defaultAddress?.base58:"";
+ const saved=wallet?localStorage.getItem("secure-takas-v8-contract:"+wallet):null;
  if(saved&&/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(saved)){
   document.getElementById("go").href="./takas-yonetici.html?secure=1&contract="+encodeURIComponent(saved);
   document.getElementById("go").textContent="Yönetici panelini aç";
