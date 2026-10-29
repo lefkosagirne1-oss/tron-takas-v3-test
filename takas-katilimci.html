@@ -86,7 +86,9 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const prior=await c.committedHash(id,role,tw.defaultAddress.base58).call();
  if(!sameHash(prior,commitment)){
   status("Davet güvenliği için cüzdan kayıt imzası bekleniyor. Ardından yatırım imzası istenecek.");
-  await send(c.commitRole(id,role,commitment));
+  const commitTx=await send(c.commitRole(id,role,commitment));
+  status("Güvenlik kaydı onaylandı. Yatırım için sonraki Nile bloğu bekleniyor...");
+  await waitNextBlock(tw,commitTx);
  }
  const extraFee=type!=="TRX"&&Number(d.feePayer)===role?d.feeAmount.toString():"0";
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee});
