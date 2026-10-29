@@ -4,6 +4,7 @@ on:
     paths:
       - 'contracts/TakasV6Simple.sol'
       - 'contracts/TakasV7Fixed.sol'
+      - 'contracts/TakasV8Invite.sol'
       - 'v6-test/**'
       - 'v6-common.js'
       - 'v6-nile-yonetici.html'
@@ -24,13 +25,13 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs
+      - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs
       - run: node v6-test/build.mjs
       - name: Publish compiled V6 artifact
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f v6-test/dist/TakasV6Simple.json v6-test/dist/TakasV6Fixed.json
+          git add -f v6-test/dist/TakasV6Simple.json v6-test/dist/TakasV6Fixed.json v6-test/dist/TakasV8Invite.json
           if ! git diff --cached --quiet; then
             git commit -m "build(v6): publish compiled contract artifact [skip ci]"
             for i in 1 2 3; do
