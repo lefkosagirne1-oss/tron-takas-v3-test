@@ -38,7 +38,7 @@ async function showLinks(id,tw){
 }
 function updateFeeHint(){
  const payer=Number($("payer").value),fee=$("fee").value.trim();
- $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırır. Komisyon yalnız takas tamamlanırsa kesilir.";
+ $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırırsa miktardan kesilir; token yatırırsa ayrıca TRX teminatı gönderir. Komisyon yalnız takas tamamlanırsa kesilir.";
 }
 $("payer").onchange=updateFeeHint;$("fee").oninput=updateFeeHint;updateFeeHint();
 $("create").onclick=()=>run($("create"),async()=>{
@@ -83,8 +83,8 @@ async function showDeal(){
  const a=d.depositedA?"Yatırdı":"Bekleniyor",b=d.depositedB?"Yatırdı":"Bekleniyor";
  const fee=BigInt(d.feeAmount.toString()),payer=Number(d.feePayer);
  const grossA=BigInt(d.amountA.toString()),grossB=BigInt(d.amountB.toString());
- const netA=d.depositedA?grossA-(payer===1?fee:0n):0n;
- const netB=d.depositedB?grossB-(payer===2?fee:0n):0n;
+ const netA=d.depositedA?grossA-(payer===1&&readableAddress(d.tokenA,tw)==="—"?fee:0n):0n;
+ const netB=d.depositedB?grossB-(payer===2&&readableAddress(d.tokenB,tw)==="—"?fee:0n):0n;
  if(netA<0n||netB<0n)throw Error("Zincirde komisyon ve yatırım tutarları uyuşmuyor; son onay vermeyin.");
  const [assetA,assetB,receiveB,receiveA]=await Promise.all([
   formatAsset(d.tokenA,d.amountA,tw),formatAsset(d.tokenB,d.amountB,tw),
