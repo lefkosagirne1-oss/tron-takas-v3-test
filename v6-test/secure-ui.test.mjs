@@ -131,3 +131,9 @@ test("manager shows net amounts and fixed fee before final approval",async()=>{
  assert.match(details,/Komisyon: 50 TRX \(A öder/);
  assert.match(details,/Kalan süre: 5 dk/);
 });
+
+test("deployment recovery rejects a wallet connected outside Nile",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/Doğrulama için TronLink ağını Nile Testnet seç/);
+ assert.match(setup,/if\(!node\.includes\("nile"\)\)throw Error/);
+});
