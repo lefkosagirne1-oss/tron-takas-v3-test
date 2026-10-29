@@ -7,7 +7,7 @@ button{cursor:pointer}button:disabled{cursor:wait}#details{line-height:1.6}#prev
 <label>Göndereceğiniz miktar</label><input id="amount" inputmode="decimal" placeholder="Örn. 100">
 <p id="preview">Miktarı girin.</p>
 <button id="deposit">Onayla ve yatır</button>
-<small>Bu bağlantı size özeldir. TRC20 token için ilk seferde token izni ve yatırma imzası gerekir.</small></section>
+<small>Bu bağlantı size özeldir. Davetin başkası tarafından kullanılmasını önlemek için cüzdanınıza bağlı güvenlik kaydı ve yatırma işlemi ayrı TronLink imzaları gerektirir. TRC20 token için ayrıca token izni gerekebilir.</small></section>
 <section><h2>Takas durumu</h2><button id="check">Durumu görüntüle</button><p id="details">Henüz kontrol edilmedi.</p>
 <button id="refund">Süre dolduysa yatırımı geri al</button></section>
 <p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
@@ -81,6 +81,12 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
    const approved=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
    if(approved<BigInt(amount))throw Error("Token izni zincirde yeterli değil. Yatırım gönderilmedi.");
   }
+ }
+ const commitment=await hashWalletCommitment(secret,tw);
+ const prior=await c.committedHash(id,role,tw.defaultAddress.base58).call();
+ if(!sameHash(prior,commitment)){
+  status("Davet güvenliği için cüzdan kayıt imzası bekleniyor. Ardından yatırım imzası istenecek.");
+  await send(c.commitRole(id,role,commitment));
  }
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:0});
  await check();
