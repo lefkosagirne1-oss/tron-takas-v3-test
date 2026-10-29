@@ -102,3 +102,18 @@ test("Nile deployment requires official TRON compiler artifact",()=>{
  assert.match(workflow,/a45a82d014fadd6d8ea9086ecec221be5bcb5b93/);
  assert.match(build,/tronSolc\.compile/);
 });
+
+test("legacy V6/V7 create, deposit and finalize are disabled while refund remains accessible",()=>{
+ const oldManager=read("v6-nile-yonetici.html");
+ const oldParticipant=read("v6-nile-katilimci.html");
+ assert.match(oldManager,/\$\("create"\)\.disabled=true/);
+ assert.match(oldManager,/\$\("final"\)\.disabled=true/);
+ assert.match(oldParticipant,/\$\("deposit"\)\.disabled=true/);
+ assert.doesNotMatch(oldParticipant,/\$\("refund"\)\.disabled=true/);
+ assert.match(oldParticipant,/\$\("refund"\)\.onclick/);
+});
+test("deployment estimate is bound to the selected TronLink wallet",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/estimatedWallet=selectedWallet\(\)/);
+ assert.match(setup,/estimatedWallet!==selectedWallet\(\)/);
+});
