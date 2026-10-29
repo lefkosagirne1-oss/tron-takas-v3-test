@@ -1,0 +1,106 @@
+<!doctype html><html lang="tr"><head><title>Takas · Katılımcı</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{font:16px system-ui;color:#edf4ff;background:#0b1425}body{max-width:560px;margin:30px auto;padding:16px}main{display:grid;gap:14px}section{padding:18px;border:1px solid #31435f;border-radius:16px;background:#132139}h1{font-size:1.6rem}h2{font-size:1.1rem}label{display:block;margin:10px 0 4px}input,select,button{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid #61718b}input,select{background:#0b1425;color:white}button{margin-top:12px;background:#3b82f6;color:white;font-weight:700;border:0}button:disabled{background:#475569}small{color:#cbd5e1;overflow-wrap:anywhere}#status{overflow-wrap:anywhere;color:#facc15}a{color:#93c5fd}
+button{cursor:pointer}button:disabled{cursor:wait}#details{line-height:1.6}#preview{font-weight:600;color:#93c5fd}</style></head><body><main>
+<h1>Takas daveti</h1>
+<section><h2 id="roleLabel">Katılımcı</h2><p id="feeInfo">Takas bilgisi okunuyor...</p>
+<label>Göndereceğiniz varlık</label><select id="asset"><option value="TRX">TRX</option><option value="FRHN">FRHN (Nile test)</option><option value="OTHER">Diğer TRC20 (USDT / SUN / özel token)</option></select>
+<div id="tokenWrap" hidden><label>Token sözleşme adresi (Nile)</label><input id="token" placeholder="T ile başlayan token adresi"></div>
+<label>Göndereceğiniz miktar</label><input id="amount" inputmode="decimal" placeholder="Örn. 100">
+<p id="preview">Miktarı girin.</p>
+<button id="deposit">Onayla ve yatır</button>
+<small>Bu bağlantı size özeldir. TRC20 token için ilk seferde token izni ve yatırma imzası gerekir.</small></section>
+<section><h2>Takas durumu</h2><button id="check">Durumu görüntüle</button><p id="details">Henüz kontrol edilmedi.</p>
+<button id="refund">Süre dolduysa yatırımı geri al</button></section>
+<p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
+const role=Number(qs.get("role")),id=qs.get("id"),secret=qs.get("secret");
+let deal=null,busy=false;
+$("roleLabel").textContent=role===1?"A tarafı":role===2?"B tarafı":"Geçersiz davet";
+async function run(button,fn){
+ if(busy)return;busy=true;button.disabled=true;
+ try{await fn();}catch(e){status("Hata: "+(e.message||e));}
+ finally{busy=false;button.disabled=false;}
+}
+function validInvite(){if(!fixedReady()||!/^[1-9]\d*$/.test(id||"")||![1,2].includes(role)||!validSecret(secret))throw Error("Geçerli takas daveti gerekli.");}
+function updatePreview(){
+ const type=$("asset").value;
+ if(!deal){$("preview").textContent="Takas bilgisi okununca net tutar gösterilecek.";return;}
+ if(type!=="TRX"){
+  $("preview").textContent=Number(deal.feePayer)===role&&BigInt(deal.feeAmount)>0n?"Komisyonu bu taraf ödüyor: TRX seçin.":"Bu tarafta token komisyonu yok. Miktarı kontrol edin.";
+  return;
+ }
+ $("preview").textContent=netPreview($("amount").value.trim(),deal.feeAmount.toString(),deal.feePayer,role,"TRX");
+}
+$("asset").onchange=()=>{$("tokenWrap").hidden=$("asset").value!=="OTHER";updatePreview();};
+$("amount").oninput=updatePreview;
+async function readDeal(){
+ validInvite();
+ const c=await contract();
+ deal=await c.getDeal(id).call();
+ const expected=role===1?deal.inviteHashA:deal.inviteHashB;
+ if(!sameHash(expected,await hashSecret(secret)))throw Error("Bu tarafın davet anahtarı yanlış. Yönetici tarafından gönderilen tam bağlantıyı kullanın.");
+ const fee=BigInt(deal.feeAmount.toString()),payer=Number(deal.feePayer);
+ $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. Yatırdığınız TRX'ten yalnız başarılı takasta kesilir.":fee>0n?"Komisyonu diğer taraf öder ("+displayUnits(fee)+" TRX).":"Komisyon yok.";
+ updatePreview();
+ return {c,d:deal};
+}
+async function check(){
+ const {d}=await readDeal();
+ const a=d.depositedA?"Yatırdı":"Bekliyor",b=d.depositedB?"Yatırdı":"Bekliyor";
+ const state=d.completed?"Takas tamamlandı":d.cancelled?"Takas iptal":d.refundedA||d.refundedB?"İade süreci":d.depositedA&&d.depositedB?"Yönetici son onayı bekleniyor":"Yatırımlar bekleniyor";
+ $("details").textContent="A: "+a+" · B: "+b+" · "+state;
+}
+$("check").onclick=()=>run($("check"),async()=>{await check();status("Güncel durum zincirden okundu.");});
+$("deposit").onclick=()=>run($("deposit"),async()=>{
+ const tw=await wallet(),{c,d}=await readDeal();
+ if(d.completed||d.cancelled||d.refundedA||d.refundedB)throw Error("Bu takas kapalı.");
+ const deadline=Number(d.depositDeadline.toString());
+ if(deadline){
+  const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
+  if(now&&now>=deadline)throw Error("15 dakikalık yatırım süresi doldu. İşlem gönderilmedi.");
+ }
+ if(Number(d.finalDeadline.toString())>0)throw Error("İki taraf da yatırmış; yeni yatırım yapılamaz.");
+ if(role===1&&d.depositedA||role===2&&d.depositedB)throw Error("Bu taraf zaten yatırım yaptı.");
+ const other=role===1?d.partyB:d.partyA;
+ if(readableAddress(other,tw)===tw.defaultAddress.base58)throw Error("A ve B farklı cüzdanlar olmalıdır.");
+ const type=$("asset").value;
+ if(Number(d.feePayer)===role&&BigInt(d.feeAmount)>0n&&type!=="TRX")throw Error("Bu taraf TRX komisyonu öder; varlık TRX olmalı.");
+ const token=type==="TRX"?ZERO:type==="FRHN"?FRHN:$("token").value.trim();
+ if(type!=="TRX"&&!tw.isAddress(token))throw Error("Nile token sözleşme adresi geçersiz.");
+ const otherDeposited=role===1?d.depositedB:d.depositedA;
+ const otherToken=role===1?d.tokenB:d.tokenA;
+ const selectedToken=type==="TRX"?"—":token;
+ if(otherDeposited&&readableAddress(otherToken,tw)===selectedToken)throw Error("İki taraf aynı varlığı yatıramaz. Başka token seçin.");
+ let decimals=6;
+ if(type!=="TRX"){
+  decimals=Number((await(await tw.contract(TOKEN_ABI,token)).decimals().call()).toString());
+ }
+ const amount=units($("amount").value.trim(),decimals);
+ if(BigInt(amount)===0n)throw Error("Miktar sıfırdan büyük olmalı.");
+ if(Number(d.feePayer)===role&&BigInt(d.feeAmount)>=BigInt(amount))throw Error("Komisyon "+displayUnits(d.feeAmount)+" TRX. Yatırım bunun üzerinde olmalı; örn. 100 TRX yatırıp 50 TRX komisyon ödeyebilirsiniz.");
+ if(type!=="TRX"){
+  const t=await tw.contract(TOKEN_ABI,token);
+  const allowance=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
+  if(allowance<BigInt(amount)){
+   status("Token izni için TronLink imzası bekleniyor...");
+   await send(t.approve(address,amount));
+  }
+ }
+ await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:0});
+ await check();
+ status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
+});
+$("refund").onclick=()=>run($("refund"),async()=>{
+ const tw=await wallet(),{c,d}=await readDeal();
+ if(d.completed)throw Error("Takas tamamlanmış, iade yapılamaz.");
+ const mine=role===1?d.partyA:d.partyB,refunded=role===1?d.refundedA:d.refundedB;
+ if(readableAddress(mine,tw)!==tw.defaultAddress.base58)throw Error("Bu cüzdan ilgili tarafın yatırımcısı değil.");
+ if(refunded)throw Error("Yatırım zaten iade edilmiş.");
+ const deadline=Number((d.finalDeadline&&Number(d.finalDeadline.toString())>0?d.finalDeadline:d.depositDeadline).toString());
+ if(!deadline)throw Error("Henüz yatırım yapılmamış.");
+ const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
+ if(now&&now<deadline)throw Error("İade süresi henüz gelmedi.");
+ await send(c.refund(id));await check();status("İade işlemi zincirde doğrulandı.");
+});
+if(fixedReady()&&/^[1-9]\d*$/.test(id||"")&&[1,2].includes(role)&&validSecret(secret)){
+ readDeal().catch(e=>{$("feeInfo").textContent="Takas bilgisi okunamadı: "+e.message;});
+}else{$("feeInfo").textContent="Geçerli davet bağlantısı gerekli.";}
+</script></body></html>
