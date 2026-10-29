@@ -215,7 +215,7 @@ test("recovered deployment is tied to official bytecode and selected manager",()
  const setup=read("takas-kurulum.html");
  assert.match(setup,/wallet\/gettransactionbyid/);
  assert.match(setup,/deployedCode!==expectedCode/);
- assert.match(setup,/deployedOwner!==w\.address\.toHex\(selectedWallet\(\)\)\.toLowerCase\(\)/);
+ assert.match(setup,/deployedOwner!==String\(w\.address\.toHex\(selectedWallet\(\)\)\)\.replace\(/);
  assert.match(setup,/deployment\?\.type!=="CreateSmartContract"/);
 });
 
