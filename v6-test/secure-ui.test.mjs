@@ -408,3 +408,33 @@ test("V8 TronWeb send receives a safe numeric SUN callValue",async()=>{
  assert.throws(()=>vm.runInContext('safeCallValue("9007199254740992")',x.ctx),/güvenli sayı sınırını/);
  assert.throws(()=>vm.runInContext('safeCallValue("-1")',x.ctx),/güvenli sayı sınırını/);
 });
+
+test("participant does not sign a deposit when the remaining window is too short",async()=>{
+ const x=await make("participant");
+ x.deal.depositDeadline="1030"; // mocked Nile block time is 1000 seconds
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/süresinin bitmesine çok az kaldı/);
+});
+test("participant rechecks deal after commitment and refuses stale deposit",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getCurrentBlock=async()=>{
+  x.deal.depositedA=true; // another signed transaction won the role while waiting
+  return {block_header:{raw_data:{timestamp:1000000,number:101}}};
+ };
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Bu taraf zaten yatırım yaptı/);
+});
+test("refund refuses to sign if Nile block timestamp cannot be read",async()=>{
+ const x=await make("participant");
+ x.deal.depositedA=true;
+ x.deal.partyA="0x"+"2".repeat(40);
+ x.deal.depositDeadline="100";
+ x.tw.trx.getCurrentBlock=async()=>({block_header:{raw_data:{number:101}}});
+ await x.get("refund").onclick();
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Nile blok saati okunamadı/);
+});
