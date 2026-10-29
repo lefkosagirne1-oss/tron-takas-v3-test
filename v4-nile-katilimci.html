@@ -49,6 +49,15 @@ body:has(#completion:not([hidden])) #simpleFlow,
 body:has(#completion:not([hidden])) #proposalSection,
 body:has(#completion:not([hidden])) #actionSection{display:none!important}
 body:has(#completion:not([hidden])) #detailsSection details{display:block}
+/* Katılımcı: yalnızca işlem girişi ve tek eylem görünür; teknik bilgiler isteğe bağlı. */
+#proposalSection{margin:10px 0;padding:18px}
+#proposalSection>p{display:none}
+#simpleFlow{margin:10px 0;padding:18px}
+#actionSection{margin:0;padding:0 18px}
+#detailsSection{border:0;background:transparent;box-shadow:none;padding:0 8px}
+#detailsSection summary{font-size:13px}
+#managerHandoff{display:block;text-align:center;padding:14px;background:#173a32;border-radius:12px;color:#d9fff2;font-weight:650;margin:12px 0}
+#managerHandoff[hidden]{display:none!important}
 </style></head><body>
 <h1>Güvenli Takas</h1><p id="heading">Nile ağı · İşlem daveti</p>
 <section id="inviteLanding" hidden><h2>Bu sayfa bir takas davetiyle açılır</h2><p>Henüz bir işlem seçilmedi. Yönetici tarafından gönderilen <strong>Taraf A</strong> veya <strong>Taraf B</strong> bağlantısını açtığında yalnızca sana ait işlem adımları görünecek.</p><p>Şu anda cüzdan bağlamana veya işlem imzalamana gerek yok.</p></section>
@@ -58,15 +67,15 @@ body:has(#completion:not([hidden])) #detailsSection details{display:block}
 <button id="wallet">TronLink cüzdanını bağla</button>
 <button id="join" disabled>Katılım isteği gönder</button>
 <pre id="joinStatus">İşlem imzalanmadı.</pre></section><div id="roleWarning" class="role-warning" hidden></div>
-<section id="proposalSection"><h2>2 · Varlığını ve miktarını belirle</h2>
+<section id="proposalSection"><h2>Göndereceğin varlık</h2>
 <p>Göndereceğin tokeni ve miktarı yaz. Karşı tarafın bilgileri de tamamlandığında aynı sayfada tutarları görüp onaylayacak, ardından yatıracaksın.</p>
 <label for="type">Token türü</label><select id="type"><option value="">Token seçiniz</option><option value="TRX">TRX (Nile)</option><option value="TOKEN">TRC20 token adresi</option></select>
 <div id="tokenBox" hidden><label for="token">TRC20 sözleşme adresi (T…)</label><input id="token" autocomplete="off" placeholder="T..."></div>
 <label for="amount">Gönderilecek miktar</label><input id="amount" inputmode="decimal" autocomplete="off" placeholder="Miktarı kendin gir">
 <button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
-<section id="simpleFlow"><h2>İşlemin</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="quickTimer" hidden></pre><pre id="primaryFeedback" hidden></pre></section>
-<section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
+<section id="simpleFlow"><h2>Onayla ve devam et</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="quickTimer" hidden></pre><pre id="primaryFeedback" hidden></pre></section>
+<a id="managerHandoff" href="./v4-nile-yonetici.html" hidden>Yatırım kaydedildi · Yönetici paneline geç</a><section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku. İşlem aşaması geldiğinde ilgili düğme burada açılır.</p>
 <button id="accept" hidden disabled>Takas koşullarını onayla</button>
 <button id="allow" hidden disabled>Token iznini cüzdanda onayla</button>
@@ -191,6 +200,7 @@ async function read(){
  };
  $("sideA").textContent=describe("A");$("sideB").textContent=describe("B");
  $("completion").hidden=!flag(deal.completed);
+ $("managerHandoff").hidden=!(wallet&&(wallet===a||wallet===b)&&flag(deal[wallet===a?"depositedA":"depositedB"])&&!flag(deal.completed));
  const wrongRole=!!wallet&&!!role&&role!==roleParam;
  $("roleWarning").hidden=!wrongRole;
  $("roleWarning").textContent=wrongRole?"Yanlış davet bağlantısı: Bağlı cüzdan bu takasta diğer tarafa ait. İşlem yapmadan doğru taraf bağlantısını aç.":"";
