@@ -2,7 +2,7 @@
 button{cursor:pointer}button:disabled{cursor:wait}#details{line-height:1.6}#preview{font-weight:600;color:#93c5fd}</style></head><body><main>
 <h1>Takas daveti</h1>
 <section><h2 id="roleLabel">Katılımcı</h2><p id="feeInfo">Takas bilgisi okunuyor...</p>
-<label>Göndereceğiniz varlık</label><select id="asset"><option value="TRX">TRX</option><option value="FRHN">FRHN (Nile test)</option><option value="OTHER">Diğer TRC20 (USDT / SUN / özel token)</option></select>
+<label>Göndereceğiniz varlık</label><select id="asset"><option value="TRX">TRX</option><option value="OTHER">Diğer TRC20 (USDT / SUN / özel token)</option></select>
 <div id="tokenWrap" hidden><label>Token sözleşme adresi (Nile)</label><input id="token" placeholder="T ile başlayan token adresi"></div>
 <label>Göndereceğiniz miktar</label><input id="amount" inputmode="decimal" placeholder="Örn. 100">
 <p id="preview">Miktarı girin.</p>
@@ -63,7 +63,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const other=role===1?d.partyB:d.partyA;
  if(readableAddress(other,tw)===tw.defaultAddress.base58)throw Error("A ve B farklı cüzdanlar olmalıdır.");
  const type=$("asset").value;
- const token=type==="TRX"?ZERO:type==="FRHN"?FRHN:$("token").value.trim();
+ const token=type==="TRX"?ZERO:$("token").value.trim();
  if(type!=="TRX"&&!tw.isAddress(token))throw Error("Nile token sözleşme adresi geçersiz.");
  let decimals=6;
  if(type!=="TRX"){
