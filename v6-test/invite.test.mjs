@@ -70,3 +70,31 @@ test("invalid invitation hashes cannot create deal",async()=>{
  await assert.rejects(x.send(x.swap.create(0,0,"0x"+"00".repeat(32),inviteHash(inviteB))));
  await assert.rejects(x.send(x.swap.create(0,0,inviteHash(inviteA),inviteHash(inviteA))));
 });
+
+test("same-asset TRX-to-TRX swap works with different amounts and 50 TRX fee",async()=>{
+ const x=await setup(1,parseUnits("50",6));
+ const zero="0x0000000000000000000000000000000000000000";
+ const amountA=parseUnits("100",6),amountB=parseUnits("200",6);
+ await x.send(x.swap.connect(x.a).deposit(1,1,zero,amountA,x.inviteA,{value:amountA}));
+ await x.send(x.swap.connect(x.b).deposit(1,2,zero,amountB,x.inviteB,{value:amountB}));
+ const before=await x.provider.getBalance(await x.b.getAddress());
+ await x.send(x.swap.finalize(1));
+ const after=await x.provider.getBalance(await x.b.getAddress());
+ assert.equal(after-before,parseUnits("50",6));
+ assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
+ assert.equal((await x.swap.getDeal(1)).completed,true);
+});
+test("B-side TRX commission is deducted only after manager finalization",async()=>{
+ const x=await setup(2,parseUnits("0.25",6));
+ const zero="0x0000000000000000000000000000000000000000";
+ await x.send(x.token.mint(await x.a.getAddress(),parseEther("10")));
+ await x.send(x.token.connect(x.a).approve(await x.swap.getAddress(),parseEther("10")));
+ await x.send(x.swap.connect(x.a).deposit(1,1,await x.token.getAddress(),parseEther("10"),x.inviteA));
+ await x.send(x.swap.connect(x.b).deposit(1,2,zero,parseUnits("2",6),x.inviteB,{value:parseUnits("2",6)}));
+ const before=await x.provider.getBalance(await x.a.getAddress());
+ await x.send(x.swap.finalize(1));
+ const after=await x.provider.getBalance(await x.a.getAddress());
+ assert.equal(after-before,parseUnits("1.75",6));
+ assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("30"));
+ assert.equal((await x.swap.getDeal(1)).completed,true);
+});

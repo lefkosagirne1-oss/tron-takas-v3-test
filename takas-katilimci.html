@@ -65,10 +65,6 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  if(Number(d.feePayer)===role&&BigInt(d.feeAmount)>0n&&type!=="TRX")throw Error("Bu taraf TRX komisyonu öder; varlık TRX olmalı.");
  const token=type==="TRX"?ZERO:type==="FRHN"?FRHN:$("token").value.trim();
  if(type!=="TRX"&&!tw.isAddress(token))throw Error("Nile token sözleşme adresi geçersiz.");
- const otherDeposited=role===1?d.depositedB:d.depositedA;
- const otherToken=role===1?d.tokenB:d.tokenA;
- const selectedToken=type==="TRX"?"—":token;
- if(otherDeposited&&readableAddress(otherToken,tw)===selectedToken)throw Error("İki taraf aynı varlığı yatıramaz. Başka token seçin.");
  let decimals=6;
  if(type!=="TRX"){
   decimals=Number((await(await tw.contract(TOKEN_ABI,token)).decimals().call()).toString());

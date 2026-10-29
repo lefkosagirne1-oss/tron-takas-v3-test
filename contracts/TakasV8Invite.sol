@@ -53,10 +53,8 @@ contract TakasV8Invite {
         require(d.finalDeadline == 0, "Both deposited");
         if (role == 1) {
             require(!d.depositedA && msg.sender != d.partyB, "A unavailable");
-            if (d.depositedB) require(token != d.tokenB, "Assets must differ");
         } else {
             require(!d.depositedB && msg.sender != d.partyA, "B unavailable");
-            if (d.depositedA) require(token != d.tokenA, "Assets must differ");
         }
         if (d.feePayer == role) { require(d.feeAmount < amount, "Fee exceeds amount"); if (d.feeAmount > 0) require(token == address(0), "Fee payer must deposit TRX"); }
         _receive(token, amount);
