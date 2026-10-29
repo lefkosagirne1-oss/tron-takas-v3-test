@@ -75,7 +75,7 @@ body:has(#completion:not([hidden])) #detailsSection details{display:block}
 <button id="propose" disabled>Göndereceğim tutarı kaydet</button><pre id="proposalStatus">Token ve miktar henüz kaydedilmedi.</pre>
 </section>
 <section id="simpleFlow"><h2>Onayla ve devam et</h2><p id="primaryHint">Davet kontrol ediliyor…</p><button id="primaryAction" disabled>Kontrol ediliyor…</button><pre id="quickTimer" hidden></pre><pre id="primaryFeedback" hidden></pre></section>
-<a id="managerHandoff" href="./v4-nile-yonetici.html" hidden>Yatırım kaydedildi · Yönetici paneline geç</a><section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
+<div id="managerHandoff" hidden>Yatırımın zincirde doğrulandı. Yönetici son onayı bekleniyor.</div><section id="actionSection"><h2>3 · İşlemini tamamla</h2><pre id="terms">Takas tutarları ve hizmet bedeli yükleniyor…</pre>
 <p id="next">Cüzdanı bağlayıp takas durumunu oku. İşlem aşaması geldiğinde ilgili düğme burada açılır.</p>
 <button id="accept" hidden disabled>Takas koşullarını onayla</button>
 <button id="allow" hidden disabled>Token iznini cüzdanda onayla</button>
@@ -358,7 +358,7 @@ async function sign(action){
 }
 function updatePrimaryAction(){
  const b=$("primaryAction"),h=$("primaryHint");if(!validInvite||pending||unverifiedTx){b.disabled=true;b.textContent=unverifiedTx?"Önce önceki işlemi doğrula":"İşlem sürüyor";h.textContent=unverifiedTx?"Zincir sonucu belirsiz. Ayrıntılardan ücretsiz yenile; yeniden imzalama.":"İşlem devam ediyor.";return}
- const steps=[["wallet","Cüzdanımı bağla","TronLink cüzdanını bağla."],["join","Takas davetine katıl","Katılım talebini gönder."],["propose","Onayla ve Gönder · Teklif","Bu adım teklifini kaydeder; henüz para yatırılmaz."],["accept","Onayla ve Gönder · Koşullar","İki tarafın tutarını ve hizmet bedelini kontrol et."],["allow","Token izni ver","TRC20 token için cüzdan izni gerekir."],["deposit","Onayla ve Gönder · Yatır","Bu imza varlığını V4 sözleşmesine yatırır."],["refund","Yatırdığım tutarı iade al","Süresi dolan yatırımı geri al."]];
+ const steps=[["wallet","Cüzdanımı bağla","TronLink cüzdanını bağla."],["join","Cüzdanımı takasa kaydet","V4 sözleşmesi cüzdanını kaydetmek için ayrı imza ister."],["propose","Token ve miktarı onayla","Bu işlem seçtiğin varlık ve miktarı kaydeder; para yatırmaz."],["accept","Takas koşullarını onayla","İki tarafın miktarlarını ve hizmet bedelini kontrol et."],["allow","Token izni ver","TRC20 token için cüzdan izni gerekir."],["deposit","Tokeni yatır ve yöneticiye gönder","Bu imza varlığını V4 sözleşmesine yatırır. Ardından yönetici son onayı beklenir."],["refund","Yatırdığım tutarı iade al","Süresi dolan yatırımı geri al."]];
  let v=null;if(!wallet)v=steps[0];else if(!$("joinSection").hidden&&!$("join").disabled)v=steps[1];else if(!$("proposalSection").hidden&&!$("propose").disabled)v=steps[2];else for(const a of steps.slice(3))if(!$(a[0]).hidden&&!$(a[0]).disabled){v=a;break}
  b.disabled=!v;b.dataset.target=v?.[0]||"";b.textContent=v?.[1]||"İşlem durumu bekleniyor";h.textContent=v?.[2]||$("next").textContent||"Zincir durumu bekleniyor.";
 }
