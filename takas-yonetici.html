@@ -1,0 +1,109 @@
+<!doctype html><html lang="tr"><head><title>Takas · Yönetici</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{font:16px system-ui;color:#edf4ff;background:#0b1425}body{max-width:560px;margin:30px auto;padding:16px}main{display:grid;gap:14px}section{padding:18px;border:1px solid #31435f;border-radius:16px;background:#132139}h1{font-size:1.6rem}h2{font-size:1.1rem}label{display:block;margin:10px 0 4px}input,select,button{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid #61718b}input,select{background:#0b1425;color:white}button{margin-top:12px;background:#3b82f6;color:white;font-weight:700;border:0}button:disabled{background:#475569}small{color:#cbd5e1;overflow-wrap:anywhere}#status{overflow-wrap:anywhere;color:#facc15}a{color:#93c5fd}
+button{cursor:pointer}button:disabled{cursor:wait}input[readonly]{font-size:.86rem}#details{line-height:1.6;overflow-wrap:anywhere}.hint{color:#cbd5e1}</style></head><body><main>
+<h1>Takas · Yönetici</h1>
+<section><h2>1. Yeni takas</h2>
+<label>Komisyonu kim öder?</label><select id="payer"><option value="0">Komisyon yok</option><option value="1">A tarafı</option><option value="2">B tarafı</option></select>
+<label>Sabit komisyon (TRX)</label><input id="fee" inputmode="decimal" value="0" placeholder="Örn. 5">
+<p id="feeHint" class="hint">Komisyon yok.</p>
+<button id="create">Takas oluştur ve A/B bağlantılarını hazırla</button></section>
+<section><h2>2. Davet bağlantıları</h2>
+<label>Takas numarası</label><input id="id" inputmode="numeric" placeholder="Örn. 1">
+<button id="recover">Bağlantıları göster</button>
+<label>A tarafına gönder</label><input id="a" readonly><button id="copyA">A bağlantısını kopyala</button>
+<label>B tarafına gönder</label><input id="b" readonly><button id="copyB">B bağlantısını kopyala</button>
+<small>Bağlantılar bu tarayıcıda özel anahtarlarıyla saklanır. A ve B bağlantılarını güvenli biçimde ayrı ayrı gönderin; tarayıcı verilerini silmeyin.</small></section>
+<section><h2>3. Son kontrol ve onay</h2>
+<button id="check">Yatırımları kontrol et</button><p id="details">Henüz takas seçilmedi.</p>
+<button id="final">Takası son onayla</button>
+<small>Yalnızca her iki taraf yatırdıysa, miktarları kontrol ettikten sonra onaylayın. İşlem TronLink imzası gerektirir.</small></section>
+<p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
+let busy=false;
+async function run(button,fn){
+ if(busy)return;
+ busy=true;button.disabled=true;
+ try{await fn();}catch(e){status("Hata: "+(e.message||e));}
+ finally{busy=false;button.disabled=false;}
+}
+function idValue(){
+ const id=$("id").value.trim();
+ if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası girin.");
+ return id;
+}
+async function showLinks(id,tw){
+ const v=loadInvite(id,tw);
+ if(!v)throw Error("Bu cihazda bu takasın özel davet anahtarları yok. Daha önce kopyaladığınız bağlantıları kullanın.");
+ const d=await(await contract()).getDeal(id).call();
+ if(!sameHash(d.inviteHashA,await hashSecret(v.a))||!sameHash(d.inviteHashB,await hashSecret(v.b)))throw Error("Davet anahtarları sözleşmeyle uyuşmuyor.");
+ $("id").value=String(id);$("a").value=link(1,id,v.a);$("b").value=link(2,id,v.b);
+}
+function updateFeeHint(){
+ const payer=Number($("payer").value),fee=$("fee").value.trim();
+ $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırır. Komisyon yalnız takas tamamlanırsa kesilir.";
+}
+$("payer").onchange=updateFeeHint;$("fee").oninput=updateFeeHint;updateFeeHint();
+$("create").onclick=()=>run($("create"),async()=>{
+ if(!fixedReady())throw Error("Güvenli takas sözleşme bağlantısı gerekli.");
+ const {tw,c}=await assertManager();
+ const payer=Number($("payer").value),fee=units($("fee").value.trim(),6);
+ if(payer===0&&fee!=="0")throw Error("Komisyon yok seçiliyken miktar 0 olmalı.");
+ if(payer!==0&&BigInt(fee)===0n)throw Error("Komisyon ödeyen taraf seçildiyse tutar sıfırdan büyük olmalı.");
+ const next=BigInt((await c.nextId().call()).toString());
+ const secretA=randomSecret(),secretB=randomSecret();
+ const [hashA,hashB]=await Promise.all([hashSecret(secretA),hashSecret(secretB)]);
+ saveInvite(next.toString(),secretA,secretB,tw);
+ await send(c.create(payer,fee,hashA,hashB));
+ const after=BigInt((await c.nextId().call()).toString());
+ if(after!==next+1n)throw Error("Birden fazla takas oluşturulmuş olabilir. Takas numarasını kontrol edin.");
+ const d=await c.getDeal(next.toString()).call();
+ if(Number(d.feePayer)!==payer||BigInt(d.feeAmount.toString())!==BigInt(fee))throw Error("Zincirde komisyon uyuşmuyor; bağlantılar gösterilmedi.");
+ await showLinks(next.toString(),tw);
+ status("Takas #"+next+" doğrulandı. A ve B bağlantıları hazır.");
+});
+$("recover").onclick=()=>run($("recover"),async()=>{
+ const {tw,c}=await assertManager();
+ const id=idValue();
+ await c.getDeal(id).call();
+ await showLinks(id,tw);status("Takas #"+id+" bağlantıları hazır.");
+});
+$("copyA").onclick=()=>copy($("a").value);
+$("copyB").onclick=()=>copy($("b").value);
+async function formatAsset(raw,amount,tw){
+ if(!BigInt(amount.toString()))return "—";
+ const token=readableAddress(raw,tw);
+ if(token==="—")return displayUnits(amount,6)+" TRX";
+ try{
+  const t=await tw.contract(TOKEN_ABI,token);
+  const dec=Number((await t.decimals().call()).toString());
+  return displayUnits(amount,dec)+" token ("+token+")";
+ }catch(_){return amount.toString()+" token birimi ("+token+")";}
+}
+async function showDeal(){
+ const {tw,c}=await assertManager();
+ const id=idValue(),d=await c.getDeal(id).call();
+ const a=d.depositedA?"Yatırdı":"Bekleniyor",b=d.depositedB?"Yatırdı":"Bekleniyor";
+ const [assetA,assetB]=await Promise.all([formatAsset(d.tokenA,d.amountA,tw),formatAsset(d.tokenB,d.amountB,tw)]);
+ const state=d.completed?"Tamamlandı":d.cancelled?"İptal":d.refundedA||d.refundedB?"İade işlemi var":d.depositedA&&d.depositedB?"Son onay bekliyor":"Yatırımlar bekleniyor";
+ $("details").textContent="A: "+a+" · "+readableAddress(d.partyA,tw)+" · "+assetA+" | B: "+b+" · "+readableAddress(d.partyB,tw)+" · "+assetB+" | Durum: "+state;
+ try{await showLinks(id,tw);}catch(_){}
+ return {d,tw,c};
+}
+$("check").onclick=()=>run($("check"),async()=>{await showDeal();status("Zincirden güncel durum okundu.");});
+$("final").onclick=()=>run($("final"),async()=>{
+ const {d,tw,c}=await showDeal();
+ if(d.completed||d.cancelled)throw Error("Takas zaten kapalı.");
+ if(!d.depositedA||!d.depositedB)throw Error("Her iki taraf da yatırmadan son onay yapılamaz.");
+ if(d.refundedA||d.refundedB)throw Error("İade başlamış; takas tamamlanamaz.");
+ const block=await tw.trx.getCurrentBlock();
+ const now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
+ if(now&&now>=Number(d.finalDeadline.toString()))throw Error("5 dakikalık son onay süresi doldu. İade yapılmalı.");
+ await send(c.finalize(idValue()));
+ await showDeal();
+ status("Takas zincirde başarıyla tamamlandı.");
+});
+try{
+ if(fixedReady()&&window.tronWeb?.ready){
+  const id=restoreLinks(window.tronWeb);
+  if(id){$("id").value=id;showLinks(id,window.tronWeb).catch(()=>{});}
+ }
+}catch(_){}
+</script></body></html>
