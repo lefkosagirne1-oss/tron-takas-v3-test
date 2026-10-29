@@ -27,7 +27,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f v6-test/dist/TakasV6Simple.json
+          git add -f v6-test/dist/TakasV6Simple.json v6-test/dist/TakasV6Fixed.json
           if ! git diff --cached --quiet; then
             git commit -m "build(v6): publish compiled contract artifact [skip ci]"
             git push
