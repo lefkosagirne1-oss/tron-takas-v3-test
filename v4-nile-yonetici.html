@@ -35,8 +35,17 @@ pre{background:#0b192a;border:1px solid #273d55;border-radius:12px}
 
 /* V4 yonetici sade arayuz: zincir ve komisyon mantigi degismedi */
 body{max-width:650px}section{margin:13px 0;padding:18px}section h2{font-size:18px}#walletStatus{font-size:12px}#overviewTimer{font-size:13px}#managerHint{margin:8px 0}#overviewStatus{font-size:12px}#inviteStatus{font-size:12px}#partyProgress{background:#0b192a;border-radius:12px;padding:14px}#overviewRefresh{min-height:42px;font-size:13px}#managerPrimary{min-height:58px}#rate{max-width:100%}
+/* Yönetici: cüzdan, davet ve son onay; teknik kurulum gizli kalır. */
+section{margin:10px 0;padding:17px}
+#overview>p.note{display:none}
+#overviewTimer{font-size:13px}
+#overviewRefresh{font-size:13px;min-height:40px}
+#partyProgress{font-size:14px}
+#overviewTradeList button{min-height:46px}
+#managerPrimary{min-height:62px}
+#overviewStatus:empty,#inviteStatus:empty{display:none}
 </style></head><body>
-<h1>Güvenli Takas</h1><p>Yönetici Paneli · Cüzdanını bağla, iki davet bağlantısını gönder, tarafların durumunu izle ve son onayı ver.</p>
+<h1>Güvenli Takas</h1><p>Yönetici · Cüzdanını bağla, davetleri gönder, son onayı ver.</p>
 <div class="warn"><strong>Yalnızca Nile test ağı.</strong> Bu sözleşme bağımsız denetimden geçmedi. Mainnet veya gerçek varlık için kullanmayın. Her imza TRON ağında test TRX/Energy harcayabilir.</div>
 <section><h2>1 · Cüzdanım</h2>
 <button id="connect" onclick="document.getElementById('walletStatus').textContent='Bağlantı isteği alındı; TronLink kontrol ediliyor…'">Cüzdanımı bağla</button><pre id="walletStatus">TronLink bağlantısı bekleniyor.</pre></section>
@@ -51,7 +60,7 @@ body{max-width:650px}section{margin:13px 0;padding:18px}section h2{font-size:18p
 <button id="signDeploy" disabled hidden>Dağıtımı TronLink ile imzala</button>
 <button id="diagnose" class="light" type="button">Nile saatini ve son işlemi ücretsiz kontrol et</button>
 <pre id="diagnosis">Henüz kontrol edilmedi.</pre><pre id="deployStatus">Henüz V4 Nile sözleşmesi doğrulanmadı.</pre></section>
-<section><h2>2 · Yeni takas oluştur</h2>
+<section><h2>Yeni takas</h2>
 <p class="note">Ali ve Veli gönderecekleri varlıkları ve miktarları kendileri seçer. Sen yalnızca hizmet bedelini belirlersin.</p>
 <label for="payer">Hizmet bedeli hangi taraftan?</label><select id="payer"><option value="0">Hizmet bedeli yok</option><option value="1">Taraf A'nın gönderdiği varlıktan</option><option value="2">Taraf B'nin gönderdiği varlıktan</option></select>
 <label for="rate">Platform hizmet bedeli (%)</label><input id="rate" type="number" inputmode="decimal" min="0" max="10" step="0.01" value="0">
@@ -61,8 +70,8 @@ body{max-width:650px}section{margin:13px 0;padding:18px}section h2{font-size:18p
 <div id="links" hidden><label for="linkA">Taraf A daveti</label><input id="linkA" readonly><button class="light" data-copy="linkA">Taraf A bağlantısını kopyala</button>
 <label for="linkB">Taraf B daveti</label><input id="linkB" readonly><button class="light" data-copy="linkB">Taraf B bağlantısını kopyala</button></div>
 </section>
-<section id="overview"><h2>3 · Mevcut takaslar</h2>
-<p class="note">Bu alan zincirden okunan mevcut takası özetler. Yeni işlem oluşturmaz, imza istemez.</p>
+<section id="overview"><h2>Takas takibi ve son onay</h2>
+<p class="note"></p>
 <input id="overviewDealId" type="hidden" value=""><button id="openTest5" class="light" type="button" disabled>Mevcut takas #5’i aç (ücretsiz)</button><button id="overviewLoad" class="light" type="button">Takaslarımı göster (ücretsiz)</button><div id="overviewTradeList" hidden></div>
 <pre id="overviewStatus">Cüzdan bağlanınca takaslarını açabilirsin.</pre>
 <pre id="partyProgress">Taraf A: Bekleniyor
