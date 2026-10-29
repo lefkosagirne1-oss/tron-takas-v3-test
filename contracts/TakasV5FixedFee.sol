@@ -30,6 +30,7 @@ contract TakasV5FixedFee {
         uint64 settlementDeadline;
         uint256 feeAmount; // Raw smallest units of payer asset
         uint8 feePayer; // 0 = none, 1 = A, 2 = B
+        address feeAsset; // asset that payer MUST offer; zero address = TRX
         bool walletsConfirmed;
         bool proposedA;
         bool proposedB;
@@ -64,15 +65,18 @@ contract TakasV5FixedFee {
 
     constructor() { manager = msg.sender; }
 
-    function createInvite(uint256 feeAmount, uint8 feePayer)
+    function createInvite(uint256 feeAmount, uint8 feePayer, address feeAsset)
         external onlyManager returns (uint256 id)
     {
         require(feePayer <= 2, "Invalid fee payer");
         require((feeAmount == 0) == (feePayer == 0), "Invalid zero-fee rule");
+        require(feePayer != 0 || feeAsset == address(0), "No fee asset expected");
+        require(feePayer == 0 || feeAsset == address(0) || feeAsset.code.length > 0, "Invalid fee asset");
         id = nextId++;
         Swap storage s = swaps[id];
         s.feeAmount = feeAmount;
         s.feePayer = feePayer;
+        s.feeAsset = feeAsset;
         emit InviteCreated(id, feeAmount, feePayer);
     }
 
@@ -139,6 +143,7 @@ contract TakasV5FixedFee {
         require(block.timestamp < s.offerDeadline, "Offer expired");
         require(s.proposedA && s.proposedB, "Both proposals required");
         require(s.tokenA != s.tokenB, "Different assets required");
+        require(s.feePayer == 0 || (s.feePayer == 1 ? s.tokenA : s.tokenB) == s.feeAsset, "Fee asset mismatch");
         // Reject impossible fixed fees before deposits become possible.
         require(s.feePayer != 1 || s.feeAmount < s.amountA, "Fee exceeds A deposit");
         require(s.feePayer != 2 || s.feeAmount < s.amountB, "Fee exceeds B deposit");
