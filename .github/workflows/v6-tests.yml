@@ -9,6 +9,10 @@ on:
       - 'v6-common.js'
       - 'v6-nile-yonetici.html'
       - 'v6-nile-katilimci.html'
+      - 'takas-common.js'
+      - 'takas-yonetici.html'
+      - 'takas-katilimci.html'
+      - 'takas-kurulum.html'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/v6-tests.yml'
@@ -25,7 +29,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs
+      - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs v6-test/secure-ui.test.mjs
       - run: node v6-test/build.mjs
       - name: Publish compiled V6 artifact
         run: |
