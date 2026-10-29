@@ -67,12 +67,13 @@ test("token fee payer receives full token and extra TRX fee back after timeout",
 });
 test("token fee payer pays native TRX only when manager finalizes",async()=>{
  const x=await setup(2,parseUnits("1",6));
+ const balance=async()=>BigInt(await x.provider.send("eth_getBalance",[await x.swap.getAddress(),"latest"]));
  await x.depositA();
  await x.send(x.swap.connect(x.b).deposit(1,2,await x.token.getAddress(),parseEther("20"),x.inviteB,{value:parseUnits("1",6)}));
- assert.equal(await x.provider.getBalance(await x.swap.getAddress()),parseUnits("4",6));
+ assert.equal(await balance(),parseUnits("4",6));
  await x.send(x.swap.finalize(1));
  assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("20"));
- assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
+ assert.equal(await balance(),0n);
  assert.equal((await x.swap.getDeal(1)).completed,true);
 });
 
