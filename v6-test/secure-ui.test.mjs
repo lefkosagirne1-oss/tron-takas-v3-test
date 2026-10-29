@@ -87,7 +87,7 @@ test("A can deposit TRX even if B already deposited TRX",async()=>{
  const x=await make("participant");
  x.deal.depositedB=true;
  x.deal.tokenB="0x"+"0".repeat(64);
- x.deal.partyB="0x"+"3".repeat(40);
+ x.deal.partyB="0x"+"1".repeat(40);
  await x.get("deposit").onclick();
  assert.equal(x.sent.length,1);
  assert.equal(x.sent[0].n,"100000000");

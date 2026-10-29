@@ -81,7 +81,7 @@ test("same-asset TRX-to-TRX swap works with different amounts and 50 TRX fee",as
  await x.send(x.swap.finalize(1));
  const after=BigInt(await x.provider.send("eth_getBalance",[await x.b.getAddress(),"latest"]));
  assert.equal(after-before,parseUnits("50",6));
- assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
+ assert.equal(BigInt(await x.provider.send("eth_getBalance",[await x.swap.getAddress(),"latest"])),0n);
  assert.equal((await x.swap.getDeal(1)).completed,true);
 });
 test("B-side TRX commission is deducted only after manager finalization",async()=>{
@@ -91,9 +91,9 @@ test("B-side TRX commission is deducted only after manager finalization",async()
  await x.send(x.token.connect(x.a).approve(await x.swap.getAddress(),parseEther("10")));
  await x.send(x.swap.connect(x.a).deposit(1,1,await x.token.getAddress(),parseEther("10"),x.inviteA));
  await x.send(x.swap.connect(x.b).deposit(1,2,zero,parseUnits("2",6),x.inviteB,{value:parseUnits("2",6)}));
- const before=await x.provider.getBalance(await x.a.getAddress());
+ const before=BigInt(await x.provider.send("eth_getBalance",[await x.a.getAddress(),"latest"]));
  await x.send(x.swap.finalize(1));
- const after=await x.provider.getBalance(await x.a.getAddress());
+ const after=BigInt(await x.provider.send("eth_getBalance",[await x.a.getAddress(),"latest"]));
  assert.equal(after-before,parseUnits("1.75",6));
  assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("30"));
  assert.equal((await x.swap.getDeal(1)).completed,true);
