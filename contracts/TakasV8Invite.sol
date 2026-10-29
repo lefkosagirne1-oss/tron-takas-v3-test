@@ -27,6 +27,7 @@ contract TakasV8Invite {
     modifier owner() { require(msg.sender == manager, "Manager only"); _; }
     modifier guard() { require(unlocked == 1, "Reentrancy"); unlocked = 2; _; unlocked = 1; }
     constructor() { manager = msg.sender; }
+    function inviteVersion() external pure returns (uint8) { return 8; }
 
     function create(uint8 payer, uint256 amount, bytes32 inviteHashA, bytes32 inviteHashB) external owner returns (uint256 id) {
         require(inviteHashA != bytes32(0) && inviteHashB != bytes32(0) && inviteHashA != inviteHashB, "Invalid invitations");
