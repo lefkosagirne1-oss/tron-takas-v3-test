@@ -137,3 +137,9 @@ test("deployment recovery rejects a wallet connected outside Nile",()=>{
  assert.match(setup,/Doğrulama için TronLink ağını resmi Nile Testnet seç/);
  assert.match(setup,/nile\\\.trongrid\\\.io/);
 });
+
+test("deployment cannot be signed with zero or invalid Energy estimate",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/e\.energy_required<=0/);
+ assert.match(setup,/geçerli pozitif Energy tahmini alınamadı/);
+});
