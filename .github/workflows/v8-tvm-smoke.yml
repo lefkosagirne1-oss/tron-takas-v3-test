@@ -23,14 +23,14 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Install pinned local TRON VM simulator
         run: npm install --no-save --package-lock=false --no-audit --no-fund @tvmjs/tvm@1.1.0 @tvmjs/util@1.1.0 @tvmjs/common@1.1.0 @tvmjs/block@1.0.1
-      - name: Run official tron-solc V8 runtime in local Nile TVM
-        run: |
-          node v8-test/tvm-smoke.mjs
-          node v8-test/tvm-state.mjs
-      - name: Download pinned official TRON Solidity compiler for cost benchmark
+      - name: Download pinned official TRON Solidity compiler for local TVM token tests and cost benchmark
         run: |
           mkdir -p v6-test/.cache
           curl --fail --location --retry 3 --silent --show-error --output v6-test/.cache/tron-soljson.cjs 'https://raw.githubusercontent.com/tronprotocol/solc-bin/main/wasm/soljson-v0.8.31+commit.c2812a3d.js'
           test "$(git hash-object v6-test/.cache/tron-soljson.cjs)" = "a45a82d014fadd6d8ea9086ecec221be5bcb5b93"
+      - name: Run official tron-solc V8 and TRC20 runtime in local Nile TVM
+        run: |
+          node v8-test/tvm-smoke.mjs
+          node v8-test/tvm-state.mjs
       - name: Benchmark V8 optimizer without publishing any changed contract
         run: node v8-test/optimizer-benchmark.mjs
