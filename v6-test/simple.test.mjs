@@ -19,7 +19,7 @@ async function setup(payer=0,bps=0){
  await send(token.mint(await b.getAddress(),parseEther("20")));
  await send(token.connect(b).approve(await swap.getAddress(),parseEther("20")));
  const depositA=()=>send(swap.connect(a).deposit(1,1,"0x0000000000000000000000000000000000000000",parseUnits("3",6),{value:parseUnits("3",6)}));
- const depositB=()=>send(swap.connect(b).deposit(1,2,token.getAddress(),parseEther("20")));
+ const depositB=async()=>send(swap.connect(b).deposit(1,2,await token.getAddress(),parseEther("20")));
  return {provider,owner,a,b,other,swap,token,send,depositA,depositB};
 }
 test("one deposit each and manager finalizes; no fee",async()=>{const x=await setup();await x.depositA();await x.depositB();await x.send(x.swap.finalize(1));assert.equal((await x.swap.getDeal(1)).completed,true);assert.equal(await x.token.balanceOf(await x.a.getAddress()),parseEther("20"));});
