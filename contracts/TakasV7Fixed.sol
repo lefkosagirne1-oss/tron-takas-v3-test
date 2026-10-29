@@ -28,11 +28,11 @@ contract TakasV7Fixed {
     constructor() { manager = msg.sender; }
 
     function create(uint8 payer, uint256 amount) external owner returns (uint256 id) {
-        require(payer <= 2 && amount >= 0, "Invalid fee");
+        require(payer <= 2, "Invalid fee");
         require(payer != 0 || amount == 0, "Fee payer required");
         id = nextId++;
         Deal storage d = deals[id];
-        d.feePayer = payer; d.feeBps = bps;
+        d.feePayer = payer; d.feeAmount = amount;
         emit Created(id, payer, amount);
     }
 
