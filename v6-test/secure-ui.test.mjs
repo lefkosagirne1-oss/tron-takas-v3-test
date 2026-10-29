@@ -135,5 +135,5 @@ test("manager shows net amounts and fixed fee before final approval",async()=>{
 test("deployment recovery rejects a wallet connected outside Nile",()=>{
  const setup=read("takas-kurulum.html");
  assert.match(setup,/Doğrulama için TronLink ağını Nile Testnet seç/);
- assert.match(setup,/if\(!node\.includes\("nile"\)\)throw Error/);
+ assert.match(setup,/nile\\\.trongrid\\\.io/);
 });
