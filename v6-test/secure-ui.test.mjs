@@ -117,3 +117,17 @@ test("deployment estimate is bound to the selected TronLink wallet",()=>{
  assert.match(setup,/estimatedWallet=selectedWallet\(\)/);
  assert.match(setup,/estimatedWallet!==selectedWallet\(\)/);
 });
+
+test("manager shows net amounts and fixed fee before final approval",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ x.deal.finalDeadline="1300";
+ await x.get("check").onclick();
+ const details=x.get("details").textContent;
+ assert.match(details,/B'ye gidecek: 50 TRX/);
+ assert.match(details,/A'ya gidecek: 200 TRX/);
+ assert.match(details,/Komisyon: 50 TRX \(A öder/);
+ assert.match(details,/Kalan süre: 5 dk/);
+});
