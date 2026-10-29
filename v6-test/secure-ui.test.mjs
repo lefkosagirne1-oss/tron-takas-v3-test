@@ -146,3 +146,28 @@ test("deployment cannot be signed with zero or invalid Energy estimate",()=>{
  assert.match(setup,/if\(!estimatedEnergy\)throw Error/);
  assert.match(setup,/geçerli pozitif Energy tahmini alınamadı/);
 });
+
+
+test("V8 frontend deal ABI matches the official TRON artifact address types",()=>{
+ const match=common.match(/const ABI=(\[[\s\S]*?\]);const FRHN=/);
+ assert.ok(match,"Frontend ABI not found");
+ const ui=JSON.parse(match[1]);
+ const compiled=JSON.parse(read("v6-test/dist/TakasV8Invite.json")).abi;
+ for(const name of ["getDeal","create","deposit","finalize","refund","manager","inviteVersion"]){
+  const actual=ui.find(x=>x.name===name);
+  const official=compiled.find(x=>x.name===name);
+  assert.ok(actual&&official,"Missing ABI function: "+name);
+  assert.deepEqual(actual.inputs.map(x=>x.type),official.inputs.map(x=>x.type));
+  assert.deepEqual(actual.outputs.map(x=>x.type),official.outputs.map(x=>x.type));
+ }
+ const uiFields=ui.find(x=>x.name==="getDeal").outputs[0].components.map(x=>[x.name,x.type]);
+ const compiledFields=compiled.find(x=>x.name==="getDeal").outputs[0].components.map(x=>[x.name,x.type]);
+ assert.deepEqual(uiFields,compiledFields);
+});
+test("V8 setup prevents duplicate deployments and verifies saved manager",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/const installed=localStorage\.getItem\(installedKey\)/);
+ assert.match(setup,/existing\.inviteVersion\(\)\.call\(\)/);
+ assert.match(setup,/existing\.manager\(\)\.call\(\)/);
+ assert.match(setup,/if\(localStorage\.getItem\(installedKey\)\)throw Error\("V8 sözleşmesi zaten kurulu/);
+});
