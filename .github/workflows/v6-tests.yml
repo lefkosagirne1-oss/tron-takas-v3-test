@@ -1,4 +1,4 @@
-name: V6 local escrow tests
+name: V6 compile and local tests
 on:
   push:
     paths:
@@ -8,6 +8,8 @@ on:
       - 'package-lock.json'
       - '.github/workflows/v6-tests.yml'
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,3 +21,13 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: node --test v6-test/simple.test.mjs
+      - run: node v6-test/build.mjs
+      - name: Publish compiled V6 artifact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f v6-test/dist/TakasV6Simple.json
+          if ! git diff --cached --quiet; then
+            git commit -m "build(v6): publish compiled contract artifact [skip ci]"
+            git push
+          fi
