@@ -60,6 +60,10 @@ assert.equal(state.finalDeadline,1318n);
 await call(manager,contract,"finalize",[1],8,1021);
 state=(await call(manager,contract,"getDeal",[1],9,1024))[0];
 assert.equal(state.completed,true);
+const balance=async who=>(await tvm.stateManager.getAccount(who))?.balance??0n;
+assert.equal(await balance(alice),200_000_000n,"A must receive full B deposit");
+assert.equal(await balance(bob),50_000_000n,"B must receive A deposit minus 50 TRX fee");
+assert.equal(await balance(manager),50_000_000n,"Manager must receive fee only on success");
 
 // Separate deal: one participant deposits; after 15 minutes they reclaim it.
 await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],10,1030);
@@ -68,5 +72,6 @@ await call(alice,contract,"deposit",[2,1,zero,1_000_000n,"0x"+secretA.toString("
 await call(alice,contract,"refund",[2],13,1937);
 state=(await call(manager,contract,"getDeal",[2],14,1940))[0];
 assert.equal(state.refundedA,true);
+assert.equal(await balance(alice),200_000_000n,"Timed-out A deposit must be fully refunded");
 console.log("Local Nile TVM full TRX/TRX escrow and timeout refund OK; deploy Energy",deployed.execResult.executionGasUsed.toString());
 console.log("No Nile broadcast, no wallet signature, no on-chain swap.");
