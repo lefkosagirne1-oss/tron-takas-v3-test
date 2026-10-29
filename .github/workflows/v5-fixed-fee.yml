@@ -13,6 +13,8 @@ on:
       - 'package-lock.json'
       - '.github/workflows/v5-fixed-fee.yml'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   fixed-fee:
     runs-on: ubuntu-latest
