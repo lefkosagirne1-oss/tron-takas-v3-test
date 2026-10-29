@@ -107,6 +107,11 @@ pragma solidity ^0.8.20;
 contract LocalTRC20 {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
+    uint256 public transferFeePercent;
+    function setTransferFeePercent(uint256 percent) external {
+        require(percent < 100, "fee");
+        transferFeePercent = percent;
+    }
     function mint(address who, uint256 amount) external { balanceOf[who] += amount; }
     function approve(address spender, uint256 amount) external returns (bool) {
         allowance[msg.sender][spender] = amount; return true;
@@ -118,7 +123,11 @@ contract LocalTRC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         require(balanceOf[from] >= amount && allowance[from][msg.sender] >= amount, "allowance");
         allowance[from][msg.sender] -= amount;
-        balanceOf[from] -= amount; balanceOf[to] += amount; return true;
+        balanceOf[from] -= amount;
+        uint256 credited = amount * (100 - transferFeePercent) / 100;
+        balanceOf[to] += credited;
+        balanceOf[address(0)] += amount - credited;
+        return true;
     }
 }`;
 const tokenInput={language:"Solidity",sources:{"LocalTRC20.sol":{content:tokenSource}},settings:{
@@ -182,3 +191,28 @@ assert.equal(await balance(manager),beforeRefundManager,"No manager fee on expir
 assert.equal((await call(manager,contract,"getDeal",[5],38,3226))[0].refundedB,true);
 console.log("Official tron-solc mock TRC20 local Nile TVM fee finalize and fee+token timeout refund OK.");
 console.log("Only local TVM tests: no real Nile deployment, signature, or transaction.");
+
+// A fee-on-transfer token must NOT let the escrow mark a deposit as funded
+// when fewer tokens actually arrive. The extra native fee must not be trapped.
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],39,3230);
+await tokenCall(manager,"mint",[bob.toString(),100n],40,3233);
+await tokenCall(bob,"approve",[contract.toString(),100n],41,3236);
+await tokenCall(manager,"setTransferFeePercent",[10n],42,3239);
+await call(bob,contract,"commitRole",[6,2,commitment(secretB,bob)],43,3242);
+const beforeBadToken=await tokenBalance(bob);
+const beforeBadEscrow=await tokenBalance(contract);
+const beforeBadTrx=await balance(bob);
+const beforeBadManager=await balance(manager);
+await assert.rejects(
+  ()=>call(bob,contract,"deposit",[6,2,tokenAddress,100n,"0x"+secretB.toString("hex")],44,3245,50_000_000n),
+  /deposit:/,
+  "Fee-on-transfer token deposit must revert on short receipt"
+);
+const rejected=(await call(manager,contract,"getDeal",[6],45,3248))[0];
+assert.equal(rejected.depositedB,false,"Failed token deposit must not claim a funded role");
+assert.equal(rejected.depositDeadline,0n,"Failed token deposit must not start the timer");
+assert.equal(await tokenBalance(bob),beforeBadToken,"Failed token deposit must not burn sender balance");
+assert.equal(await tokenBalance(contract),beforeBadEscrow,"Failed token deposit must not credit escrow");
+assert.equal(await balance(bob),beforeBadTrx,"Failed token deposit must not trap the extra TRX fee");
+assert.equal(await balance(manager),beforeBadManager,"Manager must not receive a fee on failed deposit");
+console.log("Local Nile TVM fee-on-transfer underfunding rejection and atomic rollback OK.");
