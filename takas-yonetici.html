@@ -81,9 +81,26 @@ async function showDeal(){
  const {tw,c}=await assertManager();
  const id=idValue(),d=await c.getDeal(id).call();
  const a=d.depositedA?"Yatırdı":"Bekleniyor",b=d.depositedB?"Yatırdı":"Bekleniyor";
- const [assetA,assetB]=await Promise.all([formatAsset(d.tokenA,d.amountA,tw),formatAsset(d.tokenB,d.amountB,tw)]);
+ const fee=BigInt(d.feeAmount.toString()),payer=Number(d.feePayer);
+ const grossA=BigInt(d.amountA.toString()),grossB=BigInt(d.amountB.toString());
+ const netA=d.depositedA?grossA-(payer===1?fee:0n):0n;
+ const netB=d.depositedB?grossB-(payer===2?fee:0n):0n;
+ if(netA<0n||netB<0n)throw Error("Zincirde komisyon ve yatırım tutarları uyuşmuyor; son onay vermeyin.");
+ const [assetA,assetB,receiveB,receiveA]=await Promise.all([
+  formatAsset(d.tokenA,d.amountA,tw),formatAsset(d.tokenB,d.amountB,tw),
+  d.depositedA?formatAsset(d.tokenA,netA,tw):Promise.resolve("—"),
+  d.depositedB?formatAsset(d.tokenB,netB,tw):Promise.resolve("—")
+ ]);
  const state=d.completed?"Tamamlandı":d.cancelled?"İptal":d.refundedA||d.refundedB?"İade işlemi var":d.depositedA&&d.depositedB?"Son onay bekliyor":"Yatırımlar bekleniyor";
- $("details").textContent="A: "+a+" · "+readableAddress(d.partyA,tw)+" · "+assetA+" | B: "+b+" · "+readableAddress(d.partyB,tw)+" · "+assetB+" | Durum: "+state;
+ const feeText=payer===0?"Komisyon yok":("Komisyon: "+displayUnits(fee)+" TRX ("+(payer===1?"A":"B")+" öder, yalnız başarılı takasta)");
+ const finalAt=Number(d.finalDeadline.toString()),depositAt=Number(d.depositDeadline.toString());
+ const block=await tw.trx.getCurrentBlock();
+ const chainNow=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
+ const deadline=finalAt||depositAt;
+ const timeText=deadline&&chainNow?(" · "+(chainNow>=deadline?"Süre doldu; iade aşaması":"Kalan süre: "+Math.ceil((deadline-chainNow)/60)+" dk")):"";
+ $("details").textContent="A: "+a+" · "+readableAddress(d.partyA,tw)+" · yatırdı: "+assetA+" · B'ye gidecek: "+receiveB+
+ " | B: "+b+" · "+readableAddress(d.partyB,tw)+" · yatırdı: "+assetB+" · A'ya gidecek: "+receiveA+
+ " | "+feeText+" | Durum: "+state+timeText;
  try{await showLinks(id,tw);}catch(_){}
  return {d,tw,c};
 }
