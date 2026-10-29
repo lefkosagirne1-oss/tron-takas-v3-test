@@ -10,6 +10,7 @@ pragma solidity ^0.8.20;
  *      Fees are disclosed before deposits, and only charged on completion.
  */
 contract TakasV5FixedFee {
+    uint256 public constant VERSION = 5;
     uint256 public constant OFFER_WINDOW = 1 days;
     uint256 public constant DEPOSIT_WINDOW = 15 minutes;
     uint256 public constant SETTLEMENT_WINDOW = 5 minutes;
