@@ -114,8 +114,9 @@ $("final").onclick=()=>run($("final"),async()=>{
  if(!d.depositedA||!d.depositedB)throw Error("Her iki taraf da yatırmadan son onay yapılamaz.");
  if(d.refundedA||d.refundedB)throw Error("İade başlamış; takas tamamlanamaz.");
  const block=await tw.trx.getCurrentBlock();
- const now=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
- if(now&&now>=Number(d.finalDeadline.toString()))throw Error("5 dakikalık son onay süresi doldu. İade yapılmalı.");
+ const now=Number(block?.block_header?.raw_data?.timestamp)/1000;
+ if(!Number.isFinite(now)||now<=0)throw Error("Nile blok saati okunamadı; son onay imzalanmadı.");
+ if(now+15>=Number(d.finalDeadline.toString()))throw Error("Son onay süresi doldu veya bitmek üzere. Masraflı işlem gönderilmedi; taraflar süre dolunca iade alabilir.");
  await send(c.finalize(idValue()),{expectedWallet});
  await showDeal();
  status("Takas zincirde başarıyla tamamlandı.");
