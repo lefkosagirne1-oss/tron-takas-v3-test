@@ -41,3 +41,5 @@ test("manager cannot deposit",async()=>{const x=await setup();await assert.rejec
 
 test("fixed fee cannot equal or exceed payer deposit",async()=>{const x=await setup(1,parseUnits("3",6));await assert.rejects(x.depositA());});
 test("fixed fee is not charged on refund",async()=>{const x=await setup(2,parseEther("1"));await x.depositB();await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);await x.send(x.swap.connect(x.b).refund(1));assert.equal(await x.token.balanceOf(await x.b.getAddress()),parseEther("20"));});
+
+// Re-run CI after artifact publishing retry fix.
