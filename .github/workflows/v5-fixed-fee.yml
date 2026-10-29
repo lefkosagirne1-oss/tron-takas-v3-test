@@ -14,7 +14,7 @@ on:
       - '.github/workflows/v5-fixed-fee.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   fixed-fee:
     runs-on: ubuntu-latest
@@ -38,3 +38,15 @@ jobs:
         run: npm run test:v5:fixed
       - name: Check V5 browser syntax and contract schema
         run: node v5-test/check-ui.mjs
+      - name: Publish verified V5 deployment artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          mkdir -p v5-deploy
+          cp v5-test/dist/TakasV5FixedFee.json v5-deploy/TakasV5FixedFee.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add v5-deploy/TakasV5FixedFee.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'build(v5): publish tested contract deployment artifact [skip ci]'
+            git push
+          fi
