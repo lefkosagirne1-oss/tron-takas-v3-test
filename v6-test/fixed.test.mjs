@@ -43,4 +43,5 @@ test("fixed fee cannot equal or exceed payer deposit",async()=>{const x=await se
 test("fixed fee is not charged on refund",async()=>{const x=await setup(1,parseUnits("1",6));await x.depositA();await x.provider.send("evm_increaseTime",[901]);await x.provider.send("evm_mine",[]);await x.send(x.swap.connect(x.a).refund(1));assert.equal((await x.swap.getDeal(1)).refundedA,true);});
 
 // Re-run CI after artifact publishing retry fix.
-\ntest("fee payer cannot deposit a different token",async()=>{const x=await setup(2,parseUnits("1",6));await x.depositA();await assert.rejects(x.depositB());});\n
+
+test("fee payer cannot deposit a different token",async()=>{const x=await setup(2,parseUnits("1",6));await x.depositA();await assert.rejects(x.depositB());});
