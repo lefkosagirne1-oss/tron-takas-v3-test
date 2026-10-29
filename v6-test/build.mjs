@@ -23,3 +23,13 @@ const fixed=fixedOut.contracts["TakasV7Fixed.sol"].TakasV7Fixed;
 if(!fixed?.evm?.bytecode?.object)throw Error("Fixed commission bytecode missing");
 fs.writeFileSync("v6-test/dist/TakasV6Fixed.json",JSON.stringify({contractName:"TakasV7Fixed",abi:fixed.abi,bytecode:fixed.evm.bytecode.object,network:"Nile",compiler:"solc 0.8.31"},null,2));
 console.log("V6 fixed-commission compilation OK; bytecode bytes:",fixed.evm.bytecode.object.length/2);
+
+const inviteSource=fs.readFileSync("contracts/TakasV8Invite.sol","utf8");
+const inviteInput={language:"Solidity",sources:{"TakasV8Invite.sol":{content:inviteSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
+const inviteOut=JSON.parse(solc.compile(JSON.stringify(inviteInput)));
+const inviteErrors=(inviteOut.errors||[]).filter(x=>x.severity==="error");
+if(inviteErrors.length)throw Error(inviteErrors.map(x=>x.formattedMessage).join("\n"));
+const invite=inviteOut.contracts["TakasV8Invite.sol"].TakasV8Invite;
+if(!invite?.evm?.bytecode?.object)throw Error("Invite contract bytecode missing");
+fs.writeFileSync("v6-test/dist/TakasV8Invite.json",JSON.stringify({contractName:"TakasV8Invite",abi:invite.abi,bytecode:invite.evm.bytecode.object,network:"Nile",compiler:"solc 0.8.31"},null,2));
+console.log("V8 secure invitation compilation OK; bytecode bytes:",invite.evm.bytecode.object.length/2);
