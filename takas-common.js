@@ -55,9 +55,29 @@ async function wallet(){
   if(!tw.defaultAddress?.base58)throw Error("TronLink cüzdanını seçin.");
   return tw;
 }
+let verifiedV8Code="";
+async function verifyV8Code(){
+  if(verifiedV8Code===address)return;
+  const artifactResponse=await fetch("./v6-test/dist/TakasV8Invite.json",{cache:"no-store"});
+  if(!artifactResponse.ok)throw Error("Resmi V8 sözleşme derlemesi yüklenemedi.");
+  const artifact=await artifactResponse.json();
+  const expected=String(artifact.runtimeBytecode||"").replace(/^0x/i,"").toLowerCase();
+  if(artifact.compiler!=="tron-solc 0.8.31"||!/^[0-9a-f]+$/.test(expected)||expected.length<100)
+    throw Error("Resmi V8 çalışma kodu doğrulanamadı; işlem kapalı.");
+  const response=await fetch("https://nile.trongrid.io/wallet/getcontractinfo",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({value:address,visible:true})
+  });
+  if(!response.ok)throw Error("Nile sözleşme kodu okunamadı.");
+  const info=await response.json();
+  const actual=String(info.runtimecode||"").replace(/^0x/i,"").toLowerCase();
+  if(actual!==expected)throw Error("Güvenlik: Nile sözleşme kodu resmi V8 derlemesiyle eşleşmiyor. İşlem imzalanmadı.");
+  verifiedV8Code=address;
+}
 async function contract(){
   const tw=await wallet();
   if(!tw.isAddress(address))throw Error("Sözleşme adresi geçersiz.");
+  await verifyV8Code();
   const c=await tw.contract(ABI,address);
   const manager=await c.manager().call();
   if(readableAddress(manager,tw)==="—")throw Error("Sözleşme doğrulanamadı.");
