@@ -13,3 +13,13 @@ if(create.inputs.length!==2||deposit.inputs.length!==4)throw Error("ABI mismatch
 fs.mkdirSync("v6-test/dist",{recursive:true});
 fs.writeFileSync("v6-test/dist/TakasV6Simple.json",JSON.stringify({contractName:"TakasV6Simple",abi:c.abi,bytecode:c.evm.bytecode.object,network:"Nile",compiler:"solc 0.8.31"},null,2));
 console.log("V6 compilation OK; bytecode bytes:",c.evm.bytecode.object.length/2);
+
+const fixedSource=fs.readFileSync("contracts/TakasV7Fixed.sol","utf8");
+const fixedInput={language:"Solidity",sources:{"TakasV7Fixed.sol":{content:fixedSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
+const fixedOut=JSON.parse(solc.compile(JSON.stringify(fixedInput)));
+const fixedErrors=(fixedOut.errors||[]).filter(x=>x.severity==="error");
+if(fixedErrors.length)throw Error(fixedErrors.map(x=>x.formattedMessage).join("\n"));
+const fixed=fixedOut.contracts["TakasV7Fixed.sol"].TakasV7Fixed;
+if(!fixed?.evm?.bytecode?.object)throw Error("Fixed commission bytecode missing");
+fs.writeFileSync("v6-test/dist/TakasV6Fixed.json",JSON.stringify({contractName:"TakasV7Fixed",abi:fixed.abi,bytecode:fixed.evm.bytecode.object,network:"Nile",compiler:"solc 0.8.31"},null,2));
+console.log("V6 fixed-commission compilation OK; bytecode bytes:",fixed.evm.bytecode.object.length/2);
