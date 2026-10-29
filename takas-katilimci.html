@@ -24,7 +24,8 @@ function updatePreview(){
  const type=$("asset").value;
  if(!deal){$("preview").textContent="Takas bilgisi okununca net tutar gösterilecek.";return;}
  if(type!=="TRX"){
-  $("preview").textContent=Number(deal.feePayer)===role&&BigInt(deal.feeAmount)>0n?"Komisyonu bu taraf ödüyor: TRX seçin.":"Bu tarafta token komisyonu yok. Miktarı kontrol edin.";
+  const fee=Number(deal.feePayer)===role?BigInt(deal.feeAmount.toString()):0n;
+  $("preview").textContent=fee>0n?"Token miktarının tamamı karşı tarafa gider. Ayrıca "+displayUnits(fee)+" TRX komisyon teminatı yatırılır; takas başarısızsa iade edilir.":"Token miktarının tamamı karşı tarafa gider; bu tarafta komisyon yok.";
   return;
  }
  $("preview").textContent=netPreview($("amount").value.trim(),deal.feeAmount.toString(),deal.feePayer,role,"TRX");
@@ -38,7 +39,7 @@ async function readDeal(){
  const expected=role===1?deal.inviteHashA:deal.inviteHashB;
  if(!sameHash(expected,await hashSecret(secret)))throw Error("Bu tarafın davet anahtarı yanlış. Yönetici tarafından gönderilen tam bağlantıyı kullanın.");
  const fee=BigInt(deal.feeAmount.toString()),payer=Number(deal.feePayer);
- $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. Yatırdığınız TRX'ten yalnız başarılı takasta kesilir.":fee>0n?"Komisyonu diğer taraf öder ("+displayUnits(fee)+" TRX).":"Komisyon yok.";
+ $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. TRX gönderirseniz miktardan kesilir; token gönderirseniz ayrıca TRX yatırılır. Başarısız takasta komisyon teminatı iade edilir.":fee>0n?"Komisyonu diğer taraf öder ("+displayUnits(fee)+" TRX).":"Komisyon yok.";
  updatePreview();
  return {c,d:deal};
 }
@@ -62,7 +63,6 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  const other=role===1?d.partyB:d.partyA;
  if(readableAddress(other,tw)===tw.defaultAddress.base58)throw Error("A ve B farklı cüzdanlar olmalıdır.");
  const type=$("asset").value;
- if(Number(d.feePayer)===role&&BigInt(d.feeAmount)>0n&&type!=="TRX")throw Error("Bu taraf TRX komisyonu öder; varlık TRX olmalı.");
  const token=type==="TRX"?ZERO:type==="FRHN"?FRHN:$("token").value.trim();
  if(type!=="TRX"&&!tw.isAddress(token))throw Error("Nile token sözleşme adresi geçersiz.");
  let decimals=6;
@@ -71,7 +71,7 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
  }
  const amount=units($("amount").value.trim(),decimals);
  if(BigInt(amount)===0n)throw Error("Miktar sıfırdan büyük olmalı.");
- if(Number(d.feePayer)===role&&BigInt(d.feeAmount)>=BigInt(amount))throw Error("Komisyon "+displayUnits(d.feeAmount)+" TRX. Yatırım bunun üzerinde olmalı; örn. 100 TRX yatırıp 50 TRX komisyon ödeyebilirsiniz.");
+ if(type==="TRX"&&Number(d.feePayer)===role&&BigInt(d.feeAmount)>=BigInt(amount))throw Error("Komisyon "+displayUnits(d.feeAmount)+" TRX. Yatırım bunun üzerinde olmalı; örn. 100 TRX yatırıp 50 TRX komisyon ödeyebilirsiniz.");
  if(type!=="TRX"){
   const t=await tw.contract(TOKEN_ABI,token);
   const allowance=BigInt((await t.allowance(tw.defaultAddress.base58,address).call()).toString());
@@ -88,7 +88,8 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   status("Davet güvenliği için cüzdan kayıt imzası bekleniyor. Ardından yatırım imzası istenecek.");
   await send(c.commitRole(id,role,commitment));
  }
- await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:0});
+ const extraFee=type!=="TRX"&&Number(d.feePayer)===role?d.feeAmount.toString():"0";
+ await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee});
  await check();
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
 });
