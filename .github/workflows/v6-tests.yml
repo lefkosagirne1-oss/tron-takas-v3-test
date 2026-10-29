@@ -17,6 +17,9 @@ on:
       - 'package-lock.json'
       - '.github/workflows/v6-tests.yml'
   workflow_dispatch:
+concurrency:
+  group: v6-build-main
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
