@@ -5,6 +5,7 @@ on:
       - 'contracts/TakasV8Invite.sol'
       - 'v6-test/dist/TakasV8Invite.json'
       - 'v8-test/tvm-smoke.mjs'
+      - 'v8-test/tvm-state.mjs'
       - '.github/workflows/v8-tvm-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -20,6 +21,8 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - name: Install pinned local TRON VM simulator
-        run: npm install --no-save --package-lock=false --no-audit --no-fund @tvmjs/tvm@1.1.0 @tvmjs/util@1.1.0 @tvmjs/common@1.1.0
+        run: npm install --no-save --package-lock=false --no-audit --no-fund @tvmjs/tvm@1.1.0 @tvmjs/util@1.1.0 @tvmjs/common@1.1.0 @tvmjs/block@1.0.1
       - name: Run official tron-solc V8 runtime in local Nile TVM
-        run: node v8-test/tvm-smoke.mjs
+        run: |
+          node v8-test/tvm-smoke.mjs
+          node v8-test/tvm-state.mjs
