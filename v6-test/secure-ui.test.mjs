@@ -257,3 +257,11 @@ test("manager displays full token amount rather than subtracting TRX fee from to
  assert.match(x.get("details").textContent,/B'ye gidecek: 100 token/);
  assert.match(x.get("details").textContent,/Komisyon: 50 TRX/);
 });
+
+test("V8 participant only offers TRX or explicit custom TRC20, without FRHN test branding",()=>{
+ const page=read("takas-katilimci.html");
+ assert.match(page,/<option value="TRX">TRX<\/option>/);
+ assert.match(page,/<option value="OTHER">/);
+ assert.doesNotMatch(page,/value="FRHN"|type==="FRHN"/);
+ assert.doesNotMatch(read("takas-common.js"),/const FRHN=/);
+});
