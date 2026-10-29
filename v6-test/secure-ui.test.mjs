@@ -68,3 +68,17 @@ test("30 TRX rejected before signing if commission is 50 TRX",async()=>{
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/Komisyon 50 TRX/);
 });
+
+
+test("landing page routes only to secure V8 setup and saved manager",()=>{
+ const home=read("index.html");
+ assert.match(home,/takas-kurulum\\.html/);
+ assert.match(home,/takas-yonetici\\.html\\?secure=1/);
+ assert.doesNotMatch(home,/href=["']\\.\\/v[45]-/);
+});
+test("deployment recovery persists V8 contract and decodes padded manager address",()=>{
+ const setup=read("takas-kurulum.html");
+ assert.match(setup,/function normalizeManager/);
+ assert.match(setup,/localStorage\\.setItem\\(installedKey,addr\\)/);
+ assert.match(setup,/secure-takas-v8-contract/);
+});
