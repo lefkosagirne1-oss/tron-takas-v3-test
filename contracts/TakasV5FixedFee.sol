@@ -139,6 +139,9 @@ contract TakasV5FixedFee {
         require(block.timestamp < s.offerDeadline, "Offer expired");
         require(s.proposedA && s.proposedB, "Both proposals required");
         require(s.tokenA != s.tokenB, "Different assets required");
+        // Reject impossible fixed fees before deposits become possible.
+        require(s.feePayer != 1 || s.feeAmount < s.amountA, "Fee exceeds A deposit");
+        require(s.feePayer != 2 || s.feeAmount < s.amountB, "Fee exceeds B deposit");
         uint8 role;
         if (msg.sender == s.partyA) { s.acceptedA = true; role = 1; }
         else if (msg.sender == s.partyB) { s.acceptedB = true; role = 2; }
