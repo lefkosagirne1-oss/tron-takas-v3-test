@@ -171,3 +171,17 @@ test("V8 setup prevents duplicate deployments and verifies saved manager",()=>{
  assert.match(setup,/existing\.manager\(\)\.call\(\)/);
  assert.match(setup,/if\(localStorage\.getItem\(installedKey\)\)throw Error\("V8 sözleşmesi zaten kurulu/);
 });
+
+
+test("zero TRX address decodes as native asset for address-typed V8 ABI",async()=>{
+ const x=await make("manager");
+ const zero40="0x"+"0".repeat(40);
+ const zero41="41"+"0".repeat(40);
+ assert.equal(vm.runInContext("readableAddress("+JSON.stringify(zero40)+",window.tronWeb)",x.ctx),"—");
+ assert.equal(vm.runInContext("readableAddress("+JSON.stringify(zero41)+",window.tronWeb)",x.ctx),"—");
+ assert.equal(vm.runInContext("readableAddress(ZERO,window.tronWeb)",x.ctx),"—");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.amountA="100000000";x.deal.tokenA=zero40;
+ await x.get("check").onclick();
+ assert.match(x.get("details").textContent,/yatırdı: 100 TRX/);
+});
