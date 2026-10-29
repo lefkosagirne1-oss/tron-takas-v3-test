@@ -1,0 +1,21 @@
+name: V6 local escrow tests
+on:
+  push:
+    paths:
+      - 'contracts/TakasV6Simple.sol'
+      - 'v6-test/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/v6-tests.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node --test v6-test/simple.test.mjs
