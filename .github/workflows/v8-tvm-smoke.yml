@@ -1,0 +1,25 @@
+name: V8 Nile TVM local smoke
+on:
+  push:
+    paths:
+      - 'contracts/TakasV8Invite.sol'
+      - 'v6-test/dist/TakasV8Invite.json'
+      - 'v8-test/tvm-smoke.mjs'
+      - '.github/workflows/v8-tvm-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nile-tvm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Install pinned local TRON VM simulator
+        run: npm install --no-save --package-lock=false --no-audit --no-fund @tvmjs/tvm@1.1.0 @tvmjs/util@1.1.0 @tvmjs/common@1.1.0
+      - name: Run official tron-solc V8 runtime in local Nile TVM
+        run: node v8-test/tvm-smoke.mjs
