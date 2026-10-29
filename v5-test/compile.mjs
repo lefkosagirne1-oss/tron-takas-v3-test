@@ -1,0 +1,12 @@
+import fs from "node:fs";
+import solc from "solc";
+const source=fs.readFileSync("contracts/TakasV5FixedFee.sol","utf8");
+const input={language:"Solidity",sources:{"TakasV5FixedFee.sol":{content:source}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
+const compiled=JSON.parse(solc.compile(JSON.stringify(input)));
+const errors=(compiled.errors||[]).filter(x=>x.severity==="error");
+if(errors.length)throw Error(errors.map(x=>x.formattedMessage).join("\n"));
+const c=compiled.contracts["TakasV5FixedFee.sol"].TakasV5FixedFee;
+if(!c?.evm?.bytecode?.object)throw Error("Missing V5 bytecode");
+const invite=c.abi.find(x=>x.type==="function"&&x.name==="createInvite");
+if(invite?.inputs?.[0]?.type!=="uint256")throw Error("Fixed fee ABI mismatch");
+console.log("V5 fixed-fee compilation OK:",c.evm.bytecode.object.length/2,"bytes");
