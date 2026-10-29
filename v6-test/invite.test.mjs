@@ -77,9 +77,9 @@ test("same-asset TRX-to-TRX swap works with different amounts and 50 TRX fee",as
  const amountA=parseUnits("100",6),amountB=parseUnits("200",6);
  await x.send(x.swap.connect(x.a).deposit(1,1,zero,amountA,x.inviteA,{value:amountA}));
  await x.send(x.swap.connect(x.b).deposit(1,2,zero,amountB,x.inviteB,{value:amountB}));
- const before=await x.provider.getBalance(await x.b.getAddress());
+ const before=BigInt(await x.provider.send("eth_getBalance",[await x.b.getAddress(),"latest"]));
  await x.send(x.swap.finalize(1));
- const after=await x.provider.getBalance(await x.b.getAddress());
+ const after=BigInt(await x.provider.send("eth_getBalance",[await x.b.getAddress(),"latest"]));
  assert.equal(after-before,parseUnits("50",6));
  assert.equal(await x.provider.getBalance(await x.swap.getAddress()),0n);
  assert.equal((await x.swap.getDeal(1)).completed,true);
