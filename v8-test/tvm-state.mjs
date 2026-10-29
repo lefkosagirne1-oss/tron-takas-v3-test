@@ -50,5 +50,23 @@ assert.equal(deal.feePayer,1n);
 assert.equal(deal.feeAmount,50_000_000n);
 await call(alice,contract,"commitRole",[1,1,commitment(secretA,alice)],5,1012);
 await call(bob,contract,"commitRole",[1,2,commitment(secretB,bob)],5,1012);
-console.log("Local Nile TVM stateful deploy/create/commit OK; Energy",deployed.execResult.executionGasUsed.toString());
-console.log("No Nile broadcast, no wallet signature, no real swap.");
+const zero="0x"+"00".repeat(20);
+await call(alice,contract,"deposit",[1,1,zero,100_000_000n,"0x"+secretA.toString("hex")],6,1015,100_000_000n);
+await call(bob,contract,"deposit",[1,2,zero,200_000_000n,"0x"+secretB.toString("hex")],7,1018,200_000_000n);
+let state=(await call(manager,contract,"getDeal",[1],8,1021))[0];
+assert.equal(state.depositedA,true);
+assert.equal(state.depositedB,true);
+assert.equal(state.finalDeadline,1318n);
+await call(manager,contract,"finalize",[1],8,1021);
+state=(await call(manager,contract,"getDeal",[1],9,1024))[0];
+assert.equal(state.completed,true);
+
+// Separate deal: one participant deposits; after 15 minutes they reclaim it.
+await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],10,1030);
+await call(alice,contract,"commitRole",[2,1,commitment(secretA,alice)],11,1033);
+await call(alice,contract,"deposit",[2,1,zero,1_000_000n,"0x"+secretA.toString("hex")],12,1036,1_000_000n);
+await call(alice,contract,"refund",[2],13,1937);
+state=(await call(manager,contract,"getDeal",[2],14,1940))[0];
+assert.equal(state.refundedA,true);
+console.log("Local Nile TVM full TRX/TRX escrow and timeout refund OK; deploy Energy",deployed.execResult.executionGasUsed.toString());
+console.log("No Nile broadcast, no wallet signature, no on-chain swap.");
