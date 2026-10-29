@@ -33,7 +33,8 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: node --test v6-test/simple.test.mjs v6-test/fixed.test.mjs v6-test/ui.test.mjs v6-test/invite.test.mjs v6-test/secure-ui.test.mjs
-      - name: Check Nile chain read-only (no signatures or transactions)
+      - name: Check Nile chain read-only (optional external RPC; failures do not certify Nile)
+        continue-on-error: true
         run: |
           node --input-type=module <<'NODE'
           const endpoint = "https://nile.trongrid.io/wallet/";
