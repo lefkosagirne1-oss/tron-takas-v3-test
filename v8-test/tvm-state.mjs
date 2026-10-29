@@ -73,5 +73,21 @@ await call(alice,contract,"refund",[2],13,1937);
 state=(await call(manager,contract,"getDeal",[2],14,1940))[0];
 assert.equal(state.refundedA,true);
 assert.equal(await balance(alice),200_000_000n,"Timed-out A deposit must be fully refunded");
+// Both sides deposit, but manager misses the five-minute window.
+// Both deposits must be refunded and the manager must NOT receive another fee.
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],15,1943);
+await call(alice,contract,"commitRole",[3,1,commitment(secretA,alice)],16,1946);
+await call(bob,contract,"commitRole",[3,2,commitment(secretB,bob)],16,1946);
+await call(alice,contract,"deposit",[3,1,zero,100_000_000n,"0x"+secretA.toString("hex")],17,1949,100_000_000n);
+await call(bob,contract,"deposit",[3,2,zero,200_000_000n,"0x"+secretB.toString("hex")],18,1952,200_000_000n);
+await call(alice,contract,"refund",[3],19,2253);
+await call(bob,contract,"refund",[3],20,2256);
+state=(await call(manager,contract,"getDeal",[3],21,2259))[0];
+assert.equal(state.refundedA,true);
+assert.equal(state.refundedB,true);
+assert.equal(state.completed,false);
+assert.equal(await balance(manager),50_000_000n,"Expired swap must not charge B fee");
+assert.equal(await balance(alice),200_000_000n,"Expired A deposit must be refunded");
+assert.equal(await balance(bob),200_000_000n,"Expired B deposit must be refunded");
 console.log("Local Nile TVM full TRX/TRX escrow and timeout refund OK; deploy Energy",deployed.execResult.executionGasUsed.toString());
 console.log("No Nile broadcast, no wallet signature, no on-chain swap.");
