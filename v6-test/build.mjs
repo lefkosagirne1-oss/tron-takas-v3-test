@@ -29,7 +29,7 @@ console.log("V6 fixed-commission compilation OK; bytecode bytes:",fixed.evm.byte
 
 const inviteSource=fs.readFileSync("contracts/TakasV8Invite.sol","utf8");
 const inviteInput={language:"Solidity",sources:{"TakasV8Invite.sol":{content:inviteSource}},settings:{optimizer:{enabled:true,runs:200},evmVersion:"paris",viaIR:true,outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}};
-const compilerPath=path.resolve(process.env.TRON_SOLC_PATH||"v6-test/.cache/tron-soljson.js");
+const compilerPath=path.resolve(process.env.TRON_SOLC_PATH||"v6-test/.cache/tron-soljson.cjs");
 const tronSolc=solc.setupMethods(require(compilerPath));
 if(!tronSolc.version().startsWith("0.8.31"))throw Error("Unexpected TRON compiler version: "+tronSolc.version());
 const inviteOut=JSON.parse(tronSolc.compile(JSON.stringify(inviteInput)));
