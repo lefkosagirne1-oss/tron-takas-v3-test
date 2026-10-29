@@ -80,6 +80,20 @@ async function waitTx(hash,tw,tries=24){
   }
   throw Error("İşlem gönderildi ancak henüz kesinleşmedi. Yeniden imzalamayın; önce işlem kimliğini kontrol edin: "+hash);
 }
+async function waitNextBlock(tw,txid){
+  // commitRole must be mined in an earlier block than deposit; otherwise
+  // the contract reverts and the participant wastes TRX on the failed call.
+  const receipt=await tw.trx.getTransactionInfo(txid);
+  const committedAt=Number(receipt?.blockNumber);
+  if(!Number.isSafeInteger(committedAt)||committedAt<=0)throw Error("Güvenlik kaydının blok numarası okunamadı. Yatırım gönderilmedi; daha sonra tekrar deneyin.");
+  for(let i=0;i<12;i++){
+    const block=await tw.trx.getCurrentBlock();
+    const now=Number(block?.block_header?.raw_data?.number);
+    if(Number.isSafeInteger(now)&&now>committedAt)return;
+    await new Promise(resolve=>setTimeout(resolve,2500));
+  }
+  throw Error("Güvenlik kaydı sonraki blokta henüz doğrulanmadı. Yatırım gönderilmedi; daha sonra tekrar deneyin.");
+}
 async function send(method,opts={}){
   const tw=await wallet();
   const hash=await method.send({feeLimit:150000000,callValue:opts.value||0,shouldPollResponse:false});
