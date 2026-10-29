@@ -1,0 +1,23 @@
+[
+  {
+    "variant": "mainnet-cost/strings-runs200-irtrue",
+    "raw_data_bytes": 7080,
+    "single_signature_bandwidth_estimate": 7214,
+    "bandwidth_TRX_if_no_quota": 7.214,
+    "method": "unsigned raw_data envelope + one 65-byte signature + 64 result allowance; no signature or broadcast performed"
+  },
+  {
+    "variant": "mainnet-cost/errors-runs1-irtrue",
+    "raw_data_bytes": 6129,
+    "single_signature_bandwidth_estimate": 6263,
+    "bandwidth_TRX_if_no_quota": 6.263,
+    "method": "unsigned raw_data envelope + one 65-byte signature + 64 result allowance; no signature or broadcast performed"
+  },
+  {
+    "variant": "mainnet-cost-guarded/errors-runs1-irtrue",
+    "raw_data_bytes": 7559,
+    "single_signature_bandwidth_estimate": 7693,
+    "bandwidth_TRX_if_no_quota": 7.693,
+    "method": "unsigned raw_data envelope + one 65-byte signature + 64 result allowance; no signature or broadcast performed"
+  }
+]

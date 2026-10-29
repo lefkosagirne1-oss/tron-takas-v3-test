@@ -1,0 +1,41 @@
+This version of µWS is not compatible with your Node.js build:
+
+Error: Cannot find module '../binaries/uws_linux_x64_137.node'
+Require stack:
+- /workspace/scratch/003c3c04bb93/cost-optimization/node_modules/ganache/node_modules/@trufflesuite/uws-js-unofficial/src/uws.js
+- /workspace/scratch/003c3c04bb93/cost-optimization/node_modules/ganache/dist/node/core.js
+Falling back to a NodeJS implementation; performance may be degraded.
+
+
+✔ one deposit each and manager finalizes; no fee (1798.383091ms)
+✔ fee charged only on finalization (1218.471429ms)
+✔ non-manager cannot finalize (932.371812ms)
+✔ same wallet cannot claim both roles (466.57492ms)
+✔ single deposit refunded after timeout (645.356116ms)
+✔ both deposits refunded after final timeout (1315.360339ms)
+✔ cannot deposit twice (414.003048ms)
+✔ A-side fixed fee deducted on finalize (1194.169414ms)
+✔ reject invalid fee configurations (178.533484ms)
+✔ cannot finalize with only one deposit (395.932941ms)
+✔ refund cannot be taken before deadline (463.495917ms)
+✔ cannot finalize after five minute final window (897.063885ms)
+✔ cannot deposit after funding deadline (489.905463ms)
+✔ refund only once (562.082651ms)
+✔ manager cannot deposit (158.030243ms)
+✔ fixed fee cannot equal or exceed payer deposit (174.585102ms)
+✔ fixed fee is not charged on refund (612.889178ms)
+✔ fee payer cannot deposit a different token (478.65658ms)
+✔ guessed deal id cannot hijack A role without secret (195.764504ms)
+✔ B secret cannot be used to deposit as A (148.011999ms)
+✔ 100 TRX deposit with 50 TRX fixed fee succeeds (1581.814814ms)
+✔ invalid invitation hashes cannot create deal (206.651781ms)
+✔ same-asset TRX-to-TRX swap works with different amounts and 50 TRX fee (1069.481632ms)
+✔ B-side TRX commission is deducted only after manager finalization (1779.119535ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21324.823125

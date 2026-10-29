@@ -1,0 +1,16 @@
+[
+  {
+    "name": "strings-runs200-irtrue",
+    "energy": 1501462,
+    "result": {
+      "result": true
+    }
+  },
+  {
+    "name": "errors-runs1-irtrue",
+    "energy": 1234176,
+    "result": {
+      "result": true
+    }
+  }
+]

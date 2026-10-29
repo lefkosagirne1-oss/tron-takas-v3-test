@@ -1,0 +1,42 @@
+[
+  {
+    "name": "strings-runs1-irtrue",
+    "creation": 6135,
+    "runtime": 6051
+  },
+  {
+    "name": "strings-runs1-irfalse",
+    "creation": 7451,
+    "runtime": 7326
+  },
+  {
+    "name": "strings-runs200-irtrue",
+    "creation": 6152,
+    "runtime": 6068
+  },
+  {
+    "name": "strings-runs200-irfalse",
+    "creation": 7522,
+    "runtime": 7397
+  },
+  {
+    "name": "errors-runs1-irtrue",
+    "creation": 4913,
+    "runtime": 4829
+  },
+  {
+    "name": "errors-runs1-irfalse",
+    "creation": 6394,
+    "runtime": 6269
+  },
+  {
+    "name": "errors-runs200-irtrue",
+    "creation": 4918,
+    "runtime": 4834
+  },
+  {
+    "name": "errors-runs200-irfalse",
+    "creation": 6429,
+    "runtime": 6304
+  }
+]
