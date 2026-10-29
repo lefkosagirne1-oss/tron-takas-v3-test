@@ -461,7 +461,7 @@ test("manager refuses final approval when Nile block time is unavailable",async(
 
 test("V8 setup isolates pending and installed contracts by selected manager wallet",()=>{
  const html=read("takas-kurulum.html");
- const script=html.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+ const script=html.split("<script>")[1]?.split("</script>")[0];
  assert.ok(script,"Setup script must exist");
  const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
  const tw={defaultAddress:{base58:walletA}};
@@ -479,5 +479,5 @@ test("V8 setup isolates pending and installed contracts by selected manager wall
  assert.match(first.installed,/secure-takas-v8-contract:/);
  assert.match(first.pending,/secure-takas-deploy-pending:/);
  const home=read("index.html");
- assert.match(home,/secure-takas-v8-contract:"\\+wallet/);
+ assert.ok(home.includes('secure-takas-v8-contract:"+wallet'));
 });
