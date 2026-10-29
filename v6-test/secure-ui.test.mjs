@@ -357,5 +357,22 @@ test("official TRON runtime bytecode is required before V8 signing",()=>{
  const build=read("v6-test/build.mjs");
  assert.match(build,/evm\.deployedBytecode\.object/);
  assert.match(common,/wallet\/getcontractinfo/);
- assert.match(common,/actual!==expected/);
+ assert.match(common,/sameV8Runtime\(expected,actual,artifact\.immutableReferences\)/);
+});
+
+test("V8 runtime comparison permits only compiler-declared immutable manager offsets",async()=>{
+ const x=await make("participant");
+ const artifact=JSON.parse(read("v6-test/dist/TakasV8Invite.json"));
+ const code=artifact.runtimeBytecode.toLowerCase();
+ const refs=artifact.immutableReferences;
+ assert.ok(Object.values(refs).flat().length>0,"Immutable manager slots must be recorded");
+ const first=Object.values(refs).flat()[0];
+ const start=first.start*2,length=first.length*2;
+ const modified=code.slice(0,start)+"a".repeat(length)+code.slice(start+length);
+ const good=vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(modified)+","+JSON.stringify(refs)+")",x.ctx);
+ assert.equal(good,true);
+ const outside=(start===0?length:0);
+ const corrupted=code.slice(0,outside)+(code[outside]==="f"?"0":"f")+code.slice(outside+1);
+ const bad=vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(corrupted)+","+JSON.stringify(refs)+")",x.ctx);
+ assert.equal(bad,false);
 });
