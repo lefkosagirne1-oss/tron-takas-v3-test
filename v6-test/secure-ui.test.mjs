@@ -8,6 +8,12 @@ const common=read("takas-common.js");
 const manager=read("takas-yonetici.html").match(/<script>([\s\S]*?)<\/script>/)[1];
 const participant=read("takas-katilimci.html").match(/<script>([\s\S]*?)<\/script>/)[1];
 const secretA="0x"+"11".repeat(32),secretB="0x"+"22".repeat(32);
+const officialArtifact=JSON.parse(read("v6-test/dist/TakasV8Invite.json"));
+let mockRuntime=officialArtifact.runtimeBytecode;
+for(const span of Object.values(officialArtifact.immutableReferences).flat()){
+ const start=span.start*2,end=(span.start+span.length)*2;
+ mockRuntime=mockRuntime.slice(0,start)+"0".repeat(24)+"11".repeat(20)+mockRuntime.slice(end);
+}
 async function sha(s){return "0x"+Buffer.from(await webcrypto.subtle.digest("SHA-256",Buffer.from(s.slice(2),"hex"))).toString("hex");}
 async function make(page,secret=secretA,amount="100"){
  const els=new Map(),get=id=>{
@@ -41,7 +47,7 @@ async function make(page,secret=secretA,amount="100"){
   ok:true,
   json:async()=>String(url).includes("TakasV8Invite.json")
     ?JSON.parse(read("v6-test/dist/TakasV8Invite.json"))
-    :{runtimecode:JSON.parse(read("v6-test/dist/TakasV8Invite.json")).runtimeBytecode}
+    :{runtimecode:mockRuntime}
  });
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
  return {ctx,get,deal,sent,commits,tw,tokenContract};
