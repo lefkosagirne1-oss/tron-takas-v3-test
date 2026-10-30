@@ -12,6 +12,18 @@ button{cursor:pointer}button:disabled{cursor:wait}#details{line-height:1.6}#prev
 <button id="refund">Süre dolduysa yatırımı geri al</button><small>İade için davet sırrı gerekmez. Sözleşme adresi, takas numarası ve yatırımı yapan cüzdan yeterlidir.</small></section>
 <p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
 const role=Number(qs.get("role")),id=qs.get("id"),secret=new URLSearchParams(String(location.hash||"").replace(/^#/,"")).get("secret")||qs.get("secret");
+/* Legacy ?secret= invitations still work, but remove the secret from the
+   address bar and future navigation history. The first HTTP request may
+   already have exposed a query secret; all newly issued links use #secret=. */
+if(qs.has("secret")&&validSecret(secret)&&typeof history!=="undefined"&&history.replaceState){
+ try{
+  const clean=new URL(location.href);
+  clean.search=location.search;clean.hash=location.hash;
+  clean.searchParams.delete("secret");
+  if(!new URLSearchParams(clean.hash.replace(/^#/,"")).get("secret"))clean.hash="secret="+encodeURIComponent(secret);
+  history.replaceState(history.state,"",clean.pathname+clean.search+clean.hash);
+ }catch(_){/* A restricted browser history API must not disable refunds. */}
+}
 let deal=null,busy=false;
 $("roleLabel").textContent=role===1?"A tarafı":role===2?"B tarafı":"Geçersiz davet";
 async function run(button,fn){
