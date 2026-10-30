@@ -80,6 +80,8 @@ async function formatAsset(raw,amount,tw){
  try{
   const t=await tw.contract(TOKEN_ABI,token);
   const dec=Number((await t.decimals().call()).toString());
+  // A malicious token can return huge decimals and freeze the manager panel.
+  if(!Number.isSafeInteger(dec)||dec<0||dec>30)throw Error("Token ondalık sayısı geçersiz.");
   return displayUnits(amount,dec)+" token ("+token+")";
  }catch(_){return amount.toString()+" token birimi ("+token+")";}
 }
