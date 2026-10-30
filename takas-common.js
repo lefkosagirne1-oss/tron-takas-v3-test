@@ -175,7 +175,13 @@ function copy(t){
 function linksKey(tw,id){return "secure-takas:"+address+":"+(tw?.defaultAddress?.base58||"")+":"+id;}
 function lastKey(tw){return "secure-takas-last:"+address+":"+(tw?.defaultAddress?.base58||"");}
 function saveInvite(id,a,b,tw){
-  localStorage.setItem(linksKey(tw,id),JSON.stringify({id:String(id),a,b}));
+  const key=linksKey(tw,id),previous=localStorage.getItem(key);
+  if(previous!==null){
+    const saved=loadInvite(id,tw);
+    if(!saved||saved.a!==a||saved.b!==b)
+      throw Error("Bu takas numarası için kayıtlı davet anahtarları var. Önceki bağlantıları korumak için üzerlerine yazılmadı.");
+  }
+  localStorage.setItem(key,JSON.stringify({id:String(id),a,b}));
   localStorage.setItem(lastKey(tw),String(id));
 }
 function loadInvite(id,tw){
