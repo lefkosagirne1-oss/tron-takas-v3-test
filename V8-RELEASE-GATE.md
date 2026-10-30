@@ -250,3 +250,13 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - Kod commitleri `ecd1df60`, `2a477ce2`, regresyon testi `539ebb17`. [GitHub Actions #41114338466](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41114338466) **123/123 test başarılı**, 0 hata; sabitlenmiş resmi TRON compiler indirme ve artifact doğrulama adımları başarılı. Salt-okunur Nile blok **72.283.965**, Energy fiyatı **100 SUN**. [Pages #41114338792](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41114338792) başarılı.
 - `d5ef0841` ile `main` karşılaştırmasında silinen dosya bulunmadı. Solidity V8 sözleşmesi, resmi bytecode artifact'i ve eski V6/V7 iade sayfaları değiştirilmedi. Önceki [yerel TronNile TVM #41087665013](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41087665013) başarılı; bu değişiklik yalnız V8 UI'dadır.
 - **YAYIN ENGELİ SÜRÜYOR:** V8 Nile'a gerçek kurulum yapılmadı; zincirde gerçek takas, son onay veya iade kanıtı yok. ~150 TRX teorik kurulum maliyeti ve değiştirilebilir TRC20 iade kilidi riski çözülmedi. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi. Hazır ilan etme.
+
+
+## 30 Ekim 2026, 23:18 TRT: A/B ve yönetici için salt-okunur otomatik durum yenileme
+
+- Katılımcı sayfası `takas-katilimci.html`, geçerli güvenli V8 davetinde 20 saniyede bir takas durumunu salt-okunur sorguluyor; A/B'nin diğer tarafın yatırımı veya yönetici onayı için tekrar tekrar durum düğmesine basması gerekmiyor. Sekme görünür değilse veya işlem sürüyorsa otomatik kontrol yapılmıyor. Geçici RPC hatasında son doğrulanmış durum korunuyor.
+- Yönetici sayfası `takas-yonetici.html`, geçerli takas numarası seçiliyken 20 saniyede bir zincirden yatırım ve son onay süresini yeniliyor; otomatik sorgu hiçbir imza veya `finalize` çağrısı yapmıyor.
+- Komisyonu ödemeyen tarafın panelinden diğer tarafın sabit TRX komisyon tutarı kaldırıldı; yalnız ödeyen taraf tutarı ve kesinti/teminat açıklamasını görüyor.
+- `v6-test/secure-ui.test.mjs` içine iki regresyon eklendi: katılımcının otomatik okuma ve ücret gizliliği; yöneticinin otomatik salt-okuma kontrolü. Değişiklik commit'leri: `89320b0a`, `252fdc7d`, `19850a8d`. İki sayfanın inline JavaScript sözdizimi ayrıca kontrol edildi.
+- Bu kaydın yazıldığı anda GitHub Actions test `41122160060` ve Pages `41122159924` **queued** durumundaydı; tamamlanmış gibi gösterilmemeli. Sözleşme, resmi compiler artifact, eski V6/V7 iade akışları değiştirilmedi.
+- **Yayın engeli değişmedi:** V8 Nile'a kurulmadı, gerçek zincirde imzalı takas veya iade yapılmadı. Gerçek Nile deploy olmadan sistem hazır değildir; kullanıcıdan cüzdan imzası, TRX veya ekran görüntüsü istenmedi.
