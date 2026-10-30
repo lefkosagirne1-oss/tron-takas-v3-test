@@ -37,8 +37,10 @@ function compactRequireReasons(input, replacement=null){
   }
   if(depth!==0)throw Error("Unbalanced require in benchmark source");
   if(comma>=0&&/^"[^"]*"$/.test(input.slice(comma+1,p).trim())){
+   const reason=input.slice(comma+1,p).trim().slice(1,-1);
+   const shortReason=typeof replacement==="function"?replacement(count,reason):replacement;
    result+=input.slice(emitted,start)+input.slice(start,comma);
-   result+=replacement===null?")":", "+JSON.stringify(replacement)+")";
+   result+=shortReason===null?")":", "+JSON.stringify(shortReason)+")";
    emitted=p+1;count++;
   }
   scan=p+1;
@@ -74,9 +76,20 @@ async function measure(bytecode){
 const baselineEnergy=await measure(reference.bytecode);
 const noReasons=compactRequireReasons(source);
 const shortReasons=compactRequireReasons(source,"E");
-assert.ok(noReasons.count>=15&&noReasons.count===shortReasons.count,
- "Expected the same require strings in both experimental variants");
+const reasonCodeMap={};
+const uniqueReasons=compactRequireReasons(source,(index,reason)=>{
+ const code=index.toString(36).toUpperCase().padStart(2,"0");
+ assert.ok(!(code in reasonCodeMap),"Duplicate compact revert code");
+ reasonCodeMap[code]=reason;
+ return code;
+});
+assert.ok(noReasons.count>=15&&noReasons.count===shortReasons.count&&
+ uniqueReasons.count===noReasons.count,
+ "Expected the same require strings in all experimental variants");
+assert.equal(Object.keys(reasonCodeMap).length,uniqueReasons.count,
+ "Every require reason must have its own compact UI-translatable code");
 console.log("Experimental require message rewrites:",noReasons.count);
+console.log("Unique short revert codes for future Turkish UI mapping:",JSON.stringify(reasonCodeMap));
 const results=[{name:"published",runs:200,viaIR:true,stripMetadata:false,bytes:reference.bytecode.length/2,energy:baselineEnergy.toString(),deltaEnergy:"0"}];
 for(const variant of [
  {name:"runs-1",runs:1,viaIR:true,stripMetadata:false},
@@ -86,7 +99,8 @@ for(const variant of [
  {name:"legacy-runs-1",runs:1,viaIR:false,stripMetadata:false},
  {name:"legacy-metadata-none",runs:200,viaIR:false,stripMetadata:true},
  {name:"require-no-reasons",runs:200,viaIR:true,stripMetadata:false,sourceOverride:noReasons.source},
- {name:"require-one-char-reasons",runs:200,viaIR:true,stripMetadata:false,sourceOverride:shortReasons.source}
+ {name:"require-one-char-reasons",runs:200,viaIR:true,stripMetadata:false,sourceOverride:shortReasons.source},
+ {name:"require-unique-two-char-codes",runs:200,viaIR:true,stripMetadata:false,sourceOverride:uniqueReasons.source}
 ]){
  try{
   const bytecode=compileVariant(variant);
