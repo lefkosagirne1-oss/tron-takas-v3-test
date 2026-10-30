@@ -40,3 +40,8 @@ jobs:
         run: |
           V8_CANDIDATE_ARTIFACT_PATH="${RUNNER_TEMP}/TakasV8Invite-custom-errors.json" node v8-test/optimizer-benchmark.mjs
           V8_TVM_ARTIFACT_PATH="${RUNNER_TEMP}/TakasV8Invite-custom-errors.json" node v8-test/tvm-state.mjs
+      - name: Probe experimental V8 deployment Energy on real Nile without a signature
+        continue-on-error: true
+        env:
+          V8_READONLY_CANDIDATE_ARTIFACT_PATH: ${{ runner.temp }}/TakasV8Invite-custom-errors.json
+        run: node v8-test/nile-deploy-readonly.mjs
