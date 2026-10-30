@@ -779,3 +779,37 @@ test("V8 manager safely displays raw token units for maliciously large decimals"
  const valid=await x.ctx.formatAsset("41"+"2".repeat(40),"1000000000000000000",x.tw);
  assert.match(valid,/1 token/,"Valid 18-decimal tokens should still be formatted");
 });
+
+test("V8 deployment estimate cannot reuse wallet A resources after switching to wallet B",async()=>{
+ const setup=read("takas-kurulum.html");
+ const script=setup.split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},
+  defaultAddress:{base58:walletA},
+  address:{toHex:()=>"41"+"1".repeat(40)},
+  trx:{getBalance:async()=>{throw Error("Balance must not be read after wallet switch");}}
+ };
+ const elements=new Map();
+ const get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false,checked:false});
+  return elements.get(id);
+ };
+ const artifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"aabb"};
+ let resourceReads=0;
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},
+  fetch:async url=>{
+   if(String(url).includes("TakasV8Invite.json"))return {ok:true,json:async()=>artifact};
+   if(String(url).includes("getaccountresource"))return {ok:true,json:async()=>{
+    resourceReads++;tw.defaultAddress.base58=walletB;return {EnergyLimit:0,EnergyUsed:0};
+   }};
+   return {ok:true,json:async()=>({chainParameter:[{key:"getEnergyFee",value:100}]})};
+  },console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ await get("estimate").onclick();
+ assert.equal(resourceReads,1,"The original wallet resource query must have run");
+ assert.match(get("status").textContent,/Cüzdan değişti; Energy tahmini iptal edildi/);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),false,"Estimate must not be accepted for wallet B");
+ assert.equal(get("deploy").disabled,true,"No deployment may be signed with mismatched resources");
+});
