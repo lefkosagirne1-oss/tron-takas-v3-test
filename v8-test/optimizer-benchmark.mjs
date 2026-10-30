@@ -149,6 +149,9 @@ for(const variant of [
   const {sourceOverride,...metadata}=variant;
   results.push({...metadata,bytes:bytecode.length/2,energy:energy.toString(),deltaEnergy:(energy-baselineEnergy).toString()});
  }catch(e){
+  // A failed optional optimizer variant may be reported, but the unique
+  // custom-error experiment must compile and deploy or CI must fail.
+  if(variant.name==="require-unique-custom-errors")throw e;
   const {sourceOverride,...metadata}=variant;
   results.push({...metadata,error:String(e.message||e).slice(0,350)});
  }
