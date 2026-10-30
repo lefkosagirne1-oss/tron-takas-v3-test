@@ -732,3 +732,39 @@ test("V8 recovery never clears a pending deployment by checking an unrelated fai
   assert.equal(requests,1,"Matching pending transaction may be verified");
   assert.equal(store.has(pendingKey),false,"Definitive failure of matching pending tx may clear its record");
 });
+
+test("V8 recovery cannot clear another wallet's pending deployment after an account switch",async()=>{
+ const setup=read("takas-kurulum.html");
+ const script=setup.split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const pendingA="a".repeat(64),pendingB="b".repeat(64);
+ const keyA="secure-takas-deploy-pending:"+walletA;
+ const keyB="secure-takas-deploy-pending:"+walletB;
+ const store=new Map([[keyA,pendingA],[keyB,pendingB]]);
+ const elements=new Map();
+ const get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false});
+  return elements.get(id);
+ };
+ const tw={defaultAddress:{base58:walletA}};
+ let changeWalletDuringRead=true;
+ const ctx={
+  window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:key=>store.get(key)||null,setItem:(key,value)=>store.set(key,value),removeItem:key=>store.delete(key)},
+  fetch:async()=>({json:async()=>{
+   if(changeWalletDuringRead)tw.defaultAddress.base58=walletB;
+   return {id:pendingA,receipt:{result:"OUT_OF_ENERGY"}};
+  }}),console
+ };
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ get("txid").value=pendingA;
+ await get("verify").onclick();
+ assert.equal(store.get(keyA),pendingA,"The original wallet's pending transaction must be preserved after switching");
+ assert.equal(store.get(keyB),pendingB,"An unrelated wallet's pending transaction must never be erased");
+ assert.match(get("status").textContent,/Cüzdan değişti/);
+ tw.defaultAddress.base58=walletA;
+ changeWalletDuringRead=false;
+ await get("verify").onclick();
+ assert.equal(store.has(keyA),false,"A definitive failed transaction may clear only the matching wallet record");
+ assert.equal(store.get(keyB),pendingB,"Other wallet's pending transaction remains protected");
+});
