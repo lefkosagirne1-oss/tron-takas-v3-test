@@ -17,9 +17,37 @@ const reference=JSON.parse(readFileSync(new URL("../v6-test/dist/TakasV8Invite.j
 assert.equal(reference.compiler,"tron-solc 0.8.31");
 const manager=createAddressFromString("0x"+"11".repeat(20));
 
-function compileVariant({runs,viaIR,stripMetadata}){
+// Compare revert-message bytecode costs without changing published V8 safety checks.
+function compactRequireReasons(input, replacement=null){
+ let scan=0, emitted=0, count=0, result="";
+ while(true){
+  const start=input.indexOf("require(",scan);
+  if(start<0)break;
+  let depth=1, quote="", escaped=false, comma=-1, p=start+"require(".length;
+  for(;p<input.length;p++){
+   const ch=input[p];
+   if(quote){
+    if(escaped)escaped=false;
+    else if(ch==="\\")escaped=true;
+    else if(ch===quote)quote="";
+   }else if(ch==="'"||ch==='"')quote=ch;
+   else if(ch==="(")depth++;
+   else if(ch===")"){if(--depth===0)break;}
+   else if(ch===","&&depth===1)comma=p;
+  }
+  if(depth!==0)throw Error("Unbalanced require in benchmark source");
+  if(comma>=0&&/^"[^"]*"$/.test(input.slice(comma+1,p).trim())){
+   result+=input.slice(emitted,start)+input.slice(start,comma);
+   result+=replacement===null?")":", "+JSON.stringify(replacement)+")";
+   emitted=p+1;count++;
+  }
+  scan=p+1;
+ }
+ return {source:result+input.slice(emitted),count};
+}
+function compileVariant({runs,viaIR,stripMetadata,sourceOverride}){
  const input={
-  language:"Solidity",sources:{"TakasV8Invite.sol":{content:source}},
+  language:"Solidity",sources:{"TakasV8Invite.sol":{content:sourceOverride||source}},
   settings:{optimizer:{enabled:true,runs},evmVersion:"paris",viaIR,
    ...(stripMetadata?{metadata:{bytecodeHash:"none"}}:{}),
    outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}
@@ -44,6 +72,11 @@ async function measure(bytecode){
  return result.execResult.executionGasUsed;
 }
 const baselineEnergy=await measure(reference.bytecode);
+const noReasons=compactRequireReasons(source);
+const shortReasons=compactRequireReasons(source,"E");
+assert.ok(noReasons.count>=15&&noReasons.count===shortReasons.count,
+ "Expected the same require strings in both experimental variants");
+console.log("Experimental require message rewrites:",noReasons.count);
 const results=[{name:"published",runs:200,viaIR:true,stripMetadata:false,bytes:reference.bytecode.length/2,energy:baselineEnergy.toString(),deltaEnergy:"0"}];
 for(const variant of [
  {name:"runs-1",runs:1,viaIR:true,stripMetadata:false},
@@ -51,7 +84,9 @@ for(const variant of [
  {name:"runs-1-metadata-none",runs:1,viaIR:true,stripMetadata:true},
  {name:"legacy-codegen",runs:200,viaIR:false,stripMetadata:false},
  {name:"legacy-runs-1",runs:1,viaIR:false,stripMetadata:false},
- {name:"legacy-metadata-none",runs:200,viaIR:false,stripMetadata:true}
+ {name:"legacy-metadata-none",runs:200,viaIR:false,stripMetadata:true},
+ {name:"require-no-reasons",runs:200,viaIR:true,stripMetadata:false,sourceOverride:noReasons.source},
+ {name:"require-one-char-reasons",runs:200,viaIR:true,stripMetadata:false,sourceOverride:shortReasons.source}
 ]){
  try{
   const bytecode=compileVariant(variant);
