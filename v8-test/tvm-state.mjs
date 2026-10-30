@@ -274,3 +274,30 @@ assert.equal((await call(manager,contract,"getDeal",[7],58,3287))[0].completed,t
 assert.equal(await tokenBalance(alice),outgoingAliceBefore+100n);
 assert.equal(await balance(manager),outgoingManagerBefore+50_000_000n);
 console.log("Local Nile TVM outgoing fee-on-transfer finalize rollback and retry OK.");
+
+
+// Both participants may select the SAME TRC20 contract. In that case the
+// escrow must preserve each party's separately committed amount and the
+// additional TRX fee must be paid exactly once, only on finalization.
+await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],59,3290);
+await tokenCall(manager,"mint",[alice.toString(),60n],60,3293);
+await tokenCall(manager,"mint",[bob.toString(),90n],61,3296);
+await tokenCall(alice,"approve",[contract.toString(),60n],62,3299);
+await tokenCall(bob,"approve",[contract.toString(),90n],63,3302);
+await call(alice,contract,"commitRole",[8,1,commitment(secretA,alice)],64,3305);
+await call(bob,contract,"commitRole",[8,2,commitment(secretB,bob)],64,3305);
+const sameTokenAliceBefore=await tokenBalance(alice);
+const sameTokenBobBefore=await tokenBalance(bob);
+const sameTokenManagerBefore=await balance(manager);
+const sameTokenEscrowBefore=await tokenBalance(contract);
+await call(alice,contract,"deposit",[8,1,tokenAddress,60n,"0x"+secretA.toString("hex")],65,3308,50_000_000n);
+await call(bob,contract,"deposit",[8,2,tokenAddress,90n,"0x"+secretB.toString("hex")],66,3311);
+assert.equal(await tokenBalance(contract),sameTokenEscrowBefore+150n,"Same-token escrow must hold both deposits");
+assert.equal(await balance(manager),sameTokenManagerBefore,"Same-token fee must remain escrowed before finalization");
+await call(manager,contract,"finalize",[8],67,3314);
+assert.equal(await tokenBalance(alice),sameTokenAliceBefore-60n+90n,"A receives B's full same-token amount");
+assert.equal(await tokenBalance(bob),sameTokenBobBefore-90n+60n,"B receives A's full same-token amount");
+assert.equal(await tokenBalance(contract),sameTokenEscrowBefore,"Same-token escrow must return to starting balance");
+assert.equal(await balance(manager)-sameTokenManagerBefore,50_000_000n,"A's TRX fee paid once on success");
+assert.equal((await call(manager,contract,"getDeal",[8],68,3317))[0].completed,true);
+console.log("Official tron-solc local Nile TVM same-TRC20 two-party swap and A native fee OK.");
