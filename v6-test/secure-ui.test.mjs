@@ -77,6 +77,18 @@ test("manager creates distinct private A and B invitation URLs",async()=>{
  x.get("a").value="";await x.get("recover").onclick();
  assert.match(x.get("a").value,/secret=/);
 });
+test("pending V8 invitation record blocks duplicate creation without replacing secrets",async()=>{
+ const x=await make("manager");
+ x.ctx.saveInvite("1",secretA,secretB,x.tw);
+ x.get("payer").value="1";x.get("fee").value="50";
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/önceki davet kaydı/);
+ assert.equal((await x.c.nextId().call()),"1","No duplicate transaction should be signed");
+ assert.equal(x.ctx.loadInvite("1",x.tw).a,secretA);
+ assert.equal(x.ctx.loadInvite("1",x.tw).b,secretB);
+ assert.throws(()=>x.ctx.saveInvite("1","0x"+"33".repeat(32),secretB,x.tw),/üzerlerine yazılmadı/);
+ assert.equal(x.ctx.loadInvite("1",x.tw).a,secretA,"Existing private invitation must remain recoverable");
+});
 test("valid A invite deposits 100 TRX with 50 TRX fee",async()=>{
  const x=await make("participant");
  await x.get("deposit").onclick();
