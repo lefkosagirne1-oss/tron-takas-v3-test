@@ -104,20 +104,31 @@ async function showDeal(){
  " | B: "+b+" · "+readableAddress(d.partyB,tw)+" · yatırdı: "+assetB+" · A'ya gidecek: "+receiveA+
  " | "+feeText+" | Durum: "+state+timeText;
  try{await showLinks(id,tw);}catch(_){}
- return {d,tw,c};
+ return {d,tw,c,id};
 }
 $("check").onclick=()=>run($("check"),async()=>{await showDeal();status("Zincirden güncel durum okundu.");});
 $("final").onclick=()=>run($("final"),async()=>{
- const {d,tw,c}=await showDeal();
+ const {d,tw,c,id:reviewedId}=await showDeal();
  const expectedWallet=tw.defaultAddress.base58;
  if(d.completed||d.cancelled)throw Error("Takas zaten kapalı.");
  if(!d.depositedA||!d.depositedB)throw Error("Her iki taraf da yatırmadan son onay yapılamaz.");
  if(d.refundedA||d.refundedB)throw Error("İade başlamış; takas tamamlanamaz.");
+ // A second on-chain read guards against a refund or other state change
+ // while token metadata and balances were being displayed for review.
+ const fresh=await c.getDeal(reviewedId).call();
+ if(!fresh.depositedA||!fresh.depositedB||fresh.completed||fresh.cancelled||fresh.refundedA||fresh.refundedB)
+  throw Error("Takas durumu değişti; son onay gönderilmedi. Yeniden kontrol edin.");
+ for(const field of ["partyA","partyB","tokenA","tokenB","amountA","amountB","feeAmount","feePayer","finalDeadline"]){
+  if(String(fresh[field]).toLowerCase()!==String(d[field]).toLowerCase())
+   throw Error("Takas bilgileri değişti; son onay gönderilmedi. Yeniden kontrol edin.");
+ }
  const block=await tw.trx.getCurrentBlock();
  const now=Number(block?.block_header?.raw_data?.timestamp)/1000;
  if(!Number.isFinite(now)||now<=0)throw Error("Nile blok saati okunamadı; son onay imzalanmadı.");
- if(now+15>=Number(d.finalDeadline.toString()))throw Error("Son onay süresi doldu veya bitmek üzere. Masraflı işlem gönderilmedi; taraflar süre dolunca iade alabilir.");
- await send(c.finalize(idValue()),{expectedWallet});
+ if(now+15>=Number(fresh.finalDeadline.toString()))throw Error("Son onay süresi doldu veya bitmek üzere. Masraflı işlem gönderilmedi; taraflar süre dolunca iade alabilir.");
+ if(idValue()!==reviewedId)throw Error("Takas numarası kontrol sırasında değişti; son onay gönderilmedi.");
+ ensureWallet(tw,expectedWallet);
+ await send(c.finalize(reviewedId),{expectedWallet});
  await showDeal();
  status("Takas zincirde başarıyla tamamlandı.");
 });
