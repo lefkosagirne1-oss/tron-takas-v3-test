@@ -371,3 +371,52 @@ await call(alice,contract,"refund",[10],88,5161);
 assert.equal(await balance(contract),escrowBeforeInvite,"Escrow must return all timed-out principal");
 assert.equal((await call(manager,contract,"getDeal",[10],89,5164))[0].refundedA,true);
 console.log("Local Nile TVM invitation prior-block and post-reveal role-hijack regression OK.");
+
+
+// Exact deadline boundaries matter: the last second of the funding window
+// and final approval window must never permit a late transfer or manager fee.
+const deadlineEscrowBefore=await balance(contract);
+const deadlineManagerBefore=await balance(manager);
+await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],90,6000);
+await call(alice,contract,"commitRole",[11,1,commitment(secretA,alice)],91,6003);
+await call(bob,contract,"commitRole",[11,2,commitment(secretB,bob)],91,6003);
+await call(alice,contract,"deposit",[11,1,zero,1_000_000n,"0x"+secretA.toString("hex")],92,6006,1_000_000n);
+assert.equal((await call(manager,contract,"getDeal",[11],93,6906))[0].depositDeadline,6906n);
+await assert.rejects(
+ ()=>call(bob,contract,"deposit",[11,2,zero,2_000_000n,"0x"+secretB.toString("hex")],93,6906,2_000_000n),
+ /deposit:/,"Deposit exactly at the 15-minute deadline must revert"
+);
+let boundaryDeal=(await call(manager,contract,"getDeal",[11],94,6906))[0];
+assert.equal(boundaryDeal.depositedB,false,"Expired B deposit must not bind a role");
+await call(alice,contract,"refund",[11],95,6906);
+assert.equal((await call(manager,contract,"getDeal",[11],96,6909))[0].refundedA,true);
+assert.equal(await balance(contract),deadlineEscrowBefore,"Funding deadline must return full escrow");
+assert.equal(await balance(manager),deadlineManagerBefore,"Funding expiry cannot pay commission");
+
+await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],97,7000);
+await call(alice,contract,"commitRole",[12,1,commitment(secretA,alice)],98,7003);
+await call(bob,contract,"commitRole",[12,2,commitment(secretB,bob)],98,7003);
+await call(alice,contract,"deposit",[12,1,zero,100_000_000n,"0x"+secretA.toString("hex")],99,7006,100_000_000n);
+await call(bob,contract,"deposit",[12,2,zero,200_000_000n,"0x"+secretB.toString("hex")],100,7009,200_000_000n);
+assert.equal((await call(manager,contract,"getDeal",[12],101,7309))[0].finalDeadline,7309n);
+await assert.rejects(
+ ()=>call(manager,contract,"finalize",[12],101,7309),
+ /finalize:/,"Final approval exactly at the 5-minute deadline must revert"
+);
+boundaryDeal=(await call(manager,contract,"getDeal",[12],102,7309))[0];
+assert.equal(boundaryDeal.completed,false,"Expired final approval must not settle");
+await call(alice,contract,"refund",[12],103,7309);
+await call(bob,contract,"refund",[12],104,7312);
+assert.equal(await balance(contract),deadlineEscrowBefore,"Final deadline must return both full deposits");
+assert.equal(await balance(manager),deadlineManagerBefore,"Expired final approval cannot pay commission");
+console.log("Local Nile TVM exact 15-minute deposit / 5-minute finalize boundaries and refunds OK.");
+
+await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],105,7400);
+await call(manager,contract,"cancelUnused",[13],106,7403);
+await assert.rejects(
+ ()=>call(alice,contract,"commitRole",[13,1,commitment(secretA,alice)],107,7406),
+ /commitRole:/,"Cancelled unused deal must reject further role commitments"
+);
+assert.equal((await call(manager,contract,"getDeal",[13],108,7409))[0].cancelled,true);
+assert.equal(await balance(contract),deadlineEscrowBefore,"Cancelling an unused deal cannot move funds");
+console.log("Local Nile TVM unused-deal cancellation blocks commitments.");
