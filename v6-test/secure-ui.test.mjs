@@ -41,8 +41,8 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
   approve:()=>({send:async()=>"a".repeat(64)})
  };
  const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getBalance:async()=>1000000000,getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
- const store=new Map();
- const ctx={crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
+ const store=new Map(),historyCalls=[];
+ const ctx={history:{state:null,replaceState:(_state,_title,url)=>historyCalls.push(url)},crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  ctx.fetch=async url=>({
   ok:true,
   json:async()=>String(url).includes("TakasV8Invite.json")
@@ -50,7 +50,7 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
     :{runtimecode:mockRuntime}
  });
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
- return {ctx,get,deal,sent,commits,tw,tokenContract};
+ return {ctx,get,deal,sent,commits,tw,tokenContract,historyCalls};
 }
 test("secure frontend scripts parse and have V8 ABI",()=>{
  for(const s of [common,manager,participant])assert.doesNotThrow(()=>new vm.Script(s));
@@ -89,6 +89,22 @@ test("fragment invitation secret takes precedence over stale query and permits d
  await x.get("deposit").onclick();
  assert.equal(x.sent.length,1);
  assert.equal(x.sent[0].s,secretA);
+});
+test("legacy query invitation is migrated to fragment without breaking deposits",async()=>{
+ const x=await make("participant");
+ assert.equal(x.historyCalls.length,1);
+ const cleaned=new URL(x.historyCalls[0],"https://example.com");
+ assert.equal(cleaned.searchParams.has("secret"),false);
+ assert.equal(new URLSearchParams(cleaned.hash.slice(1)).get("secret"),secretA);
+ await x.get("deposit").onclick();
+ assert.equal(x.sent.length,1);
+});
+test("fragment secret takes precedence during legacy URL sanitization",async()=>{
+ const x=await make("participant",secretA,"100",true);
+ assert.equal(x.historyCalls.length,1);
+ const cleaned=new URL(x.historyCalls[0],"https://example.com");
+ assert.equal(cleaned.searchParams.has("secret"),false);
+ assert.equal(new URLSearchParams(cleaned.hash.slice(1)).get("secret"),secretA);
 });
 test("B secret cannot be used on A invitation",async()=>{
  const x=await make("participant",secretB);
