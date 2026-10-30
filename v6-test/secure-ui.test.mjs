@@ -768,3 +768,13 @@ test("V8 recovery cannot clear another wallet's pending deployment after an acco
  assert.equal(store.has(keyA),false,"A definitive failed transaction may clear only the matching wallet record");
  assert.equal(store.get(keyB),pendingB,"Other wallet's pending transaction remains protected");
 });
+
+test("V8 manager safely displays raw token units for maliciously large decimals",async()=>{
+ const x=await make("manager");
+ x.tokenContract.decimals=()=>({call:async()=>100000000});
+ const result=await x.ctx.formatAsset("41"+"2".repeat(40),"100000000",x.tw);
+ assert.match(result,/100000000 token birimi/,"Untrusted decimals must not trigger enormous BigInt exponentiation");
+ x.tokenContract.decimals=()=>({call:async()=>18});
+ const valid=await x.ctx.formatAsset("41"+"2".repeat(40),"1000000000000000000",x.tw);
+ assert.match(valid,/1 token/,"Valid 18-decimal tokens should still be formatted");
+});
