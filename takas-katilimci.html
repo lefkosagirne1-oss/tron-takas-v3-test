@@ -57,7 +57,7 @@ async function readDeal(requireInvite=true){
  const c=await contract();
  deal=await c.getDeal(id).call();
  const expected=role===1?deal.inviteHashA:deal.inviteHashB;
- if(!sameHash(expected,await hashSecret(secret)))throw Error("Bu tarafın davet anahtarı yanlış. Yönetici tarafından gönderilen tam bağlantıyı kullanın.");
+ if(requireInvite&&!sameHash(expected,await hashSecret(secret)))throw Error("Bu tarafın davet anahtarı yanlış. Yönetici tarafından gönderilen tam bağlantıyı kullanın.");
  const fee=BigInt(deal.feeAmount.toString()),payer=Number(deal.feePayer);
  $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. TRX gönderirseniz miktardan kesilir; token gönderirseniz ayrıca TRX yatırılır. Başarısız takasta komisyon teminatı iade edilir.":fee>0n?"Komisyonu diğer taraf öder ("+displayUnits(fee)+" TRX).":"Komisyon yok.";
  updatePreview();
