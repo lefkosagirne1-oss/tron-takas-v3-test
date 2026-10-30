@@ -158,7 +158,7 @@ async function send(method,opts={}){
   status("İşlem zincirde doğrulandı: "+hash);
   return hash;
 }
-function link(role,id,secret){return new URL("takas-katilimci.html?secure=1&contract="+encodeURIComponent(address)+"&id="+encodeURIComponent(id)+"&role="+role+"&secret="+encodeURIComponent(secret),location.href).href;}
+function link(role,id,secret){return new URL("takas-katilimci.html?secure=1&contract="+encodeURIComponent(address)+"&id="+encodeURIComponent(id)+"&role="+role+"#secret="+encodeURIComponent(secret),location.href).href;}
 function copy(t){
   if(!t){status("Önce takas bağlantısını oluşturun veya numarasını girin.");return;}
   if(!navigator.clipboard?.writeText){status("Bağlantı alanına basılı tutup kopyalayın.");return;}
