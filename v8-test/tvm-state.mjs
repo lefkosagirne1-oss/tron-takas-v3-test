@@ -301,3 +301,34 @@ assert.equal(await tokenBalance(contract),sameTokenEscrowBefore,"Same-token escr
 assert.equal(await balance(manager)-sameTokenManagerBefore,50_000_000n,"A's TRX fee paid once on success");
 assert.equal((await call(manager,contract,"getDeal",[8],68,3317))[0].completed,true);
 console.log("Official tron-solc local Nile TVM same-TRC20 two-party swap and A native fee OK.");
+
+
+// Regression: a token owner can switch transfer taxes AFTER escrow funding.
+// The exact-recipient check correctly rejects a short-paid refund atomically,
+// but funds cannot be recovered until the token owner restores standard transfers.
+// This is a genuine limitation of accepting arbitrary mutable TRC20 contracts.
+await call(manager,contract,"create",[2,50_000_000n,sha(secretA),sha(secretB)],69,3320);
+await tokenCall(manager,"mint",[bob.toString(),40n],70,3323);
+await tokenCall(bob,"approve",[contract.toString(),40n],71,3326);
+await call(bob,contract,"commitRole",[9,2,commitment(secretB,bob)],72,3329);
+const dynamicFeeBobTokenBefore=await tokenBalance(bob);
+const dynamicFeeBobTrxBefore=await balance(bob);
+const dynamicFeeManagerBefore=await balance(manager);
+await call(bob,contract,"deposit",[9,2,tokenAddress,40n,"0x"+secretB.toString("hex")],73,3332,50_000_000n);
+await tokenCall(manager,"setTransferFeePercent",[10n],74,3335);
+await assert.rejects(
+  ()=>call(bob,contract,"refund",[9],75,4233),
+  /refund:/,
+  "Token owner changing outgoing tax must not cause a partial refund"
+);
+assert.equal((await call(manager,contract,"getDeal",[9],76,4236))[0].refundedB,false,
+  "Failed taxed refund must remain retryable");
+assert.equal(await tokenBalance(contract),40n,"Failed refund must keep all tokens in escrow");
+assert.equal(await balance(manager),dynamicFeeManagerBefore,"Failed refund must never pay manager");
+await tokenCall(manager,"setTransferFeePercent",[0n],77,4239);
+await call(bob,contract,"refund",[9],78,4242);
+assert.equal(await tokenBalance(bob),dynamicFeeBobTokenBefore,"Tax removed: full token refund must succeed");
+assert.equal(await balance(bob),dynamicFeeBobTrxBefore,"Tax removed: extra TRX fee must be fully refunded");
+assert.equal((await call(manager,contract,"getDeal",[9],79,4245))[0].refundedB,true);
+console.log("Local Nile TVM mutable-token tax: atomic failed refund, then full retry after tax removal OK.");
+console.log("Release caveat: arbitrary token issuer may permanently block refunds by changing transfer behavior.");
