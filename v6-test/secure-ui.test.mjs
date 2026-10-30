@@ -50,7 +50,7 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
     :{runtimecode:mockRuntime}
  });
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
- return {ctx,get,deal,sent,commits,tw,tokenContract,historyCalls};
+ return {ctx,get,deal,sent,commits,tw,tokenContract,historyCalls,c};
 }
 test("secure frontend scripts parse and have V8 ABI",()=>{
  for(const s of [common,manager,participant])assert.doesNotThrow(()=>new vm.Script(s));
@@ -564,4 +564,44 @@ test("V8 setup expires stale deployment estimates and blocks signing or broadcas
  assert.match(script,/if\(!estimateFresh\(\)\)throw Error\("Kurulum Energy tahmini eski/);
  assert.match(script,/Kurulum imzalanmadı; yeniden ücretsiz kontrol et/);
  assert.match(script,/Kurulum yayınlanmadı; önce işlemi kontrol et/);
+});
+
+test("manager final approval is tied to the deal number actually reviewed",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;x.deal.finalDeadline="1300";
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ x.c.finalize=id=>({send:async()=>{x.sent.push({finalize:id});return "a".repeat(64);}});
+ let blockReads=0;
+ x.tw.trx.getCurrentBlock=async()=>{
+  if(++blockReads===2)x.get("id").value="2";
+  return {block_header:{raw_data:{timestamp:1000000,number:101}}};
+ };
+ await x.get("final").onclick();
+ assert.equal(x.sent.length,0,"Never finalize a different ID from the reviewed deal");
+ assert.match(x.get("status").textContent,/Takas numarası kontrol sırasında değişti/);
+});
+test("manager refuses final approval when the deal is refunded after display",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;x.deal.finalDeadline="1300";
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ let reads=0;
+ x.c.getDeal=()=>({call:async()=>{reads++;return {...x.deal,...(reads>1?{refundedB:true}:{})};}});
+ x.c.finalize=id=>({send:async()=>{x.sent.push({finalize:id});return "a".repeat(64);}});
+ await x.get("final").onclick();
+ assert.equal(reads,2,"Read deal again immediately before signing");
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Takas durumu değişti/);
+});
+test("manager can finalize the same unchanged deal after fresh chain validation",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;x.deal.finalDeadline="1300";
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ x.c.finalize=id=>({send:async()=>{x.sent.push({finalize:id});x.deal.completed=true;return "a".repeat(64);}});
+ await x.get("final").onclick();
+ assert.equal(x.sent.length,1);
+ assert.equal(x.sent[0].finalize,"1");
+ assert.match(x.get("status").textContent,/Takas zincirde başarıyla tamamlandı/);
 });
