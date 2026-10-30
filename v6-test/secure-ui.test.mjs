@@ -393,6 +393,24 @@ test("V8 runtime comparison rejects split manager immutables and altered code",a
  assert.equal(check(code),false,"Uninitialized manager slots must be rejected");
 });
 
+test("depositor can refund after timeout even when the invitation secret is lost",async()=>{
+ const x=await make("participant","");
+ x.deal.depositedA=true;
+ x.deal.partyA="0x"+"2".repeat(40);
+ x.deal.depositDeadline="100";
+ await x.get("refund").onclick();
+ assert.equal(x.sent.length,1);
+ assert.equal(x.sent[0].refund,"1");
+ assert.match(x.get("status").textContent,/İade işlemi zincirde doğrulandı/);
+});
+test("missing invitation secret cannot authorize a new deposit",async()=>{
+ const x=await make("participant","");
+ await x.get("deposit").onclick();
+ assert.equal(x.sent.length,0);
+ assert.equal(x.commits.length,0);
+ assert.match(x.get("status").textContent,/Geçerli takas daveti gerekli/);
+});
+
 test("participant refund rejects wallet change before signing",async()=>{
  const x=await make("participant");
  x.deal.depositedA=true;
