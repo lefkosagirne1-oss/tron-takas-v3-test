@@ -149,7 +149,7 @@ test("legacy V6/V7 create, deposit and finalize are disabled while refund remain
 test("deployment estimate is bound to the selected TronLink wallet",()=>{
  const setup=read("takas-kurulum.html");
  assert.match(setup,/estimatedWallet=selectedWallet\(\)/);
- assert.match(setup,/estimatedWallet!==selectedWallet\(\)/);
+ assert.match(setup,/estimatedWallet===selectedWallet\(\)/);
 });
 
 test("manager shows net amounts and fixed fee before final approval",async()=>{
