@@ -41,8 +41,8 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
   approve:()=>({send:async()=>"a".repeat(64)})
  };
  const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getBalance:async()=>1000000000,getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
- const store=new Map(),historyCalls=[];
- const ctx={history:{state:null,replaceState:(_state,_title,url)=>historyCalls.push(url)},crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
+ const store=new Map(),historyCalls=[],intervals=[];
+ const ctx={history:{state:null,replaceState:(_state,_title,url)=>historyCalls.push(url)},crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,setInterval:fn=>{intervals.push(fn);return intervals.length;},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
  ctx.fetch=async url=>({
   ok:true,
   json:async()=>String(url).includes("TakasV8Invite.json")
@@ -50,7 +50,7 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
     :{runtimecode:mockRuntime}
  });
  vm.createContext(ctx);vm.runInContext(common,ctx);vm.runInContext(page==="manager"?manager:participant,ctx);
- return {ctx,get,deal,sent,commits,tw,tokenContract,historyCalls,c};
+ return {ctx,get,deal,sent,commits,tw,tokenContract,historyCalls,intervals,c};
 }
 test("secure frontend scripts parse and have V8 ABI",()=>{
  for(const s of [common,manager,participant])assert.doesNotThrow(()=>new vm.Script(s));
@@ -76,6 +76,28 @@ test("manager creates distinct private A and B invitation URLs",async()=>{
  assert.match(x.get("status").textContent,/bağlantıları hazır/);
  x.get("a").value="";await x.get("recover").onclick();
  assert.match(x.get("a").value,/secret=/);
+});
+test("participant status refresh is automatic, read-only, and keeps other payer's fee private",async()=>{
+ const x=await make("participant");
+ assert.equal(x.intervals.length,1);
+ x.deal.feePayer=2;
+ x.deal.depositedB=true;
+ await x.intervals[0]();
+ assert.match(x.get("details").textContent,/B: Yatırdı/);
+ assert.match(x.get("feeInfo").textContent,/sizden komisyon alınmaz/);
+ assert.doesNotMatch(x.get("feeInfo").textContent,/50 TRX/);
+ assert.equal(x.sent.length,0,"Automatic refresh must not sign or deposit");
+ assert.equal(x.commits.length,0,"Automatic refresh must not create a commitment");
+});
+test("manager status refresh reads deposits without finalizing or signing",async()=>{
+ const x=await make("manager");
+ assert.equal(x.intervals.length,1);
+ x.get("id").value="1";
+ x.deal.depositedA=true;
+ x.deal.amountA="100000000";
+ await x.intervals[0]();
+ assert.match(x.get("details").textContent,/A: Yatırdı/);
+ assert.equal(x.sent.length,0,"Read-only manager refresh must not send a transaction");
 });
 test("pending V8 invitation record blocks duplicate creation without replacing secrets",async()=>{
  const x=await make("manager");
