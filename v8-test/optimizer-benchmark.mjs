@@ -8,6 +8,7 @@ import {Common,TronNile} from "@tvmjs/common";
 import {createBlock} from "@tvmjs/block";
 import {createAddressFromString,hexToBytes} from "@tvmjs/util";
 import solc from "solc";
+import {attachCandidateErrorMessages} from "./custom-error-messages.mjs";
 
 const require=createRequire(import.meta.url);
 const compiler=solc.setupMethods(require("../v6-test/.cache/tron-soljson.cjs"));
@@ -159,6 +160,7 @@ for(const variant of [
     "Every distinct revert reason must retain an ABI custom-error identity");
    for(const code of Object.values(customErrors.codes))
     assert.ok(declared.some(entry=>entry.name===code),"Missing ABI error "+code);
+   attachCandidateErrorMessages(candidate,customErrors.codes);
    writeFileSync(process.env.V8_CANDIDATE_ARTIFACT_PATH,JSON.stringify(candidate,null,2)+"\n");
    console.log("Experimental custom-error artifact written for full local TVM regression only.");
   }
