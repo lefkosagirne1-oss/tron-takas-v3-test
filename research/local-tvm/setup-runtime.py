@@ -1,0 +1,8 @@
+import urllib.request,json,pathlib,hashlib,tarfile
+r=pathlib.Path('/tmp/takas-local-tvm')
+def get(u):return urllib.request.urlopen(u,timeout=90).read()
+d=json.loads(get('https://api.github.com/repos/adoptium/temurin8-binaries/releases/latest'));a=next(x for x in d['assets'] if x['name'].startswith('OpenJDK8U-jre_x64_linux_hotspot_') and x['name'].endswith('.tar.gz'));h=get(next(x['browser_download_url'] for x in d['assets'] if x['name']==a['name']+'.sha256.txt')).decode().split()[0];b=get(a['browser_download_url']);assert hashlib.sha256(b).hexdigest()==h;(r/'java8.tgz').write_bytes(b);tarfile.open(r/'java8.tgz').extractall(r,filter='data');(r/'java-path').write_text(str(next(r.glob('*/bin/java'))));print('Java8 verified',flush=True)
+d=json.loads(get('https://api.github.com/repos/tronprotocol/java-tron/releases/tags/GreatVoyage-v4.8.2.4'));a=next(x for x in d['assets'] if x['name']=='FullNode.jar');b=get(a['browser_download_url']);assert len(b)==a['size'];(r/'FullNode.jar').write_bytes(b);print('TRON release downloaded',flush=True)
+base='https://raw.githubusercontent.com/tronprotocol/java-tron/GreatVoyage-v4.8.2.4/'
+for path,name in [('framework/src/main/resources/config.conf','release.conf'),('common/src/main/resources/reference.conf','reference.conf')]: (r/name).write_bytes(get(base+path))
+b=get('https://tronprotocol.github.io/solc-bin/wasm/soljson-v0.8.31+commit.c2812a3d.js');assert hashlib.sha256(b).hexdigest()=='d0f2092759c99c3e983cf3dce38f75eb32377bf4cfc904cf34c2a6f8b04356b8';pathlib.Path('/tmp/tron-soljson.cjs').write_bytes(b);print('Compiler checksum verified',flush=True)

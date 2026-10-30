@@ -1,0 +1,255 @@
+{
+  "status": "passed",
+  "measurement_date": "2026-10-30T07:07:11.497Z",
+  "kind": "local private TVM receipts; hypothetical current Mainnet price conversion, no Mainnet deployment",
+  "local_mainnet_parameter_differences": {
+    "getEnergyFee": {
+      "local": 100,
+      "mainnet": 100
+    },
+    "getTransactionFee": {
+      "local": 10,
+      "mainnet": 1000
+    },
+    "getFreeNetLimit": {
+      "local": 5000,
+      "mainnet": 600
+    },
+    "getAllowDynamicEnergy": {
+      "local": 0,
+      "mainnet": 1
+    },
+    "getDynamicEnergyThreshold": {
+      "local": 0,
+      "mainnet": 5000000000
+    },
+    "getDynamicEnergyIncreaseFactor": {
+      "local": 0,
+      "mainnet": 2000
+    },
+    "getDynamicEnergyMaxFactor": {
+      "local": 0,
+      "mainnet": 34000
+    },
+    "getAllowEnergyAdjustment": {
+      "local": 0,
+      "mainnet": 1
+    },
+    "getAllowStrictMath": {
+      "local": 0,
+      "mainnet": 1
+    }
+  },
+  "negative_receipt_checks": [
+    {
+      "label": "negative-verification.duplicate-finalize",
+      "hash": "59775bda71fdad8ff1d4dae34512bff18a895bf4b1f0a90fe68ba34e99a7dfbe",
+      "contractRet": "REVERT",
+      "energy": 5682
+    },
+    {
+      "label": "negative-verification.duplicate-refund",
+      "hash": "0667a022ec9f6386fcbe1d08af411f22e17547bf808477f380406fbe7b434b53",
+      "contractRet": "REVERT",
+      "energy": 6022
+    },
+    {
+      "label": "negative-verification.late-finalize",
+      "hash": "01237780aaee2fc280789f9b54dccabfd3e79e36351ef5dade8edd0aad72d443",
+      "contractRet": "REVERT",
+      "energy": 5842
+    },
+    {
+      "label": "negative-verification.empty-finalize",
+      "hash": "df5d1ce04a7de70fd0fdfbfb7a6a024ede41090f892622167a43240328a00c4a",
+      "contractRet": "REVERT",
+      "energy": 5711
+    },
+    {
+      "label": "negative-verification.early-refund",
+      "hash": "427f4c73057d6d1d3e0cb016371a150e1df6d5f2767cdec222daff8769e567ed",
+      "contractRet": "REVERT",
+      "energy": 5792
+    },
+    {
+      "label": "negative-verification.single-deposit-finalize",
+      "hash": "a5aa49b8b41f74a888720d1a1fb834e8265b3c83687980648ef225bfe5ffc444",
+      "contractRet": "REVERT",
+      "energy": 5740
+    },
+    {
+      "label": "negative-verification.nonmanager-finalize",
+      "hash": "f78b5d29dce5f690be5c1cac2e0e625f56678df8a670bc6e1e392051915dcba0",
+      "contractRet": "REVERT",
+      "energy": 217
+    }
+  ],
+  "checks": [
+    "strings-runs200-irtrue: swap, exact token/TRX/commission balances",
+    "errors-runs1-irtrue: swap, exact token/TRX/commission balances",
+    "Production 5-minute window: both refunds exact, no commission",
+    "Production 15-minute window: single refund exact, no commission"
+  ],
+  "error": null,
+  "variants": {
+    "strings-runs200-irtrue": {
+      "deployment": {
+        "label": "strings-runs200-irtrue.deploy",
+        "energy": 1501453,
+        "bandwidth_units": 8663,
+        "energy_TRX_at_mainnet_price": 150.1453,
+        "bandwidth_TRX_without_quota": 8.663
+      },
+      "runtime_steps": [
+        {
+          "label": "strings-runs200-irtrue.approve",
+          "energy": 20581,
+          "bandwidth_units": 346,
+          "energy_TRX_at_mainnet_price": 2.0581,
+          "bandwidth_TRX_without_quota": 0.346
+        },
+        {
+          "label": "strings-runs200-irtrue.create",
+          "energy": 87648,
+          "bandwidth_units": 412,
+          "energy_TRX_at_mainnet_price": 8.7648,
+          "bandwidth_TRX_without_quota": 0.412
+        },
+        {
+          "label": "strings-runs200-irtrue.commitA",
+          "energy": 43385,
+          "bandwidth_units": 379,
+          "energy_TRX_at_mainnet_price": 4.3385,
+          "bandwidth_TRX_without_quota": 0.379
+        },
+        {
+          "label": "strings-runs200-irtrue.commitB",
+          "energy": 43417,
+          "bandwidth_units": 379,
+          "energy_TRX_at_mainnet_price": 4.3417,
+          "bandwidth_TRX_without_quota": 0.379
+        },
+        {
+          "label": "strings-runs200-irtrue.depositA",
+          "energy": 71050,
+          "bandwidth_units": 449,
+          "energy_TRX_at_mainnet_price": 7.105,
+          "bandwidth_TRX_without_quota": 0.449
+        },
+        {
+          "label": "strings-runs200-irtrue.depositB",
+          "energy": 121084,
+          "bandwidth_units": 444,
+          "energy_TRX_at_mainnet_price": 12.1084,
+          "bandwidth_TRX_without_quota": 0.444
+        },
+        {
+          "label": "strings-runs200-irtrue.finalize",
+          "energy": 61418,
+          "bandwidth_units": 314,
+          "energy_TRX_at_mainnet_price": 6.1418,
+          "bandwidth_TRX_without_quota": 0.314
+        }
+      ],
+      "runtime_energy": 448583,
+      "runtime_bandwidth_units": 2723,
+      "runtime_total_TRX_without_resources": 47.5813,
+      "deployment_total_TRX_without_resources": 158.8083,
+      "refund_steps": []
+    },
+    "errors-runs1-irtrue": {
+      "deployment": {
+        "label": "errors-runs1-irtrue.deploy",
+        "energy": 1234167,
+        "bandwidth_units": 7679,
+        "energy_TRX_at_mainnet_price": 123.4167,
+        "bandwidth_TRX_without_quota": 7.679
+      },
+      "runtime_steps": [
+        {
+          "label": "errors-runs1-irtrue.approve",
+          "energy": 20581,
+          "bandwidth_units": 346,
+          "energy_TRX_at_mainnet_price": 2.0581,
+          "bandwidth_TRX_without_quota": 0.346
+        },
+        {
+          "label": "errors-runs1-irtrue.create",
+          "energy": 87621,
+          "bandwidth_units": 412,
+          "energy_TRX_at_mainnet_price": 8.7621,
+          "bandwidth_TRX_without_quota": 0.412
+        },
+        {
+          "label": "errors-runs1-irtrue.commitA",
+          "energy": 43276,
+          "bandwidth_units": 379,
+          "energy_TRX_at_mainnet_price": 4.3276,
+          "bandwidth_TRX_without_quota": 0.379
+        },
+        {
+          "label": "errors-runs1-irtrue.commitB",
+          "energy": 43308,
+          "bandwidth_units": 379,
+          "energy_TRX_at_mainnet_price": 4.3308,
+          "bandwidth_TRX_without_quota": 0.379
+        },
+        {
+          "label": "errors-runs1-irtrue.depositA",
+          "energy": 70976,
+          "bandwidth_units": 449,
+          "energy_TRX_at_mainnet_price": 7.0976,
+          "bandwidth_TRX_without_quota": 0.449
+        },
+        {
+          "label": "errors-runs1-irtrue.depositB",
+          "energy": 121050,
+          "bandwidth_units": 444,
+          "energy_TRX_at_mainnet_price": 12.105,
+          "bandwidth_TRX_without_quota": 0.444
+        },
+        {
+          "label": "errors-runs1-irtrue.finalize",
+          "energy": 61358,
+          "bandwidth_units": 314,
+          "energy_TRX_at_mainnet_price": 6.1358,
+          "bandwidth_TRX_without_quota": 0.314
+        }
+      ],
+      "runtime_energy": 448170,
+      "runtime_bandwidth_units": 2723,
+      "runtime_total_TRX_without_resources": 47.54,
+      "deployment_total_TRX_without_resources": 131.0957,
+      "refund_steps": [
+        {
+          "label": "errors-runs1-irtrue.timeout3.refundA",
+          "energy": 24705,
+          "bandwidth_units": 314,
+          "energy_TRX_at_mainnet_price": 2.4705,
+          "bandwidth_TRX_without_quota": 0.314
+        },
+        {
+          "label": "errors-runs1-irtrue.timeout3.refundB",
+          "energy": 47187,
+          "bandwidth_units": 314,
+          "energy_TRX_at_mainnet_price": 4.7187,
+          "bandwidth_TRX_without_quota": 0.314
+        },
+        {
+          "label": "errors-runs1-irtrue.timeout2.refundA",
+          "energy": 24749,
+          "bandwidth_units": 314,
+          "energy_TRX_at_mainnet_price": 2.4749,
+          "bandwidth_TRX_without_quota": 0.314
+        }
+      ]
+    }
+  },
+  "savings": {
+    "constructor_energy": 267286,
+    "constructor_energy_percent": 17.80182263447474,
+    "runtime_energy": 413,
+    "runtime_energy_percent": 0.09206768869974846,
+    "runtime_TRX": 0.04129999999999967
+  }
+}

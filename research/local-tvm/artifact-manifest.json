@@ -1,0 +1,14 @@
+{
+  "strings-runs200-irtrue": {
+    "artifact_sha256": "29bd159287384e20aee834dc66550741f2e38ada4c6658602ec375acc88319f3",
+    "creation_bytecode_sha256": "5e51f83e01f99ea148692030afa2805b6743f80a94832f84abd4716a06054366",
+    "creation_bytes": 7394,
+    "runtime_bytes": 7299
+  },
+  "errors-runs1-irtrue": {
+    "artifact_sha256": "9fe0515c762d7627d7c26a88edb6e89a01a92c89dd5b7f01f314ff20004d5322",
+    "creation_bytecode_sha256": "d9538870b6506b28c596fe766733bfaf04fb1d2f58b76323d3ce0e2093c5369c",
+    "creation_bytes": 6059,
+    "runtime_bytes": 5964
+  }
+}

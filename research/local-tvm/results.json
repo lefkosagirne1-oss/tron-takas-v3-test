@@ -1,0 +1,706 @@
+{
+  "date": "2026-10-30T07:07:11.497Z",
+  "network": "isolated private TVM",
+  "steps": [
+    {
+      "label": "strings-runs200-irtrue.token.deploy",
+      "hash": "4e08f178237e5c7cedb20e6cb0dd1bf0bae49d3495cde8c59a0bc6f7b77ff57d",
+      "energy": 222705,
+      "bandwidth": 1766,
+      "net_fee": 0,
+      "energy_fee": 22270500,
+      "fee": 22270500
+    },
+    {
+      "label": "strings-runs200-irtrue.deploy",
+      "hash": "228c0a4dc6d3742744e61edf15f830210b97d730bf7ff7ed3ddb75573a63092f",
+      "energy": 1501453,
+      "bandwidth": 0,
+      "net_fee": 86630,
+      "energy_fee": 150145300,
+      "fee": 150231930
+    },
+    {
+      "label": "strings-runs200-irtrue.mint",
+      "hash": "3dc43d0648c594b7619c166ad8a3d41434a67faf3ffabd3d906af003a5e79f5e",
+      "energy": 20654,
+      "bandwidth": 346,
+      "net_fee": 0,
+      "energy_fee": 2065400,
+      "fee": 2065400
+    },
+    {
+      "label": "strings-runs200-irtrue.approve",
+      "hash": "a15ec01b5c6b7d1ce69dd0faae33965614e2bfbd69b747dcf869da4cb5a339b7",
+      "energy": 20581,
+      "bandwidth": 346,
+      "net_fee": 0,
+      "energy_fee": 2058100,
+      "fee": 2058100
+    },
+    {
+      "label": "strings-runs200-irtrue.create",
+      "hash": "5634ae901cab54857992ea9f5db4462e9c2d15864e0f65994334540e6b479afe",
+      "energy": 87648,
+      "bandwidth": 412,
+      "net_fee": 0,
+      "energy_fee": 8764800,
+      "fee": 8764800
+    },
+    {
+      "label": "strings-runs200-irtrue.commitA",
+      "hash": "9484b83864510d80bd11f99d13a3c2a7fa2d05becb61a476b9e52c6229933314",
+      "energy": 43385,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4338500,
+      "fee": 4338500
+    },
+    {
+      "label": "strings-runs200-irtrue.commitB",
+      "hash": "758e65c2dcc187008214c56f077ac1fef42278d21d2f8dcfd3fd46264adc8400",
+      "energy": 43417,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4341700,
+      "fee": 4341700
+    },
+    {
+      "label": "strings-runs200-irtrue.depositA",
+      "hash": "0205c9ef647eb2e9aa5ac23b92f506b7eec2afd269defa947c6eb2032919899f",
+      "energy": 71050,
+      "bandwidth": 449,
+      "net_fee": 0,
+      "energy_fee": 7105000,
+      "fee": 7105000
+    },
+    {
+      "label": "strings-runs200-irtrue.depositB",
+      "hash": "9c339136f1bdeb0618e09bacf303f0cd2027ccea798ed42902cb29e2d367d634",
+      "energy": 121084,
+      "bandwidth": 444,
+      "net_fee": 0,
+      "energy_fee": 12108400,
+      "fee": 12108400
+    },
+    {
+      "label": "strings-runs200-irtrue.finalize",
+      "hash": "48a94e1161832809bee6f9195ae9bcb7ea52156e32672885fd44c7a27ba567f1",
+      "energy": 61418,
+      "bandwidth": 314,
+      "net_fee": 0,
+      "energy_fee": 6141800,
+      "fee": 6141800
+    },
+    {
+      "label": "errors-runs1-irtrue.token.deploy",
+      "hash": "9bab19ff08817ed8da18e330c4ffe05f8391d124cee05436bf5e2a2b7d905141",
+      "energy": 222705,
+      "bandwidth": 1766,
+      "net_fee": 0,
+      "energy_fee": 22270500,
+      "fee": 22270500
+    },
+    {
+      "label": "errors-runs1-irtrue.deploy",
+      "hash": "ba829f5110220610dcc41b489da6281c934410e8a73a9b1aa441e9ac237d8616",
+      "energy": 1234167,
+      "bandwidth": 0,
+      "net_fee": 76790,
+      "energy_fee": 123416700,
+      "fee": 123493490
+    },
+    {
+      "label": "errors-runs1-irtrue.mint",
+      "hash": "a5dbf2f1c87be9e0a14ae44335ab6afc04bb38c2e4c0b9fcefafd64c0d930b91",
+      "energy": 20654,
+      "bandwidth": 346,
+      "net_fee": 0,
+      "energy_fee": 2065400,
+      "fee": 2065400
+    },
+    {
+      "label": "errors-runs1-irtrue.approve",
+      "hash": "f2d1033e75ec96bbe3a76568fbfa2d26acd0fd13a8dc38f302222ded327399c3",
+      "energy": 20581,
+      "bandwidth": 346,
+      "net_fee": 0,
+      "energy_fee": 2058100,
+      "fee": 2058100
+    },
+    {
+      "label": "errors-runs1-irtrue.create",
+      "hash": "8ef3c67e2937d001683c308977f36316e6c7519bf5c3802cec659668e2386d67",
+      "energy": 87621,
+      "bandwidth": 0,
+      "net_fee": 4120,
+      "energy_fee": 8762100,
+      "fee": 8766220
+    },
+    {
+      "label": "errors-runs1-irtrue.commitA",
+      "hash": "17e9154e8f62edbeb8704777e43ebdf966792eae3509123c0598d8f049c3c4fa",
+      "energy": 43276,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4327600,
+      "fee": 4327600
+    },
+    {
+      "label": "errors-runs1-irtrue.commitB",
+      "hash": "995dcd35b90ad827a8db43a66e96146b59d4f82a604c2da629a0adafa2b1b7d2",
+      "energy": 43308,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4330800,
+      "fee": 4330800
+    },
+    {
+      "label": "errors-runs1-irtrue.depositA",
+      "hash": "12a5c355e6f88d8697f8c729fa9e68da40fe4a6c5a4c9ddbd57ad3716253bc70",
+      "energy": 70976,
+      "bandwidth": 449,
+      "net_fee": 0,
+      "energy_fee": 7097600,
+      "fee": 7097600
+    },
+    {
+      "label": "errors-runs1-irtrue.depositB",
+      "hash": "4ab147a0a4f5a367cda61bbfd2c9f4e57beba58e0f80c60d1662ec25b95361e9",
+      "energy": 121050,
+      "bandwidth": 444,
+      "net_fee": 0,
+      "energy_fee": 12105000,
+      "fee": 12105000
+    },
+    {
+      "label": "errors-runs1-irtrue.finalize",
+      "hash": "fdf06f8f9d0add3d9a17ee68bd35e7af26bc2bcc2d4ce0f24653ec7de04d1e85",
+      "energy": 61358,
+      "bandwidth": 0,
+      "net_fee": 3140,
+      "energy_fee": 6135800,
+      "fee": 6138940
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout2.create",
+      "hash": "75f58be0766ee53ee75f189cb11bd9903c7495f87020601172ca0a81fc21182a",
+      "energy": 87621,
+      "bandwidth": 0,
+      "net_fee": 4120,
+      "energy_fee": 8762100,
+      "fee": 8766220
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout2.commitA",
+      "hash": "8964c87113266ed9e821b67836bb1bd333d9eb65cf44595e1fff236a72655f23",
+      "energy": 43276,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4327600,
+      "fee": 4327600
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout2.depositA",
+      "hash": "63d89c3e0c4b1cb45d98790dd5c9837a05c6f97cb1aeae72b46a8348d333c9af",
+      "energy": 70976,
+      "bandwidth": 449,
+      "net_fee": 0,
+      "energy_fee": 7097600,
+      "fee": 7097600
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.create",
+      "hash": "4caaf9ec7c548fa0fcde0046a2a5050e73504ea29cc17d2dfc8ae3d8f2098b09",
+      "energy": 87621,
+      "bandwidth": 0,
+      "net_fee": 4120,
+      "energy_fee": 8762100,
+      "fee": 8766220
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.commitA",
+      "hash": "af0f491283ba907770392ed05d2c975a01b78ec9f8c80b9a0eae4382c8af3900",
+      "energy": 43276,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4327600,
+      "fee": 4327600
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.depositA",
+      "hash": "c3b41c2e9343f9a90bf89497b626399fec55b75a4e6b0dd0234bdffeee68845a",
+      "energy": 70976,
+      "bandwidth": 449,
+      "net_fee": 0,
+      "energy_fee": 7097600,
+      "fee": 7097600
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.mint",
+      "hash": "98304e81c87bfb4dbf5e0e0e9e19c289e6373bf8e436f19bdd33f1210b9008b1",
+      "energy": 20654,
+      "bandwidth": 0,
+      "net_fee": 3460,
+      "energy_fee": 2065400,
+      "fee": 2068860
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.approve",
+      "hash": "a76ce954d4a5b095d96cd9a5402dc848158f4ffc0f0a37fbbe7c9ab00952234a",
+      "energy": 20581,
+      "bandwidth": 346,
+      "net_fee": 0,
+      "energy_fee": 2058100,
+      "fee": 2058100
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.commitB",
+      "hash": "48f5c9b27abf5509f3a76f4c0dac67c1fbe26e6261514ef16515b797d02ab71a",
+      "energy": 43333,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4333300,
+      "fee": 4333300
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.depositB",
+      "hash": "4f713e39ce91443f7639984b83c7e7568a4fc27919a0ef813200173e117289e6",
+      "energy": 121050,
+      "bandwidth": 444,
+      "net_fee": 0,
+      "energy_fee": 12105000,
+      "fee": 12105000
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.refundA",
+      "hash": "2ee73d1950a0dec88a038f4a5a4e055fb5b92f1aad556841d49c46eb9832bbee",
+      "energy": 24705,
+      "bandwidth": 314,
+      "net_fee": 0,
+      "energy_fee": 2470500,
+      "fee": 2470500
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout3.refundB",
+      "hash": "c1c0e9262fd6fc05fb39699e364bf1660bf351b6902bc1cad607fee7d086e876",
+      "energy": 47187,
+      "bandwidth": 314,
+      "net_fee": 0,
+      "energy_fee": 4718700,
+      "fee": 4718700
+    },
+    {
+      "label": "errors-runs1-irtrue.timeout2.refundA",
+      "hash": "8b4847e1f2f34f1990022d59476557c175f2882a046d022582558e9ae7d89ed3",
+      "energy": 24749,
+      "bandwidth": 314,
+      "net_fee": 0,
+      "energy_fee": 2474900,
+      "fee": 2474900
+    },
+    {
+      "label": "negative-verification.restore-refunded-tip",
+      "hash": "967bf28e51a058f634e5952a203af8130118aaf386de9d8257e036a9e7bd5d45",
+      "energy": 24749,
+      "bandwidth": 314,
+      "net_fee": 0,
+      "energy_fee": 2474900,
+      "fee": 2474900
+    },
+    {
+      "label": "negative-verification.fixture-create",
+      "hash": "d9872f07d3521d1c422c1547cbbda5cf00134f5ffc85638f4e22015c08287339",
+      "energy": 57641,
+      "bandwidth": 0,
+      "net_fee": 4120,
+      "energy_fee": 5764100,
+      "fee": 5768220
+    },
+    {
+      "label": "negative-verification.fixture-commitA",
+      "hash": "96cc671cfe286d7fedfe07fe633e383fc45aa98ccc14ba0020edf075602c7efa",
+      "energy": 43276,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4327600,
+      "fee": 4327600
+    },
+    {
+      "label": "negative-verification.fixture-depositA",
+      "hash": "2c98f8975044628dd37b562398895d91bd92bc5d4013a6a2ad7adc1f1237f2fa",
+      "energy": 85863,
+      "bandwidth": 0,
+      "net_fee": 4490,
+      "energy_fee": 8586300,
+      "fee": 8590790
+    },
+    {
+      "label": "negative-verification.fixture-commitB",
+      "hash": "c117cce78eb572854ba3f91f9988509f2c83e5833cb4e6063817a710dfb3ee3c",
+      "energy": 43333,
+      "bandwidth": 379,
+      "net_fee": 0,
+      "energy_fee": 4333300,
+      "fee": 4333300
+    },
+    {
+      "label": "negative-verification.fixture-depositB",
+      "hash": "e65e1f8ba7ebce6a380120064d4edf75068927dac615ebe4bac919deddf277fd",
+      "energy": 71011,
+      "bandwidth": 449,
+      "net_fee": 0,
+      "energy_fee": 7101100,
+      "fee": 7101100
+    },
+    {
+      "label": "negative-verification.fixture-finalize",
+      "hash": "332ec1ccec76857aa9ccdb8b781cc4fe7eee178b944de4e9ebcfa9217943f2ad",
+      "energy": 31646,
+      "bandwidth": 0,
+      "net_fee": 3140,
+      "energy_fee": 3164600,
+      "fee": 3167740
+    }
+  ],
+  "checks": [
+    "strings-runs200-irtrue: swap, exact token/TRX/commission balances",
+    "errors-runs1-irtrue: swap, exact token/TRX/commission balances",
+    "Production 5-minute window: both refunds exact, no commission",
+    "Production 15-minute window: single refund exact, no commission"
+  ],
+  "parameters": {
+    "chainParameter": [
+      {
+        "key": "getMaintenanceTimeInterval",
+        "value": 300000
+      },
+      {
+        "key": "getAccountUpgradeCost",
+        "value": 9999000000
+      },
+      {
+        "key": "getCreateAccountFee",
+        "value": 100000
+      },
+      {
+        "key": "getTransactionFee",
+        "value": 10
+      },
+      {
+        "key": "getAssetIssueFee",
+        "value": 1024000000
+      },
+      {
+        "key": "getWitnessPayPerBlock",
+        "value": 32000000
+      },
+      {
+        "key": "getWitnessStandbyAllowance",
+        "value": 115200000000
+      },
+      {
+        "key": "getCreateNewAccountFeeInSystemContract"
+      },
+      {
+        "key": "getCreateNewAccountBandwidthRate",
+        "value": 1
+      },
+      {
+        "key": "getAllowCreationOfContracts",
+        "value": 1
+      },
+      {
+        "key": "getRemoveThePowerOfTheGr"
+      },
+      {
+        "key": "getEnergyFee",
+        "value": 100
+      },
+      {
+        "key": "getExchangeCreateFee",
+        "value": 1024000000
+      },
+      {
+        "key": "getMaxCpuTimeOfOneTx",
+        "value": 50
+      },
+      {
+        "key": "getAllowUpdateAccountName"
+      },
+      {
+        "key": "getAllowSameTokenName",
+        "value": 1
+      },
+      {
+        "key": "getAllowDelegateResource"
+      },
+      {
+        "key": "getTotalEnergyLimit",
+        "value": 50000000000
+      },
+      {
+        "key": "getAllowTvmTransferTrc10",
+        "value": 1
+      },
+      {
+        "key": "getTotalEnergyCurrentLimit",
+        "value": 50000000000
+      },
+      {
+        "key": "getAllowMultiSign",
+        "value": 1
+      },
+      {
+        "key": "getAllowAdaptiveEnergy"
+      },
+      {
+        "key": "getTotalEnergyTargetLimit",
+        "value": 3472222
+      },
+      {
+        "key": "getTotalEnergyAverageUsage"
+      },
+      {
+        "key": "getUpdateAccountPermissionFee",
+        "value": 100000000
+      },
+      {
+        "key": "getMultiSignFee",
+        "value": 1000000
+      },
+      {
+        "key": "getAllowAccountStateRoot"
+      },
+      {
+        "key": "getAllowProtoFilterNum"
+      },
+      {
+        "key": "getAllowTvmConstantinople",
+        "value": 1
+      },
+      {
+        "key": "getAllowTvmSolidity059",
+        "value": 1
+      },
+      {
+        "key": "getAllowTvmIstanbul",
+        "value": 1
+      },
+      {
+        "key": "getAllowShieldedTRC20Transaction"
+      },
+      {
+        "key": "getForbidTransferToContract"
+      },
+      {
+        "key": "getAdaptiveResourceLimitTargetRatio",
+        "value": 10
+      },
+      {
+        "key": "getAdaptiveResourceLimitMultiplier",
+        "value": 1000
+      },
+      {
+        "key": "getChangeDelegation"
+      },
+      {
+        "key": "getWitness127PayPerBlock",
+        "value": 16000000
+      },
+      {
+        "key": "getAllowMarketTransaction"
+      },
+      {
+        "key": "getMarketSellFee"
+      },
+      {
+        "key": "getMarketCancelFee"
+      },
+      {
+        "key": "getAllowPBFT"
+      },
+      {
+        "key": "getAllowTransactionFeePool"
+      },
+      {
+        "key": "getMaxFeeLimit",
+        "value": 1000000000
+      },
+      {
+        "key": "getAllowOptimizeBlackHole"
+      },
+      {
+        "key": "getAllowNewResourceModel"
+      },
+      {
+        "key": "getAllowTvmFreeze"
+      },
+      {
+        "key": "getAllowTvmVote"
+      },
+      {
+        "key": "getAllowTvmLondon",
+        "value": 1
+      },
+      {
+        "key": "getAllowTvmCompatibleEvm"
+      },
+      {
+        "key": "getAllowAccountAssetOptimization"
+      },
+      {
+        "key": "getFreeNetLimit",
+        "value": 5000
+      },
+      {
+        "key": "getTotalNetLimit",
+        "value": 43200000000
+      },
+      {
+        "key": "getAllowHigherLimitForMaxCpuTimeOfOneTx"
+      },
+      {
+        "key": "getAllowAssetOptimization"
+      },
+      {
+        "key": "getAllowNewReward"
+      },
+      {
+        "key": "getMemoFee"
+      },
+      {
+        "key": "getAllowDelegateOptimization"
+      },
+      {
+        "key": "getUnfreezeDelayDays"
+      },
+      {
+        "key": "getAllowOptimizedReturnValueOfChainId"
+      },
+      {
+        "key": "getAllowDynamicEnergy"
+      },
+      {
+        "key": "getDynamicEnergyThreshold"
+      },
+      {
+        "key": "getDynamicEnergyIncreaseFactor"
+      },
+      {
+        "key": "getDynamicEnergyMaxFactor"
+      },
+      {
+        "key": "getAllowTvmShangHai",
+        "value": 1
+      },
+      {
+        "key": "getAllowCancelAllUnfreezeV2"
+      },
+      {
+        "key": "getMaxDelegateLockPeriod",
+        "value": 86400
+      },
+      {
+        "key": "getAllowOldRewardOpt"
+      },
+      {
+        "key": "getAllowEnergyAdjustment"
+      },
+      {
+        "key": "getMaxCreateAccountTxSize",
+        "value": 1000
+      },
+      {
+        "key": "getAllowStrictMath"
+      },
+      {
+        "key": "getConsensusLogicOptimization"
+      },
+      {
+        "key": "getAllowTvmCancun"
+      },
+      {
+        "key": "getAllowTvmBlob"
+      },
+      {
+        "key": "getAllowTvmSelfdestructRestriction"
+      },
+      {
+        "key": "getProposalExpireTime",
+        "value": 259200000
+      },
+      {
+        "key": "getAllowTvmOsaka"
+      },
+      {
+        "key": "getAllowTvmPrague"
+      },
+      {
+        "key": "getAllowHardenResourceCalculation"
+      },
+      {
+        "key": "getAllowHardenExchangeCalculation"
+      },
+      {
+        "key": "getAllowOptimizeTvmStorage"
+      },
+      {
+        "key": "getAllowOptimizeTvmStorageKey"
+      }
+    ]
+  },
+  "peers": {},
+  "deadlines": {
+    "single": 1793345021,
+    "dual": 1793344448,
+    "setupChainTime": 1793344148.415
+  },
+  "status": "passed",
+  "negative_check_note": "Seven rejection cases independently verified by real private-chain transaction receipts with result REVERT. Nonpayable SDK .call() and empty/ambiguous constant responses are not credited.",
+  "negative_checks": [
+    {
+      "label": "negative-verification.duplicate-finalize",
+      "hash": "59775bda71fdad8ff1d4dae34512bff18a895bf4b1f0a90fe68ba34e99a7dfbe",
+      "contractRet": "REVERT",
+      "energy": 5682
+    },
+    {
+      "label": "negative-verification.duplicate-refund",
+      "hash": "0667a022ec9f6386fcbe1d08af411f22e17547bf808477f380406fbe7b434b53",
+      "contractRet": "REVERT",
+      "energy": 6022
+    },
+    {
+      "label": "negative-verification.late-finalize",
+      "hash": "01237780aaee2fc280789f9b54dccabfd3e79e36351ef5dade8edd0aad72d443",
+      "contractRet": "REVERT",
+      "energy": 5842
+    },
+    {
+      "label": "negative-verification.empty-finalize",
+      "hash": "df5d1ce04a7de70fd0fdfbfb7a6a024ede41090f892622167a43240328a00c4a",
+      "contractRet": "REVERT",
+      "energy": 5711
+    },
+    {
+      "label": "negative-verification.early-refund",
+      "hash": "427f4c73057d6d1d3e0cb016371a150e1df6d5f2767cdec222daff8769e567ed",
+      "contractRet": "REVERT",
+      "energy": 5792
+    },
+    {
+      "label": "negative-verification.single-deposit-finalize",
+      "hash": "a5aa49b8b41f74a888720d1a1fb834e8265b3c83687980648ef225bfe5ffc444",
+      "contractRet": "REVERT",
+      "energy": 5740
+    },
+    {
+      "label": "negative-verification.nonmanager-finalize",
+      "hash": "f78b5d29dce5f690be5c1cac2e0e625f56678df8a670bc6e1e392051915dcba0",
+      "contractRet": "REVERT",
+      "energy": 217
+    }
+  ],
+  "completed_at": "2026-10-30T07:34:14.638885+00:00"
+}
