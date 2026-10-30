@@ -361,21 +361,30 @@ test("official TRON runtime bytecode is required before V8 signing",()=>{
  assert.match(common,/sameV8Runtime\(expected,actual,artifact\.immutableReferences\)/);
 });
 
-test("V8 runtime comparison permits only compiler-declared immutable manager offsets",async()=>{
+test("V8 runtime comparison rejects split manager immutables and altered code",async()=>{
  const x=await make("participant");
  const artifact=JSON.parse(read("v6-test/dist/TakasV8Invite.json"));
  const code=artifact.runtimeBytecode.toLowerCase();
  const refs=artifact.immutableReferences;
- assert.ok(Object.values(refs).flat().length>0,"Immutable manager slots must be recorded");
- const first=Object.values(refs).flat()[0];
- const start=first.start*2,length=first.length*2;
- const modified=code.slice(0,start)+"a".repeat(length)+code.slice(start+length);
- const good=vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(modified)+","+JSON.stringify(refs)+")",x.ctx);
- assert.equal(good,true);
+ const spans=Object.values(refs).flat();
+ assert.equal(Object.keys(refs).length,1,"Exactly one manager immutable expected");
+ assert.ok(spans.length>1,"All manager references must be checked");
+ const slot="0".repeat(24)+"11".repeat(20);
+ let modified=code;
+ for(const span of spans){
+  assert.equal(span.length,32);
+  const start=span.start*2,length=span.length*2;
+  modified=modified.slice(0,start)+slot+modified.slice(start+length);
+ }
+ const check=s=>vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(s)+","+JSON.stringify(refs)+")",x.ctx);
+ assert.equal(check(modified),true,"Same manager in every slot is valid");
+ const first=spans[0],start=first.start*2,length=first.length*2;
+ const split=modified.slice(0,start)+"0".repeat(24)+"22".repeat(20)+modified.slice(start+length);
+ assert.equal(check(split),false,"A fake owner/fee manager in only one slot must be rejected");
  const outside=(start===0?length:0);
- const corrupted=code.slice(0,outside)+(code[outside]==="f"?"0":"f")+code.slice(outside+1);
- const bad=vm.runInContext("sameV8Runtime("+JSON.stringify(code)+","+JSON.stringify(corrupted)+","+JSON.stringify(refs)+")",x.ctx);
- assert.equal(bad,false);
+ const corrupted=modified.slice(0,outside)+(modified[outside]==="f"?"0":"f")+modified.slice(outside+1);
+ assert.equal(check(corrupted),false,"Changed runtime code outside immutable slots must be rejected");
+ assert.equal(check(code),false,"Uninitialized manager slots must be rejected");
 });
 
 test("participant refund rejects wallet change before signing",async()=>{
