@@ -615,3 +615,29 @@ test("V8 setup clears pending only for definitive Nile rejection, not ambiguous 
  assert.match(html,/Kurulum yayın sonucu belirsiz/);
  assert.match(html,/const broadcast=await tw\.trx\.sendRawTransaction\(signed\)/);
 });
+
+test("setup recovery validates exact pinned Nile runtime and all manager immutable slots",async()=>{
+ const setup=read("takas-kurulum.html");
+ const script=setup.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
+ const helper=script?.match(/async function verifyDeployedRuntime[\\s\\S]*?(?=async function prepare\\()/)?.[0];
+ assert.ok(helper,"Setup must verify deployed runtime before accepting any saved or recovered address");
+ for(const expected of [
+  "verifyDeployedRuntime(installed,a,w,selectedWallet())",
+  "verifyDeployedRuntime(addr,artifact,tw,deploymentWallet)",
+  "verifyDeployedRuntime(addr,artifact||(await(await fetch("
+ ])assert.ok(script.includes(expected),"Missing setup verification at "+expected);
+ const wallet="T"+"a".repeat(33);
+ let actual=mockRuntime;
+ const context={selectedWallet:()=>wallet,fetch:async()=>({ok:true,json:async()=>({runtimecode:actual})})};
+ const verify=vm.runInNewContext("("+helper.trim()+")",context);
+ const tw={address:{toHex:()=> "41"+"11".repeat(20)}};
+ await assert.doesNotReject(()=>verify("T"+"b".repeat(33),officialArtifact,tw,wallet));
+ const first=Object.values(officialArtifact.immutableReferences).flat()[0];
+ const i=first.start*2;
+ actual=mockRuntime.slice(0,i)+"0".repeat(24)+"22".repeat(20)+mockRuntime.slice(i+64);
+ await assert.rejects(()=>verify("T"+"b".repeat(33),officialArtifact,tw,wallet),/yönetici adresi/);
+ actual="f"+mockRuntime.slice(1);
+ await assert.rejects(()=>verify("T"+"b".repeat(33),officialArtifact,tw,wallet),/çalışma kodu/);
+ actual=mockRuntime;
+ await assert.rejects(()=>verify("T"+"b".repeat(33),officialArtifact,tw,"T"+"c".repeat(33)),/Cüzdan değişti/);
+});
