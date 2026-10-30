@@ -696,3 +696,39 @@ test("setup recovery validates exact pinned Nile runtime and all manager immutab
  actual=mockRuntime;
  await assert.rejects(()=>verify("T"+"b".repeat(33),officialArtifact,tw,"T"+"c".repeat(33)),/Cüzdan değişti/);
 });
+
+test("V8 recovery never clears a pending deployment by checking an unrelated failed tx",async()=>{
+  const setup=read("takas-kurulum.html");
+  const script=setup.split("<script>")[1]?.split("</script>")[0];
+  assert.ok(script,"V8 setup script must exist");
+  const wallet="T"+"a".repeat(33),pendingId="a".repeat(64),otherId="b".repeat(64);
+  const pendingKey="secure-takas-deploy-pending:"+wallet;
+  const store=new Map([[pendingKey,pendingId]]),elements=new Map();
+  const get=id=>{
+    if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false});
+    return elements.get(id);
+  };
+  let requests=0;
+  const ctx={
+    window:{tronWeb:{defaultAddress:{base58:wallet}}},
+    document:{getElementById:get},
+    localStorage:{
+      getItem:key=>store.get(key)||null,
+      setItem:(key,value)=>store.set(key,value),
+      removeItem:key=>store.delete(key)
+    },
+    fetch:async()=>{requests++;return {json:async()=>({id:pendingId,receipt:{result:"OUT_OF_ENERGY"}})};},
+    console
+  };
+  vm.createContext(ctx);
+  vm.runInContext(script,ctx);
+  get("txid").value=otherId;
+  await get("verify").onclick();
+  assert.equal(requests,0,"Unrelated transaction must not be queried during pending recovery");
+  assert.equal(store.get(pendingKey),pendingId,"Pending deployment must remain protected");
+  assert.match(get("status").textContent,/Farklı işlem kimliğiyle/);
+  get("txid").value=pendingId;
+  await get("verify").onclick();
+  assert.equal(requests,1,"Matching pending transaction may be verified");
+  assert.equal(store.has(pendingKey),false,"Definitive failure of matching pending tx may clear its record");
+});
