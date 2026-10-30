@@ -523,3 +523,29 @@ test("V8 setup isolates pending and installed contracts by selected manager wall
  const home=read("index.html");
  assert.ok(home.includes('secure-takas-v8-contract:"+wallet'));
 });
+
+test("V8 setup expires stale deployment estimates and blocks signing or broadcast",()=>{
+ const html=read("takas-kurulum.html");
+ const script=html.split("<script>")[1]?.split("</script>")[0];
+ assert.ok(script,"Setup script must exist");
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const tw={defaultAddress:{base58:walletA}};
+ let now=1_000_000;
+ const elements=new Map();
+ const ctx={window:{tronWeb:tw},Date:{now:()=>now},document:{getElementById:id=>{
+  if(!elements.has(id))elements.set(id,{disabled:false,hidden:false,value:"",textContent:""});
+  return elements.get(id);
+ }},localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ vm.runInContext("estimated=true;estimatedWallet=selectedWallet();estimatedAt=Date.now()",ctx);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),true);
+ now+=299_999;
+ assert.equal(vm.runInContext("estimateFresh()",ctx),true);
+ now+=1;
+ assert.equal(vm.runInContext("estimateFresh()",ctx),false,"Five-minute-old estimate must expire");
+ now=1_000_000;tw.defaultAddress.base58=walletB;
+ assert.equal(vm.runInContext("estimateFresh()",ctx),false,"Changing wallet invalidates the estimate");
+ assert.match(script,/if\(!estimateFresh\(\)\)throw Error\("Kurulum Energy tahmini eski/);
+ assert.match(script,/Kurulum imzalanmadı; yeniden ücretsiz kontrol et/);
+ assert.match(script,/Kurulum yayınlanmadı; önce işlemi kontrol et/);
+});
