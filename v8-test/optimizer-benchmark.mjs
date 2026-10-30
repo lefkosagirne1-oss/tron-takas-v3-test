@@ -91,9 +91,11 @@ for(const variant of [
  try{
   const bytecode=compileVariant(variant);
   const energy=await measure(bytecode);
-  results.push({...variant,bytes:bytecode.length/2,energy:energy.toString(),deltaEnergy:(energy-baselineEnergy).toString()});
+  const {sourceOverride,...metadata}=variant;
+  results.push({...metadata,bytes:bytecode.length/2,energy:energy.toString(),deltaEnergy:(energy-baselineEnergy).toString()});
  }catch(e){
-  results.push({...variant,error:String(e.message||e).slice(0,350)});
+  const {sourceOverride,...metadata}=variant;
+  results.push({...metadata,error:String(e.message||e).slice(0,350)});
  }
 }
 console.log(JSON.stringify({network:"local TVM TronNile (NOT real Nile)",compiler:"tron-solc 0.8.31",results},null,2));
