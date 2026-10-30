@@ -12,7 +12,9 @@ import {Common,TronNile} from "@tvmjs/common";
 import {createBlock} from "@tvmjs/block";
 import {createAddressFromString,hexToBytes,bytesToHex} from "@tvmjs/util";
 
-const artifact=JSON.parse(readFileSync(new URL("../v6-test/dist/TakasV8Invite.json",import.meta.url),"utf8"));
+const artifact=JSON.parse(readFileSync(process.env.V8_TVM_ARTIFACT_PATH||new URL("../v6-test/dist/TakasV8Invite.json",import.meta.url),"utf8"));
+assert.equal(artifact.contractName,"TakasV8Invite");
+assert.equal(artifact.compiler,"tron-solc 0.8.31");
 const common=new Common({chain:TronNile});
 const tvm=await createTVM({common});
 const iface=new Interface(artifact.abi);

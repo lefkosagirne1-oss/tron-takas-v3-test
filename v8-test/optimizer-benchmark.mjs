@@ -1,7 +1,7 @@
 // Unsigned deployment-cost matrix: official tron-solc + local Nile TVM.
 // Experiments never change the published V8 artifact or broadcast a transaction.
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {readFileSync,writeFileSync} from "node:fs";
 import {createRequire} from "node:module";
 import {createTVM} from "@tvmjs/tvm";
 import {Common,TronNile} from "@tvmjs/common";
@@ -86,19 +86,25 @@ function customErrorVariant(input){
  return {source:result,count,codes:Object.fromEntries(codes)};
 }
 
-function compileVariant({runs,viaIR,stripMetadata,sourceOverride}){
+function compileVariant({runs,viaIR,stripMetadata,sourceOverride},returnArtifact=false){
  const input={
   language:"Solidity",sources:{"TakasV8Invite.sol":{content:sourceOverride||source}},
   settings:{optimizer:{enabled:true,runs},evmVersion:"paris",viaIR,
    ...(stripMetadata?{metadata:{bytecodeHash:"none"}}:{}),
-   outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}
+   outputSelection:{"*":{"*":["abi","evm.bytecode.object","evm.deployedBytecode.object","evm.deployedBytecode.immutableReferences"]}}}
  };
  const output=JSON.parse(compiler.compile(JSON.stringify(input)));
  const errors=(output.errors||[]).filter(x=>x.severity==="error");
  if(errors.length)throw Error(errors.map(x=>x.formattedMessage).join("\n"));
- const bytecode=output.contracts?.["TakasV8Invite.sol"]?.TakasV8Invite?.evm?.bytecode?.object;
+ const compiled=output.contracts?.["TakasV8Invite.sol"]?.TakasV8Invite;
+ const bytecode=compiled?.evm?.bytecode?.object;
  assert.match(bytecode||"",/^[0-9a-f]+$/i);
- return bytecode;
+ if(!returnArtifact)return bytecode;
+ const runtimeBytecode=compiled?.evm?.deployedBytecode?.object;
+ assert.match(runtimeBytecode||"",/^[0-9a-f]+$/i);
+ return {contractName:"TakasV8Invite",abi:compiled.abi,bytecode,runtimeBytecode,
+  immutableReferences:compiled.evm.deployedBytecode.immutableReferences||{},
+  network:"Nile",compiler:"tron-solc 0.8.31"};
 }
 async function measure(bytecode){
  const common=new Common({chain:TronNile});
@@ -146,6 +152,16 @@ for(const variant of [
  try{
   const bytecode=compileVariant(variant);
   const energy=await measure(bytecode);
+  if(variant.name==="require-unique-custom-errors"&&process.env.V8_CANDIDATE_ARTIFACT_PATH){
+   const candidate=compileVariant(variant,true);
+   const declared=candidate.abi.filter(entry=>entry.type==="error");
+   assert.equal(declared.length,Object.keys(customErrors.codes).length,
+    "Every distinct revert reason must retain an ABI custom-error identity");
+   for(const code of Object.values(customErrors.codes))
+    assert.ok(declared.some(entry=>entry.name===code),"Missing ABI error "+code);
+   writeFileSync(process.env.V8_CANDIDATE_ARTIFACT_PATH,JSON.stringify(candidate,null,2)+"\n");
+   console.log("Experimental custom-error artifact written for full local TVM regression only.");
+  }
   const {sourceOverride,...metadata}=variant;
   results.push({...metadata,bytes:bytecode.length/2,energy:energy.toString(),deltaEnergy:(energy-baselineEnergy).toString()});
  }catch(e){

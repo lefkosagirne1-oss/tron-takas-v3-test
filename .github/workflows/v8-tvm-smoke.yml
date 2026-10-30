@@ -36,5 +36,7 @@ jobs:
       - name: Probe real Nile unsigned deployment Energy (informational; no broadcast)
         continue-on-error: true
         run: node v8-test/nile-deploy-readonly.mjs
-      - name: Benchmark V8 optimizer without publishing any changed contract
-        run: node v8-test/optimizer-benchmark.mjs
+      - name: Benchmark V8 optimizer and test experimental custom errors in full local TVM
+        run: |
+          V8_CANDIDATE_ARTIFACT_PATH="${RUNNER_TEMP}/TakasV8Invite-custom-errors.json" node v8-test/optimizer-benchmark.mjs
+          V8_TVM_ARTIFACT_PATH="${RUNNER_TEMP}/TakasV8Invite-custom-errors.json" node v8-test/tvm-state.mjs
