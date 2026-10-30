@@ -44,6 +44,19 @@ const deployed=expectSuccess(await tvm.runCall({
 }),"deploy");
 assert.ok(deployed.createdAddress,"TRON contract address missing");
 const contract=deployed.createdAddress;
+// The browser validates every immutable manager slot in deployed runtime.
+// Verify the official TRON compiler actually patches all slots identically.
+const deployedRuntime=bytesToHex(await tvm.stateManager.getContractCode(contract)).replace(/^0x/,"").toLowerCase();
+assert.equal(deployedRuntime.length,artifact.runtimeBytecode.length,"Runtime length mismatch");
+const managerSlot="0".repeat(24)+"11".repeat(20);
+const managerReferences=Object.values(artifact.immutableReferences).flat();
+assert.ok(managerReferences.length>1,"Manager immutable references missing");
+for(const ref of managerReferences){
+ assert.equal(ref.length,32,"Unexpected immutable manager slot length");
+ assert.equal(deployedRuntime.slice(ref.start*2,(ref.start+ref.length)*2),managerSlot,
+  "Constructor must patch every immutable manager slot consistently");
+}
+console.log("Local Nile TVM deployed runtime: all",managerReferences.length,"manager immutable slots match.");
 assert.equal((await call(manager,contract,"inviteVersion",[],2,1003))[0],8n);
 assert.equal((await call(manager,contract,"manager",[],2,1003))[0].toLowerCase(),manager.toString().toLowerCase());
 assert.equal((await call(manager,contract,"nextId",[],2,1003))[0],1n);
