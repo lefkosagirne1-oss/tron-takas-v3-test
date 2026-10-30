@@ -618,8 +618,10 @@ test("V8 setup clears pending only for definitive Nile rejection, not ambiguous 
 
 test("setup recovery validates exact pinned Nile runtime and all manager immutable slots",async()=>{
  const setup=read("takas-kurulum.html");
- const script=setup.match(/<script>([\\s\\S]*?)<\\/script>/)?.[1];
- const helper=script?.match(/async function verifyDeployedRuntime[\\s\\S]*?(?=async function prepare\\()/)?.[0];
+ const script=setup.split("<script>")[1]?.split("</script>")[0];
+ const begin=script?.indexOf("async function verifyDeployedRuntime");
+ const end=script?.indexOf("async function prepare(",begin);
+ const helper=begin>=0&&end>begin?script.slice(begin,end):"";
  assert.ok(helper,"Setup must verify deployed runtime before accepting any saved or recovered address");
  for(const expected of [
   "verifyDeployedRuntime(installed,a,w,selectedWallet())",
