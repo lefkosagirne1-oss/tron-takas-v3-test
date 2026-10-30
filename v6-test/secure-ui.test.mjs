@@ -198,7 +198,8 @@ test("legacy V6/V7 create, deposit and finalize are disabled while refund remain
 });
 test("deployment estimate is bound to the selected TronLink wallet",()=>{
  const setup=read("takas-kurulum.html");
- assert.match(setup,/estimatedWallet=selectedWallet\(\)/);
+ assert.match(setup,/estimatedWallet=estimateWallet/);
+ assert.match(setup,/const assertEstimateWallet=/);
  assert.match(setup,/estimatedWallet===selectedWallet\(\)/);
 });
 
@@ -287,7 +288,7 @@ test("recovered deployment is tied to official bytecode and selected manager",()
  const setup=read("takas-kurulum.html");
  assert.match(setup,/wallet\/gettransactionbyid/);
  assert.match(setup,/deployedCode!==expectedCode/);
- assert.match(setup,/deployedOwner!==String\(w\.address\.toHex\(selectedWallet\(\)\)\)\.replace\(/);
+ assert.match(setup,/deployedOwner!==String\(w\.address\.toHex\(verifyWallet\)\)\.replace\(/);
  assert.match(setup,/deployment\?\.type!=="CreateSmartContract"/);
 });
 
