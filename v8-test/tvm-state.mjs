@@ -420,3 +420,75 @@ await assert.rejects(
 assert.equal((await call(manager,contract,"getDeal",[13],108,7409))[0].cancelled,true);
 assert.equal(await balance(contract),deadlineEscrowBefore,"Cancelling an unused deal cannot move funds");
 console.log("Local Nile TVM unused-deal cancellation blocks commitments.");
+
+
+// Authorization and one-time settlement regression in the actual local TronNile
+// VM: a leaked invitation cannot skip wallet commitment; only the original
+// depositor can reclaim funds, and the manager cannot cancel a funded deal.
+await assert.rejects(
+ ()=>call(stranger,contract,"create",[0,0n,sha(secretA),sha(secretB)],109,7412),
+ /create:/,"Only the manager can create a deal"
+);
+await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],110,7415);
+assert.equal((await call(manager,contract,"nextId",[],111,7418))[0],15n);
+await assert.rejects(
+ ()=>call(stranger,contract,"cancelUnused",[14],111,7418),
+ /cancelUnused:/,"A stranger cannot cancel even an unused deal"
+);
+await call(alice,contract,"commitRole",[14,1,commitment(secretA,alice)],112,7421);
+await assert.rejects(
+ ()=>call(alice,contract,"deposit",[14,1,zero,1_000_000n,"0x"+secretB.toString("hex")],113,7424,1_000_000n),
+ /deposit:/,"Wallet commitment must not authorize the other role's secret"
+);
+await assert.rejects(
+ ()=>call(bob,contract,"deposit",[14,1,zero,1_000_000n,"0x"+secretA.toString("hex")],114,7427,1_000_000n),
+ /deposit:/,"Knowing a secret must not bypass a prior wallet-bound commitment"
+);
+await call(alice,contract,"deposit",[14,1,zero,1_000_000n,"0x"+secretA.toString("hex")],115,7430,1_000_000n);
+await assert.rejects(
+ ()=>call(manager,contract,"cancelUnused",[14],116,7433),
+ /cancelUnused:/,"Manager cannot cancel a funded deal"
+);
+await assert.rejects(
+ ()=>call(stranger,contract,"refund",[14],117,8330),
+ /refund:/,"A non-depositor cannot steal an expired deposit"
+);
+await assert.rejects(
+ ()=>call(manager,contract,"refund",[14],118,8333),
+ /refund:/,"Manager cannot collect an expired participant refund"
+);
+await call(alice,contract,"refund",[14],119,8336);
+await assert.rejects(
+ ()=>call(alice,contract,"refund",[14],120,8339),
+ /refund:/,"The same deposit cannot be refunded twice"
+);
+assert.equal((await call(manager,contract,"getDeal",[14],121,8342))[0].refundedA,true);
+assert.equal(await balance(contract),deadlineEscrowBefore,"Authorization checks must preserve escrow principal");
+console.log("Local Nile TVM manager authorization, wallet-bound invite, refund ownership and double-refund regression OK.");
+
+// No one except the manager can finalize, and a successful finalize cannot
+// be repeated to pay a second commission or to transfer the assets again.
+await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],122,8350);
+await call(alice,contract,"commitRole",[15,1,commitment(secretA,alice)],123,8353);
+await call(bob,contract,"commitRole",[15,2,commitment(secretB,bob)],123,8353);
+await call(alice,contract,"deposit",[15,1,zero,100_000_000n,"0x"+secretA.toString("hex")],124,8356,100_000_000n);
+await call(bob,contract,"deposit",[15,2,zero,200_000_000n,"0x"+secretB.toString("hex")],125,8359,200_000_000n);
+await assert.rejects(
+ ()=>call(stranger,contract,"finalize",[15],126,8362),
+ /finalize:/,"An outsider cannot finalize a fully funded swap"
+);
+const managerBeforeFinal15=await balance(manager);
+await call(manager,contract,"finalize",[15],127,8365);
+assert.equal(await balance(manager)-managerBeforeFinal15,50_000_000n,"Manager receives exactly one fee");
+await assert.rejects(
+ ()=>call(manager,contract,"finalize",[15],128,8368),
+ /finalize:/,"Manager cannot finalize twice"
+);
+await assert.rejects(
+ ()=>call(alice,contract,"refund",[15],129,9268),
+ /refund:/,"A settled swap cannot be refunded"
+);
+assert.equal(await balance(manager)-managerBeforeFinal15,50_000_000n,"No duplicate fee after rejected calls");
+assert.equal((await call(manager,contract,"getDeal",[15],130,9271))[0].completed,true);
+assert.equal(await balance(contract),deadlineEscrowBefore,"Settled swap must leave no residual principal");
+console.log("Local Nile TVM outsider-finalize, single fee and settled-refund rejection OK.");
