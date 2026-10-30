@@ -605,3 +605,14 @@ test("manager can finalize the same unchanged deal after fresh chain validation"
  assert.equal(x.sent[0].finalize,"1");
  assert.match(x.get("status").textContent,/Takas zincirde başarıyla tamamlandı/);
 });
+
+
+test("V8 setup clears stale pending deployment only after an explicit Nile rejection",()=>{
+ const html=read("takas-kurulum.html");
+ assert.match(html,/localStorage\.setItem\(lastKey\(\),unsigned\.txID\)/);
+ assert.match(html,/if\(!broadcast\?\.result\)\{[^}]*localStorage\.removeItem\(lastKey\(\)\);estimated=false;/);
+ assert.match(html,/Nile düğümü kurulum işlemini reddetti/);
+ assert.match(html,/const broadcast=await tw\.trx\.sendRawTransaction\(signed\)/);
+ // A thrown network error does not enter the explicit rejection branch:
+ // the pending tx ID remains saved so an uncertain broadcast cannot be repeated.
+});
