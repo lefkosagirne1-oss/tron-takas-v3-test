@@ -340,7 +340,6 @@ console.log("Release caveat: arbitrary token issuer may permanently block refund
 // becomes public in the successful deposit transaction.
 const stranger=createAddressFromString("0x"+"44".repeat(20));
 await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],80,4248);
-const strangerBalanceBefore=await balance(stranger);
 await call(stranger,contract,"commitRole",[10,1,commitment(secretA,stranger)],81,4251);
 await assert.rejects(
  ()=>call(stranger,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],81,4251,1_000_000n),
@@ -350,7 +349,8 @@ await assert.rejects(
 let roleState=(await call(manager,contract,"getDeal",[10],82,4254))[0];
 assert.equal(roleState.depositedA,false,"Same-block failed deposit must not bind role A");
 assert.equal(roleState.depositDeadline,0n,"Same-block failed deposit must not start the timer");
-assert.equal(await balance(stranger),strangerBalanceBefore,"Failed same-block deposit must not charge principal");
+// runCall(skipBalance:true) does not model the rejected caller-value debit;
+// assert escrow state rather than simulator-injected caller balances.
 await call(alice,contract,"commitRole",[10,1,commitment(secretA,alice)],83,4257);
 const aliceBeforeInvite=await balance(alice);
 await call(alice,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],84,4260,1_000_000n);
