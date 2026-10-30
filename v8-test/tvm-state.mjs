@@ -352,7 +352,7 @@ assert.equal(roleState.depositDeadline,0n,"Same-block failed deposit must not st
 // runCall(skipBalance:true) does not model the rejected caller-value debit;
 // assert escrow state rather than simulator-injected caller balances.
 await call(alice,contract,"commitRole",[10,1,commitment(secretA,alice)],83,4257);
-const aliceBeforeInvite=await balance(alice);
+const escrowBeforeInvite=await balance(contract);
 await call(alice,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],84,4260,1_000_000n);
 await assert.rejects(
  ()=>call(stranger,contract,"commitRole",[10,1,commitment(secretA,stranger)],85,4263),
@@ -368,6 +368,6 @@ roleState=(await call(manager,contract,"getDeal",[10],87,4269))[0];
 assert.equal(roleState.partyA.toLowerCase(),alice.toString().toLowerCase(),"Funded role owner must remain Alice");
 assert.equal(roleState.depositedB,false,"Attacker must not fill unrelated role");
 await call(alice,contract,"refund",[10],88,5161);
-assert.equal(await balance(alice),aliceBeforeInvite,"Alice must recover full principal after timeout");
+assert.equal(await balance(contract),escrowBeforeInvite,"Escrow must return all timed-out principal");
 assert.equal((await call(manager,contract,"getDeal",[10],89,5164))[0].refundedA,true);
 console.log("Local Nile TVM invitation prior-block and post-reveal role-hijack regression OK.");
