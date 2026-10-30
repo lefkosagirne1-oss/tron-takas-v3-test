@@ -8,6 +8,7 @@ on:
       - 'v8-test/tvm-state.mjs'
       - 'v8-test/nile-deploy-readonly.mjs'
       - 'v8-test/optimizer-benchmark.mjs'
+      - 'v8-test/custom-error-messages.mjs'
       - '.github/workflows/v8-tvm-smoke.yml'
   workflow_dispatch:
 permissions:
