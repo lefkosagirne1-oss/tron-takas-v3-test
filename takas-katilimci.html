@@ -11,7 +11,7 @@ button{cursor:pointer}button:disabled{cursor:wait}#details{line-height:1.6}#prev
 <section><h2>Takas durumu</h2><button id="check">Durumu görüntüle</button><p id="details">Henüz kontrol edilmedi.</p>
 <button id="refund">Süre dolduysa yatırımı geri al</button><small>İade için davet sırrı gerekmez. Sözleşme adresi, takas numarası ve yatırımı yapan cüzdan yeterlidir.</small></section>
 <p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
-const role=Number(qs.get("role")),id=qs.get("id"),secret=qs.get("secret");
+const role=Number(qs.get("role")),id=qs.get("id"),secret=new URLSearchParams(String(location.hash||"").replace(/^#/,"")).get("secret")||qs.get("secret");
 let deal=null,busy=false;
 $("roleLabel").textContent=role===1?"A tarafı":role===2?"B tarafı":"Geçersiz davet";
 async function run(button,fn){
