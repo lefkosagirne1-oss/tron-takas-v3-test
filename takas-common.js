@@ -58,15 +58,22 @@ async function wallet(){
 let verifiedV8Code="";
 function sameV8Runtime(expected,actual,refs){
   if(!/^[0-9a-f]+$/.test(expected)||!(/^[0-9a-f]+$/.test(actual))||expected.length!==actual.length)return false;
-  const spans=Object.values(refs||{}).flat();
-  // The constructor inserts the immutable manager into the runtime bytecode.
-  // Only compiler-declared immutable offsets may differ; manager() is checked separately.
+  // This artifact has exactly one immutable: the 20-byte manager address.
+  // Every compiler-declared reference MUST contain the same deployed manager.
+  // Merely masking offsets would let a fake contract use a benign manager()
+  // reference but a different manager for owner checks or fee payouts.
+  if(Object.keys(refs||{}).length!==1)return false;
+  const spans=Object.values(refs).flat();
   if(!spans.length)return false;
-  let left=expected,right=actual;
+  let left=expected,right=actual,managerSlot="";
   for(const span of spans){
     const start=Number(span.start),length=Number(span.length);
-    if(!Number.isSafeInteger(start)||!Number.isSafeInteger(length)||length<=0||start<0||(start+length)*2>expected.length)return false;
+    if(!Number.isSafeInteger(start)||length!==32||start<0||(start+length)*2>expected.length)return false;
     const begin=start*2,end=(start+length)*2;
+    const slot=actual.slice(begin,end);
+    if(!/^0{24}[0-9a-f]{40}$/.test(slot)||/^0+$/.test(slot))return false;
+    if(managerSlot&&managerSlot!==slot)return false;
+    managerSlot=slot;
     const mask="0".repeat(end-begin);
     left=left.slice(0,begin)+mask+left.slice(end);
     right=right.slice(0,begin)+mask+right.slice(end);
