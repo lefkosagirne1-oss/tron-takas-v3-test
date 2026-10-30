@@ -53,7 +53,7 @@ async function ensureDepositStillOpen(c,tw,expectedWallet,marginSeconds){
 }
 async function readDeal(requireInvite=true){
  if(requireInvite)validInvite();
- else if(!fixedReady()||!/^[1-9]\\d*$/.test(id||"")||![1,2].includes(role))throw Error("Geçerli V8 sözleşme ve takas numarası gerekli.");
+ else if(!fixedReady()||!/^[1-9]\d*$/.test(id||"")||![1,2].includes(role))throw Error("Geçerli V8 sözleşme ve takas numarası gerekli.");
  const c=await contract();
  deal=await c.getDeal(id).call();
  const expected=role===1?deal.inviteHashA:deal.inviteHashB;
