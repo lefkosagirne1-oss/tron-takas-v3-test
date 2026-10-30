@@ -368,7 +368,7 @@ test("manager refuses to create when selected wallet changes after reading next 
 test("V8 transaction sender enforces the expected wallet before TronLink signing",()=>{
  assert.match(common,/ensureWallet\(tw,opts\.expectedWallet\)/);
  assert.match(participant,/expectedWallet:expectedWallet|expectedWallet\}/);
- assert.match(manager,/send\(c\.finalize\(idValue\(\)\),\{expectedWallet\}\)/);
+ assert.match(manager,/send\(c\.finalize\(reviewedId\),\{expectedWallet\}\)/);
 });
 
 test("V8 refuses fake contract code even if its ABI, version and manager look valid",async()=>{
