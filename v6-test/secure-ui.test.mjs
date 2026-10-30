@@ -813,3 +813,41 @@ test("V8 deployment estimate cannot reuse wallet A resources after switching to 
  assert.equal(vm.runInContext("estimateFresh()",ctx),false,"Estimate must not be accepted for wallet B");
  assert.equal(get("deploy").disabled,true,"No deployment may be signed with mismatched resources");
 });
+
+test("V8 recovery keeps both wallet records if account changes during transaction details RPC",async()=>{
+ const setup=read("takas-kurulum.html");
+ const script=setup.split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const pendingA="a".repeat(64),pendingB="b".repeat(64);
+ const keyA="secure-takas-deploy-pending:"+walletA,keyB="secure-takas-deploy-pending:"+walletB;
+ const store=new Map([[keyA,pendingA],[keyB,pendingB]]);
+ const elements=new Map();
+ const get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false});
+  return elements.get(id);
+ };
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},
+  defaultAddress:{base58:walletA}};
+ let reads=0;
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:key=>store.get(key)||null,setItem:(key,v)=>store.set(key,v),removeItem:key=>store.delete(key)},
+  fetch:async url=>({ok:true,json:async()=>{
+   reads++;
+   if(String(url).includes("gettransactioninfobyid"))return {
+    id:pendingA,receipt:{result:"SUCCESS"},contract_address:"41"+"2".repeat(40)
+   };
+   if(String(url).includes("gettransactionbyid")){
+    tw.defaultAddress.base58=walletB;
+    return {raw_data:{contract:[]}};
+   }
+   throw Error("No other RPC should be called after wallet switch");
+  }}),console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ get("txid").value=pendingA;
+ await get("verify").onclick();
+ assert.equal(reads,2,"The switch must occur after reading the second RPC response");
+ assert.equal(store.get(keyA),pendingA,"Wallet A pending record must survive");
+ assert.equal(store.get(keyB),pendingB,"Wallet B pending record must survive");
+ assert.equal(store.has("secure-takas-v8-contract:"+walletB),false,"No contract may be assigned to wallet B");
+ assert.match(get("status").textContent,/Cüzdan değişti/);
+});
