@@ -607,12 +607,11 @@ test("manager can finalize the same unchanged deal after fresh chain validation"
 });
 
 
-test("V8 setup clears stale pending deployment only after an explicit Nile rejection",()=>{
+test("V8 setup clears pending only for definitive Nile rejection, not ambiguous or duplicate response",()=>{
  const html=read("takas-kurulum.html");
- assert.match(html,/localStorage\.setItem\(lastKey\(\),unsigned\.txID\)/);
- assert.match(html,/if\(!broadcast\?\.result\)\{[^}]*localStorage\.removeItem\(lastKey\(\)\);estimated=false;/);
- assert.match(html,/Nile düğümü kurulum işlemini reddetti/);
- assert.match(html,/const broadcast=await tw\.trx\.sendRawTransaction\(signed\)/);
- // A thrown network error does not enter the explicit rejection branch:
- // the pending tx ID remains saved so an uncertain broadcast cannot be repeated.
+ assert.match(html,/localStorage\\.setItem\\(lastKey\\(\\),unsigned\\.txID\\)/);
+ assert.match(html,/const definitelyRejected=\\[[^\\]]+\\]\\.includes\\(code\\)/);
+ assert.match(html,/if\\(definitelyRejected\\)\\{[^}]*localStorage\\.removeItem\\(lastKey\\(\\)\\);estimated=false;/);
+ assert.match(html,/Kurulum yayın sonucu belirsiz/);
+ assert.match(html,/const broadcast=await tw\\.trx\\.sendRawTransaction\\(signed\\)/);
 });
