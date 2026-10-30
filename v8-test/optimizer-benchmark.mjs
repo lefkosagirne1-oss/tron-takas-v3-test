@@ -74,9 +74,12 @@ function customErrorVariant(input){
    const condition=input.slice(start+"require(".length,comma);
    // Braces avoid dangling-else changes for one-line if (...) require(...); else ...
    result+=input.slice(emitted,start)+"{ if (!("+condition+")) revert "+codes.get(reason)+"(); }";
-   emitted=p+1;count++;
+   let terminator=p+1;
+   while(/\\s/.test(input[terminator]||""))terminator++;
+   if(input[terminator]!==";")throw Error("Expected require statement terminator");
+   emitted=terminator+1;count++;
   }
-  scan=p+1;
+  scan=emitted>p?emitted:p+1;
  }
  const declarations=Array.from(codes.values(),code=>"    error "+code+"();").join("\n");
  result=(result+input.slice(emitted)).replace("contract TakasV8Invite {","contract TakasV8Invite {\n"+declarations);
