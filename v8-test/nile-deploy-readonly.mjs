@@ -20,18 +20,46 @@ if(!Number.isSafeInteger(number)||number<1||!Number.isFinite(timestamp)||
    Math.abs(Date.now()-timestamp)>600000||!Number.isFinite(price)||price<=0)
  throw Error("Nile block/chain parameter read failed");
 console.log("Nile read-only block:",number,"Energy price (SUN):",price);
-const body={owner_address:owner,data:artifact.bytecode,call_value:0};
-let success=false;
-for(const path of ["deployconstantcontract","triggerconstantcontract","estimateenergy"]){
- try{
-  const result=await read(path,body);
-  const energy=Number(result.energy_required??result.energy_used);
-  const ok=result.result?.result===true&&Number.isFinite(energy)&&energy>0;
-  if(ok){success=true;console.log(path,"unsigned deployment Energy:",energy,
-    "theoretical burn without Energy (TRX):",(energy*price/1e6).toFixed(4));}
-  else console.log(path,"did not return a usable deployment estimate:",JSON.stringify(result).slice(0,350));
- }catch(e){console.log(path,"not available for unsigned deployment estimate:",String(e.message||e));}
+// The optional candidate is produced by the pinned official compiler in CI.
+// It is only simulated, never published or signed.
+const candidatePath=process.env.V8_READONLY_CANDIDATE_ARTIFACT_PATH;
+const candidate=candidatePath?JSON.parse(readFileSync(candidatePath,"utf8")):null;
+if(candidate&&(candidate.contractName!=="TakasV8Invite"||
+ candidate.compiler!=="tron-solc 0.8.31"||candidate.network!=="Nile"||
+ !/^[0-9a-f]+$/i.test(candidate.bytecode||"")||
+ candidate.bytecode===artifact.bytecode))
+ throw Error("Unsigned candidate must be a distinct pinned official TRON artifact");
+
+async function estimate(label,bytecode){
+ const body={owner_address:owner,data:bytecode,call_value:0};
+ const values={};
+ for(const path of ["deployconstantcontract","triggerconstantcontract","estimateenergy"]){
+  try{
+   const result=await read(path,body);
+   const energy=Number(result.energy_required??result.energy_used);
+   const ok=result.result?.result===true&&Number.isSafeInteger(energy)&&energy>0;
+   if(ok){
+    values[path]=energy;
+    console.log(label,path,"unsigned deployment Energy:",energy,
+     "theoretical burn without Energy (TRX):",(energy*price/1e6).toFixed(4));
+   }else console.log(label,path,"did not return a usable deployment estimate:",JSON.stringify(result).slice(0,350));
+  }catch(e){console.log(label,path,"not available for unsigned deployment estimate:",String(e.message||e));}
+ }
+ return values;
 }
-console.log(success?"At least one Nile read-only deployment estimate returned positive Energy.":
+const published=await estimate("published",artifact.bytecode);
+if(candidate){
+ const experimental=await estimate("experimental-custom-errors",candidate.bytecode);
+ for(const path of ["triggerconstantcontract","estimateenergy"]){
+  if(published[path]&&experimental[path]){
+   const saved=published[path]-experimental[path];
+   console.log("UNSIGNED NILE COMPARISON",path,"saved Energy:",saved,
+    "theoretical TRX difference:",(saved*price/1e6).toFixed(4));
+  }
+ }
+ if(!Object.keys(experimental).length)throw Error("No usable Nile candidate deployment estimate");
+}
+console.log(Object.keys(published).length?
+ "Published artifact has a positive Nile read-only deployment estimate.":
  "No valid Nile deployment estimate; cost and deploy remain unverified.");
 console.log("No signing, no broadcast, no TRX spent; synthetic owner is not the user's wallet.");
