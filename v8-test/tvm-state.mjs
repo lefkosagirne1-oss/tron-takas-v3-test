@@ -332,3 +332,42 @@ assert.equal(await balance(bob),dynamicFeeBobTrxBefore,"Tax removed: extra TRX f
 assert.equal((await call(manager,contract,"getDeal",[9],79,4245))[0].refundedB,true);
 console.log("Local Nile TVM mutable-token tax: atomic failed refund, then full retry after tax removal OK.");
 console.log("Release caveat: arbitrary token issuer may permanently block refunds by changing transfer behavior.");
+
+
+// Security regression: an invitation is bound to the wallet that committed
+// in an EARLIER block. A same-block commitment cannot be used for deposit,
+// and a different wallet cannot take an already-funded role after the secret
+// becomes public in the successful deposit transaction.
+const stranger=createAddressFromString("0x"+"44".repeat(20));
+await call(manager,contract,"create",[0,0n,sha(secretA),sha(secretB)],80,4248);
+const strangerBalanceBefore=await balance(stranger);
+await call(stranger,contract,"commitRole",[10,1,commitment(secretA,stranger)],81,4251);
+await assert.rejects(
+ ()=>call(stranger,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],81,4251,1_000_000n),
+ /deposit:/,
+ "Same-block commitment must not authorize a deposit"
+);
+let roleState=(await call(manager,contract,"getDeal",[10],82,4254))[0];
+assert.equal(roleState.depositedA,false,"Same-block failed deposit must not bind role A");
+assert.equal(roleState.depositDeadline,0n,"Same-block failed deposit must not start the timer");
+assert.equal(await balance(stranger),strangerBalanceBefore,"Failed same-block deposit must not charge principal");
+await call(alice,contract,"commitRole",[10,1,commitment(secretA,alice)],83,4257);
+const aliceBeforeInvite=await balance(alice);
+await call(alice,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],84,4260,1_000_000n);
+await assert.rejects(
+ ()=>call(stranger,contract,"commitRole",[10,1,commitment(secretA,stranger)],85,4263),
+ /commitRole:/,
+ "Revealed invitation must not allow another wallet to commit to occupied role"
+);
+await assert.rejects(
+ ()=>call(stranger,contract,"deposit",[10,1,zero,1_000_000n,"0x"+secretA.toString("hex")],86,4266,1_000_000n),
+ /deposit:/,
+ "Previously committed stranger must not replace funded A"
+);
+roleState=(await call(manager,contract,"getDeal",[10],87,4269))[0];
+assert.equal(roleState.partyA.toLowerCase(),alice.toString().toLowerCase(),"Funded role owner must remain Alice");
+assert.equal(roleState.depositedB,false,"Attacker must not fill unrelated role");
+await call(alice,contract,"refund",[10],88,5161);
+assert.equal(await balance(alice),aliceBeforeInvite,"Alice must recover full principal after timeout");
+assert.equal((await call(manager,contract,"getDeal",[10],89,5164))[0].refundedA,true);
+console.log("Local Nile TVM invitation prior-block and post-reveal role-hijack regression OK.");
