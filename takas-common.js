@@ -27,7 +27,7 @@ function netPreview(amount,fee,payer,role,type,decimals=6){
     if(type!=="TRX"){
       // TRC20 decimals are read from the token at deposit time. Do not apply
       // TRX decimals or subtract a TRX fee from an unrelated token amount.
-      if(!/^\\d+(\\.\\d+)?$/.test(amount))throw Error("Geçerli miktar girin.");
+      if(!/^\d+(\.\d+)?$/.test(amount))throw Error("Geçerli miktar girin.");
       const [whole,fraction=""]=amount.split(".");
       if(BigInt(whole+fraction)===0n)return "Miktar sıfırdan büyük olmalı.";
       const feeText=commission>0n?"Komisyon teminatı: "+displayUnits(commission)+" TRX (ayrıca yatırılır)":"Komisyon yok";
@@ -36,7 +36,7 @@ function netPreview(amount,fee,payer,role,type,decimals=6){
     const gross=BigInt(units(amount,decimals));
     if(gross<=0n)return "Miktar sıfırdan büyük olmalı.";
     if(commission>=gross)return "Komisyon "+displayUnits(commission)+" TRX. Yatırılacak TRX bunun üzerinde olmalı.";
-    return "Yatırım: "+displayUnits(gross,decimals)+" TRX · Komisyon: "+displayUnits(commission)+" TRX · Karşı tarafa: "+displayUnits(gross-commission,decimals)+" TRX;
+    return "Yatırım: "+displayUnits(gross,decimals)+" TRX · Komisyon: "+displayUnits(commission)+" TRX · Karşı tarafa: "+displayUnits(gross-commission,decimals)+" TRX";
   }catch(e){return "Miktarı kontrol edin: "+e.message;}
 }
 function readableAddress(raw,tw){
