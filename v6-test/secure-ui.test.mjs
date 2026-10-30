@@ -609,9 +609,9 @@ test("manager can finalize the same unchanged deal after fresh chain validation"
 
 test("V8 setup clears pending only for definitive Nile rejection, not ambiguous or duplicate response",()=>{
  const html=read("takas-kurulum.html");
- assert.match(html,/localStorage\\.setItem\\(lastKey\\(\\),unsigned\\.txID\\)/);
- assert.match(html,/const definitelyRejected=\\[[^\\]]+\\]\\.includes\\(code\\)/);
- assert.match(html,/if\\(definitelyRejected\\)\\{[^}]*localStorage\\.removeItem\\(lastKey\\(\\)\\);estimated=false;/);
+ assert.match(html,/localStorage\.setItem\(lastKey\(\),unsigned\.txID\)/);
+ assert.match(html,/const definitelyRejected=\[[^\]]+\]\.includes\(code\)/);
+ assert.match(html,/if\(definitelyRejected\)\{[^}]*localStorage\.removeItem\(lastKey\(\)\);estimated=false;/);
  assert.match(html,/Kurulum yayın sonucu belirsiz/);
- assert.match(html,/const broadcast=await tw\\.trx\\.sendRawTransaction\\(signed\\)/);
+ assert.match(html,/const broadcast=await tw\.trx\.sendRawTransaction\(signed\)/);
 });
