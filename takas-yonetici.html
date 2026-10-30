@@ -49,6 +49,10 @@ $("create").onclick=()=>run($("create"),async()=>{
  if(payer===0&&fee!=="0")throw Error("Komisyon yok seçiliyken miktar 0 olmalı.");
  if(payer!==0&&BigInt(fee)===0n)throw Error("Komisyon ödeyen taraf seçildiyse tutar sıfırdan büyük olmalı.");
  const next=BigInt((await c.nextId().call()).toString());
+ // Never replace secrets from an earlier, possibly still pending create tx.
+ // Losing those secrets would make previously issued private links unrecoverable.
+ if(localStorage.getItem(linksKey(tw,next.toString()))!==null)
+  throw Error("Bu takas numarası için önceki davet kaydı var. Önceki işlemin sonucunu kontrol edin; bağlantı anahtarları korunuyor, yeni imza gönderilmedi.");
  const secretA=randomSecret(),secretB=randomSecret();
  const [hashA,hashB]=await Promise.all([hashSecret(secretA),hashSecret(secretB)]);
  ensureWallet(tw,expectedWallet);
