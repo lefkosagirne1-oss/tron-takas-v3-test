@@ -237,3 +237,9 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - [CI #41097515175](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41097515175): **121 test geçti, 0 hata**; resmi tron-solc 0.8.31 sabit blob doğrulandı. Nile salt-okunur blok **72281528**, Energy fiyatı **100 SUN**.
 - [Pages #41097514317](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41097514317) başarılı. `d5ef0841` ile güncel `338e7b6d` arasındaki GitHub karşılaştırmasında silinmiş dosya yok. Sözleşme bytecode/artifact bu çalışmada değiştirilmedi.
 - **YAYIN ENGELİ DEVAM EDİYOR:** V8 gerçek Nile ağına kurulmadı; zincirde gerçek takas ve iade testi yok. Salt-okunur sorgular ve yerel TVM testleri bunu kanıtlamaz. Kullanıcıdan imza, test TRX veya ekran görüntüsü istenmedi. Gerçek Nile doğrulaması olmadan hazır denmeyecek.
+
+## 30 Ekim 2026: token/ayrı TRX komisyonu önizleme düzeltmesi
+
+- Katılımcı önizlemesi TRC20 token miktarından sabit TRX komisyonunu düşmüyor; token miktarını tam gösterip ayrı iade edilebilir TRX teminatını açıkça yazıyor. 30 token + 50 TRX komisyon gibi geçerli senaryolar, TRX miktarı 30 olduğunda uygulanacak red kuralıyla karıştırılmıyor. Ondalık sayısı token sözleşmesinden işlem öncesi okunur; önizleme herhangi bir token için yanlışlıkla 6 ondalık dayatmaz.
+- Güvenlik regresyonu eklendi: 30 token / 50 TRX, 18 ondalıklı token gösterimi ve 30 TRX / 50 TRX reddi. Sözleşme, resmi artifact ve eski V6/V7 iade sayfaları değiştirilmedi.
+- **Gerçek Nile V8 kurulumu ve gerçek takas/iade yapılmadı; sistem hazır değildir.** CI/Pages sonucu ayrı doğrulanmadan başarı bildirilmez.

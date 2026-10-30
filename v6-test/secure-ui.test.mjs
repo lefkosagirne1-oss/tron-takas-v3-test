@@ -286,6 +286,25 @@ test("token-paying participant deposits token and separate refundable TRX fee",a
  assert.equal(x.sent[0].opts.callValue,50000000);
  assert.equal(x.sent[0].token,x.get("token").value);
 });
+test("token fee preview preserves token amount and shows separate TRX collateral",async()=>{
+ const x=await make("participant");
+ await x.get("check").onclick();
+ x.get("asset").value="OTHER";
+ x.get("amount").value="30";
+ x.get("asset").onchange();
+ assert.match(x.get("preview").textContent,/Yatırım: 30 token/);
+ assert.match(x.get("preview").textContent,/Komisyon teminatı: 50 TRX/);
+ assert.match(x.get("preview").textContent,/Karşı tarafa: 30 token/);
+ assert.doesNotMatch(x.get("preview").textContent,/TRX seçilmelidir|bunun üzerinde olmalı/);
+ x.get("amount").value="0.000000000000000001";
+ x.get("amount").oninput();
+ assert.match(x.get("preview").textContent,/Karşı tarafa: 0.000000000000000001 token/);
+ x.get("asset").value="TRX";
+ x.get("amount").value="30";
+ x.get("asset").onchange();
+ assert.match(x.get("preview").textContent,/Komisyon 50 TRX/);
+});
+
 test("manager displays full token amount rather than subtracting TRX fee from token",async()=>{
  const x=await make("manager");
  x.get("id").value="1";
