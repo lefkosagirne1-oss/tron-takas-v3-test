@@ -136,6 +136,12 @@ $("final").onclick=()=>run($("final"),async()=>{
  await showDeal();
  status("Takas zincirde başarıyla tamamlandı.");
 });
+// Keep both deposit states and the approval deadline current without requiring
+// repeated button presses. Polling is read-only and never triggers a signature.
+setInterval(async()=>{
+ if(busy||document.hidden||!fixedReady()||!/^[1-9]\d*$/.test($("id").value.trim()))return;
+ try{await showDeal();}catch(_){/* Preserve the last valid chain status during RPC errors. */}
+},20000);
 try{
  if(fixedReady()&&window.tronWeb?.ready){
   const id=restoreLinks(window.tronWeb);
