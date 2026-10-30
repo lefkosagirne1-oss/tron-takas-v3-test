@@ -76,6 +76,34 @@ console.log("Local Nile TVM deployed runtime: all",managerReferences.length,"man
 assert.equal((await call(manager,contract,"inviteVersion",[],2,1003))[0],8n);
 assert.equal((await call(manager,contract,"manager",[],2,1003))[0].toLowerCase(),manager.toString().toLowerCase());
 assert.equal((await call(manager,contract,"nextId",[],2,1003))[0],1n);
+// Candidate-only regression: verify the ACTUAL TVM revert payload selectors,
+// not just the compiler ABI, retain their correct Turkish explanations.
+// Published V8 (string reverts) is intentionally unchanged.
+if(artifact.errorSelectorsTr){
+ const stranger=createAddressFromString("0x"+"44".repeat(20));
+ const cases=[
+  {sender:stranger,payer:0,fee:0n,a:sha(secretA),b:sha(secretB),reason:"Manager only"},
+  {sender:manager,payer:0,fee:0n,a:"0x"+"00".repeat(32),b:sha(secretB),reason:"Invalid invitations"},
+  {sender:manager,payer:3,fee:0n,a:sha(secretA),b:sha(secretB),reason:"Invalid fee"},
+  {sender:manager,payer:0,fee:1n,a:sha(secretA),b:sha(secretB),reason:"Fee payer required"}
+ ];
+ for(const [index,scenario] of cases.entries()){
+  const failed=await tvm.runCall({
+   caller:scenario.sender,origin:scenario.sender,to:contract,
+   data:hexToBytes(iface.encodeFunctionData("create",[scenario.payer,scenario.fee,scenario.a,scenario.b])),
+   gasLimit:10_000_000n,skipBalance:true,block:block(3,1006+index)
+  });
+  assert.ok(failed.execResult.exceptionError,"Candidate call must revert: "+scenario.reason);
+  const payload=bytesToHex(failed.execResult.returnValue||new Uint8Array());
+  assert.match(payload,/^0x[0-9a-f]{8}$/i,"Candidate must return a 4-byte custom error selector");
+  const translation=artifact.errorSelectorsTr[payload.toLowerCase()];
+  assert.equal(translation?.reason,scenario.reason,"Actual TVM selector must map to the expected reason");
+  assert.ok(translation.messageTr?.length>10,"Candidate must retain a meaningful Turkish error message");
+ }
+ assert.equal((await call(manager,contract,"nextId",[],3,1012))[0],1n,
+  "Rejected candidate calls must not create a deal");
+ console.log("Local Nile TVM candidate custom-error revert payloads and Turkish translations OK.");
+}
 await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],3,1006);
 const deal=(await call(manager,contract,"getDeal",[1],4,1009))[0];
 assert.equal(deal.feePayer,1n);
