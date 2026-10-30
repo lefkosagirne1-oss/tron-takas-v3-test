@@ -24,6 +24,17 @@ const secretA=Buffer.alloc(32,0xaa),secretB=Buffer.alloc(32,0xbb);
 const sha=data=>"0x"+createHash("sha256").update(data).digest("hex");
 const commitment=(secret,wallet)=>sha(Buffer.concat([secret,Buffer.from(wallet.toString().slice(2),"hex")]));
 const txid=n=>hexToBytes("0x"+n.toString(16).padStart(64,"0"));
+// Local TVM Energy observations, NOT an estimate of actual Nile billing.
+const energySamples=new Map();
+function recordEnergy(fn,args,value,result){
+ if(!["create","commitRole","deposit","finalize","refund","cancelUnused"].includes(fn))return;
+ const energy=result.execResult.executionGasUsed;
+ if(typeof energy!=="bigint"||energy<=0n)throw Error("Missing local TVM Energy for "+fn);
+ const kind=fn==="deposit"?( /^0x0{40}$/i.test(String(args[2]))?"deposit:TRX":value>0n?"deposit:TRC20+TRXfee":"deposit:TRC20" ):fn;
+ const values=energySamples.get(kind)||[];
+ values.push(energy);
+ energySamples.set(kind,values);
+}
 function expectSuccess(r,label){
  if(r.execResult.exceptionError)throw Error(label+": "+r.execResult.exceptionError.error);
  return r;
@@ -36,6 +47,7 @@ async function call(caller,contract,fn,args,number,timestamp,value=0n){
   block:block(number,timestamp),
  });
  expectSuccess(result,fn);
+ recordEnergy(fn,args,value,result);
  return iface.decodeFunctionResult(fn,bytesToHex(result.execResult.returnValue));
 }
 const deployed=expectSuccess(await tvm.runCall({
@@ -492,3 +504,14 @@ assert.equal(await balance(manager)-managerBeforeFinal15,50_000_000n,"No duplica
 assert.equal((await call(manager,contract,"getDeal",[15],130,9271))[0].completed,true);
 assert.equal(await balance(contract),deadlineEscrowBefore,"Settled swap must leave no residual principal");
 console.log("Local Nile TVM outsider-finalize, single fee and settled-refund rejection OK.");
+
+// Measure local execution Energy for each successful path. Values are not
+// Nile fee quotes: real bandwidth, account resources and node execution vary.
+const energySummary=Object.fromEntries([...energySamples].sort(([a],[b])=>a.localeCompare(b)).map(([kind,values])=>{
+ const sorted=[...values].sort((a,b)=>a<b?-1:a>b?1:0);
+ return [kind,{count:values.length,min:sorted[0].toString(),max:sorted.at(-1).toString()}];
+}));
+for(const kind of ["create","commitRole","deposit:TRX","deposit:TRC20+TRXfee","finalize","refund"]){
+ assert.ok(energySummary[kind]?.count>0,"Missing Energy sample: "+kind);
+}
+console.log("LOCAL TVM execution Energy ranges (NOT Nile billing):",JSON.stringify(energySummary));
