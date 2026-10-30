@@ -46,7 +46,9 @@ assert.ok(deployed.createdAddress,"TRON contract address missing");
 const contract=deployed.createdAddress;
 // The browser validates every immutable manager slot in deployed runtime.
 // Verify the official TRON compiler actually patches all slots identically.
-const deployedRuntime=bytesToHex(await tvm.stateManager.getContractCode(contract)).replace(/^0x/,"").toLowerCase();
+const getCode=tvm.stateManager.getCode||tvm.stateManager.getContractCode;
+assert.equal(typeof getCode,"function","TVM state manager must expose a runtime code reader");
+const deployedRuntime=bytesToHex(await getCode.call(tvm.stateManager,contract)).replace(/^0x/,"").toLowerCase();
 assert.equal(deployedRuntime.length,artifact.runtimeBytecode.length,"Runtime length mismatch");
 const managerSlot="0".repeat(24)+"11".repeat(20);
 const managerReferences=Object.values(artifact.immutableReferences).flat();
