@@ -66,7 +66,7 @@ async function readDeal(requireInvite=true){
  const expected=role===1?deal.inviteHashA:deal.inviteHashB;
  if(requireInvite&&!sameHash(expected,await hashSecret(secret)))throw Error("Bu tarafın davet anahtarı yanlış. Yönetici tarafından gönderilen tam bağlantıyı kullanın.");
  const fee=BigInt(deal.feeAmount.toString()),payer=Number(deal.feePayer);
- $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. TRX gönderirseniz miktardan kesilir; token gönderirseniz ayrıca TRX yatırılır. Başarısız takasta komisyon teminatı iade edilir.":fee>0n?"Komisyonu diğer taraf öder ("+displayUnits(fee)+" TRX).":"Komisyon yok.";
+ $("feeInfo").textContent=fee>0n&&payer===role?"Sabit komisyon: "+displayUnits(fee)+" TRX. TRX gönderirseniz miktardan kesilir; token gönderirseniz ayrıca TRX yatırılır. Başarısız takasta komisyon teminatı iade edilir.":fee>0n?"Bu takasta sizden komisyon alınmaz.":"Komisyon yok.";
  updatePreview();
  return {c,d:deal};
 }
@@ -146,6 +146,12 @@ $("refund").onclick=()=>run($("refund"),async()=>{
  if(now<deadline)throw Error("İade süresi henüz gelmedi.");
  await send(c.refund(id),{expectedWallet});await check(false);status("İade işlemi zincirde doğrulandı.");
 });
+// Read-only refresh; no wallet signature or transaction. A/B need not press
+// "Durumu görüntüle" repeatedly while waiting for the other party or manager.
+setInterval(async()=>{
+ if(busy||document.hidden||!fixedReady()||!/^[1-9]\d*$/.test(id||"")||![1,2].includes(role)||!validSecret(secret))return;
+ try{await check();}catch(_){/* Keep the last confirmed state on transient Nile RPC failures. */}
+},20000);
 if(fixedReady()&&/^[1-9]\d*$/.test(id||"")&&[1,2].includes(role)&&validSecret(secret)){
  readDeal().catch(e=>{$("feeInfo").textContent="Takas bilgisi okunamadı: "+e.message;});
 }else{$("feeInfo").textContent="Geçerli davet bağlantısı gerekli.";}
