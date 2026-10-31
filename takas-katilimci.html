@@ -28,8 +28,12 @@ let deal=null,busy=false;
 $("roleLabel").textContent=role===1?"A tarafı":role===2?"B tarafı":"Geçersiz davet";
 async function run(button,fn){
  if(busy)return;busy=true;button.disabled=true;
+ // Keep the reviewed asset and amount unchanged during TronLink signatures.
+ // The transaction uses the captured values, not edits made while awaiting a wallet.
+ const fields=button===$("deposit")?["asset","token","amount"]:[];
+ const locked=fields.map(id=>{const el=$(id),disabled=el.disabled;el.disabled=true;return {el,disabled};});
  try{await fn();}catch(e){status("Hata: "+(e.message||e));}
- finally{busy=false;button.disabled=false;}
+ finally{for(const {el,disabled} of locked)el.disabled=disabled;busy=false;button.disabled=false;}
 }
 function validInvite(){if(!fixedReady()||!/^[1-9]\d*$/.test(id||"")||![1,2].includes(role)||!validSecret(secret))throw Error("Geçerli takas daveti gerekli.");}
 function updatePreview(){
