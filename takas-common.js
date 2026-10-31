@@ -64,6 +64,46 @@ async function wallet(){
   return tw;
 }
 let verifiedV8Code="";
+let verifiedErrorSelectorsTr={};
+// A failed Nile receipt can contain an ABI Error(string) or a four-byte
+// custom-error selector. Decode only bounded, well-formed revert payloads;
+// never turn an unsuccessful receipt into a successful transaction.
+const REVERT_MESSAGES_TR={
+ "Fee exceeds amount":"Komisyon yatırılan TRX miktarından küçük olmalı.",
+ "Deposit expired":"15 dakikalık yatırım süresi doldu.",
+ "Final window expired":"5 dakikalık yönetici son onay süresi doldu; iade kullanılabilir.",
+ "Invalid invitation":"Davet anahtarı geçersiz.",
+ "Wallet not committed":"Bu cüzdanın güvenlik kaydı eksik.",
+ "Wait one block":"Güvenlik kaydından sonra yeni Nile bloğunu bekleyin.",
+ "Wrong TRX amount":"Gönderilen TRX miktarı uyuşmuyor.",
+ "Wrong TRX fee":"Token için ayrı TRX komisyon teminatı uyuşmuyor.",
+ "Received amount mismatch":"Sözleşmeye eksik token ulaştı; işlem geri alındı.",
+ "Recipient amount mismatch":"Alıcıya eksik token ulaştı; işlem geri alındı.",
+ "Not expired":"İade süresi henüz dolmadı.",
+ "Not ready":"İki tarafın yatırımı olmadan son onay verilemez.",
+ "No A refund":"A tarafında iade edilecek yatırım yok veya iade edildi.",
+ "No B refund":"B tarafında iade edilecek yatırım yok veya iade edildi.",
+ "Token transfer failed":"Token aktarımı başarısız; işlem geri alındı.",
+ "TRX send failed":"TRX aktarımı başarısız; işlem geri alındı."
+};
+function v8RevertMessage(info){
+ const data=String(info?.contractResult?.[0]||"").replace(/^0x/i,"").toLowerCase();
+ if(!/^[0-9a-f]+$/.test(data)||data.length<8)return "";
+ const candidate=verifiedErrorSelectorsTr["0x"+data.slice(0,8)];
+ if(candidate&&typeof candidate.messageTr==="string"&&candidate.messageTr.length<=240)
+  return candidate.messageTr;
+ if(!data.startsWith("08c379a0")||data.length<8+128)return "";
+ const body=data.slice(8);
+ if(!/^0{63}20$/.test(body.slice(0,64)))return "";
+ const lengthHex=body.slice(64,128);
+ if(!/^[0-9a-f]{64}$/.test(lengthHex))return "";
+ const length=Number(BigInt("0x"+lengthHex));
+ if(!Number.isSafeInteger(length)||length<1||length>240||body.length<128+length*2)return "";
+ const bytes=body.slice(128,128+length*2).match(/../g);
+ const reason=bytes.map(h=>String.fromCharCode(parseInt(h,16))).join("");
+ if(!/^[\\x20-\\x7e]+$/.test(reason))return "";
+ return REVERT_MESSAGES_TR[reason]||reason;
+}
 function sameV8Runtime(expected,actual,refs){
   if(!/^[0-9a-f]+$/.test(expected)||!(/^[0-9a-f]+$/.test(actual))||expected.length!==actual.length)return false;
   // This artifact has exactly one immutable: the 20-byte manager address.
@@ -104,6 +144,7 @@ async function verifyV8Code(){
   const info=await response.json();
   const actual=String(info.runtimecode||"").replace(/^0x/i,"").toLowerCase();
   if(!sameV8Runtime(expected,actual,artifact.immutableReferences))throw Error("Güvenlik: Nile sözleşme kodu resmi V8 derlemesiyle eşleşmiyor. İşlem imzalanmadı.");
+  verifiedErrorSelectorsTr=artifact.errorSelectorsTr||{};
   verifiedV8Code=address;
 }
 async function contract(){
@@ -127,7 +168,8 @@ async function waitTx(hash,tw,tries=24){
   for(let i=0;i<tries;i++){
     const info=await tw.trx.getTransactionInfo(hash);
     if(info?.receipt?.result==="SUCCESS")return info;
-    if(info?.receipt?.result&&info.receipt.result!=="SUCCESS")throw Error("Zincir işlemi başarısız: "+info.receipt.result+" · "+hash);
+    if(info?.receipt?.result&&info.receipt.result!=="SUCCESS")
+      throw Error("Zincir işlemi başarısız: "+(v8RevertMessage(info)||info.receipt.result)+" · "+hash);
     await new Promise(resolve=>setTimeout(resolve,2500));
   }
   throw Error("İşlem gönderildi ancak henüz kesinleşmedi. Yeniden imzalamayın; önce işlem kimliğini kontrol edin: "+hash);
