@@ -1365,3 +1365,67 @@ test("participant rechecks token allowance after commitment before signing depos
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/Yatırım öncesi token izni yetersiz/);
 });
+
+
+test("confirmed V8 deposit survives a post-receipt status read failure",async()=>{
+ const x=await make("participant");
+ const original=x.c.getDeal;
+ x.c.getDeal=id=>({call:async()=>{
+  if(x.sent.some(tx=>tx.role===1))throw Error("temporary Nile status RPC timeout");
+  return original(id).call();
+ }});
+ await x.get("deposit").onclick();
+ assert.equal(x.sent.filter(tx=>tx.role===1).length,1,"Only one deposit may be sent");
+ assert.match(x.get("status").textContent,/Yatırım zincirde doğrulandı/);
+ assert.match(x.get("status").textContent,/tekrar yatırmayın/);
+ assert.doesNotMatch(x.get("status").textContent,/^Hata:/);
+});
+
+test("confirmed V8 refund survives a post-receipt status read failure",async()=>{
+ const x=await make("participant");
+ x.deal.depositedA=true;
+ x.deal.partyA="0x"+"2".repeat(40);
+ x.deal.depositDeadline="1";
+ const original=x.c.getDeal;
+ x.c.getDeal=id=>({call:async()=>{
+  if(x.sent.some(tx=>tx.refund))throw Error("temporary Nile refund status timeout");
+  return original(id).call();
+ }});
+ await x.get("refund").onclick();
+ assert.equal(x.sent.filter(tx=>tx.refund).length,1,"Only one refund may be sent");
+ assert.match(x.get("status").textContent,/İade zincirde doğrulandı/);
+ assert.match(x.get("status").textContent,/tekrar iade göndermeyin/);
+ assert.doesNotMatch(x.get("status").textContent,/^Hata:/);
+});
+
+test("confirmed V8 create preserves private links after status RPC failure",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ x.c.getDeal=()=>({call:async()=>{throw Error("temporary Nile create status timeout");}});
+ await x.get("create").onclick();
+ assert.equal(await x.c.nextId().call(),"2","Create was confirmed on chain");
+ assert.ok(x.ctx.loadInvite("1",x.tw),"Invitation secrets must survive post-receipt errors");
+ assert.match(x.get("status").textContent,/oluşturma işlemi zincirde başarılı/);
+ assert.match(x.get("status").textContent,/Tekrar takas oluşturmayın/);
+ assert.doesNotMatch(x.get("status").textContent,/^Hata:/);
+});
+
+test("confirmed V8 finalize survives a post-receipt status read failure",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ x.deal.depositedA=true;x.deal.depositedB=true;
+ x.deal.amountA="100000000";x.deal.amountB="200000000";
+ x.deal.finalDeadline="1000400";
+ let finalized=0;
+ x.c.finalize=()=>({send:async()=>{finalized++;return "a".repeat(64);}});
+ const original=x.c.getDeal;
+ x.c.getDeal=id=>({call:async()=>{
+  if(finalized)throw Error("temporary Nile finalize status timeout");
+  return original(id).call();
+ }});
+ await x.get("final").onclick();
+ assert.equal(finalized,1,"Only one finalize may be sent");
+ assert.match(x.get("status").textContent,/Takas zincirde tamamlandı/);
+ assert.match(x.get("status").textContent,/tekrar son onay göndermeyin/);
+ assert.doesNotMatch(x.get("status").textContent,/^Hata:/);
+});
