@@ -11,7 +11,9 @@ function units(s,d){
   if(!/^\d+(\.\d+)?$/.test(s))throw Error("Geçerli miktar girin.");
   let [a,b=""]=s.split(".");
   if(b.length>d)throw Error("En fazla "+d+" ondalık basamak kullanılabilir.");
-  return (BigInt(a)*10n**BigInt(d)+BigInt(b.padEnd(d,"0"))).toString();
+  const value=BigInt(a)*10n**BigInt(d)+BigInt(b.padEnd(d,"0"));
+  if(value>(1n<<256n)-1n)throw Error("Miktar uint256 sınırını aşıyor; işlem imzalanmadı.");
+  return value.toString();
 }
 function displayUnits(v,d=6){
   let n=BigInt(v),sign=n<0n?"-":"";
