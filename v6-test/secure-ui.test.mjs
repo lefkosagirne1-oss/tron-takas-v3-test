@@ -177,6 +177,22 @@ test("B secret cannot be used on A invitation",async()=>{
  assert.equal(x.sent.length,0);
  assert.match(x.get("status").textContent,/davet anahtarı yanlış/);
 });
+test("oversized uint256 participant amount is rejected before commit or deposit",async()=>{
+ const x=await make("participant",secretA,(1n<<256n).toString());
+ await x.get("deposit").onclick();
+ assert.match(x.get("status").textContent,/uint256 sınırını aşıyor/);
+ assert.equal(x.commits.length,0,"Overflow must not sign role commitment");
+ assert.equal(x.sent.length,0,"Overflow must not sign a deposit");
+});
+test("oversized uint256 manager fee is rejected before create or secret storage",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";
+ x.get("fee").value=(1n<<256n).toString();
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/uint256 sınırını aşıyor/);
+ assert.equal(await x.c.nextId().call(),"1","Overflow must not sign create");
+ assert.equal(x.ctx.loadInvite("1",x.tw),null,"Overflow must not create orphan invitation secrets");
+});
 test("30 TRX rejected before signing if commission is 50 TRX",async()=>{
  const x=await make("participant",secretA,"30");
  await x.get("deposit").onclick();
