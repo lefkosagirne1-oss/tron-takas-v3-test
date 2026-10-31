@@ -1296,3 +1296,34 @@ test("confirmed failed commitment cannot be mistaken for a safe deposit",async()
  await assert.rejects(x.ctx.waitNextBlock(x.tw,"a".repeat(64)),/Güvenlik kaydı başarısız/);
  assert.equal(x.sent.length,0);
 });
+
+test("participant rechecks TRX balance after commitment before signing deposit",async()=>{
+ const x=await make("participant");
+ let reads=0;
+ x.tw.trx.getBalance=async()=>++reads===1?1000000000:0;
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1,"The first balance was sufficient for role commitment");
+ assert.equal(x.sent.length,0,"The depleted balance must not trigger a doomed deposit");
+ assert.match(x.get("status").textContent,/Yatırım öncesi TRX bakiyesi artık yetersiz/);
+ assert.equal(reads,2);
+});
+
+test("participant rechecks token balance after commitment before signing deposit",async()=>{
+ const x=await make("participant");
+ x.get("asset").value="OTHER";x.get("token").value="T"+"c".repeat(33);
+ x.tokenContract.balanceOf=()=>({call:async()=>x.commits.length?"0":"1000000000"});
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Yatırım öncesi token bakiyesi azaldı/);
+});
+
+test("participant rechecks token allowance after commitment before signing deposit",async()=>{
+ const x=await make("participant");
+ x.get("asset").value="OTHER";x.get("token").value="T"+"c".repeat(33);
+ x.tokenContract.allowance=()=>({call:async()=>x.commits.length?"0":"1000000000"});
+ await x.get("deposit").onclick();
+ assert.equal(x.commits.length,1);
+ assert.equal(x.sent.length,0);
+ assert.match(x.get("status").textContent,/Yatırım öncesi token izni yetersiz/);
+});

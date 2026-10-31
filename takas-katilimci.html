@@ -131,6 +131,20 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   status("Güvenlik kaydı onaylandı. Yatırım için sonraki Nile bloğu bekleniyor...");
   await waitNextBlock(tw,commitTx);
  }
+ // Approval and role commitment can consume TRX or take time. Re-read actual
+ // balances/allowance after them, before the final costly deposit signature.
+ // This avoids a predictable failed transaction when funds or approval changed.
+ ensureWallet(tw,expectedWallet);
+ const remainingTrx=BigInt(await tw.trx.getBalance(expectedWallet));
+ if(remainingTrx<requiredTrx)throw Error("Yatırım öncesi TRX bakiyesi artık yetersiz. Yatırım imzalanmadı; mevcut: "+displayUnits(remainingTrx)+" TRX.");
+ if(type!=="TRX"){
+  const t=await tw.contract(TOKEN_ABI,token);
+  const [balanceNow,allowanceNow]=await Promise.all([
+   t.balanceOf(expectedWallet).call(),t.allowance(expectedWallet,address).call()
+  ]);
+  if(BigInt(balanceNow.toString())<BigInt(amount))throw Error("Yatırım öncesi token bakiyesi azaldı. Yatırım imzalanmadı.");
+  if(BigInt(allowanceNow.toString())<BigInt(amount))throw Error("Yatırım öncesi token izni yetersiz. Yatırım imzalanmadı.");
+ }
  await ensureDepositStillOpen(c,tw,expectedWallet,15);
  await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee,expectedWallet});
  await check();
