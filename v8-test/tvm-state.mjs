@@ -535,6 +535,53 @@ assert.equal((await call(manager,contract,"getDeal",[15],130,9271))[0].completed
 assert.equal(await balance(contract),deadlineEscrowBefore,"Settled swap must leave no residual principal");
 console.log("Local Nile TVM outsider-finalize, single fee and settled-refund rejection OK.");
 
+// Symmetric token-fee regression: A (not just B) can pay a separate native
+// commission while sending TRC20 to B. Verify the fee is withheld until
+// finalize, and that the full token amount reaches B.
+await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],131,9300);
+await tokenCall(manager,"mint",[alice.toString(),60n],132,9303);
+await tokenCall(alice,"approve",[contract.toString(),60n],133,9306);
+await call(alice,contract,"commitRole",[16,1,commitment(secretA,alice)],134,9309);
+await call(bob,contract,"commitRole",[16,2,commitment(secretB,bob)],134,9309);
+const beforeATokenFeeManager=await balance(manager);
+const beforeATokenFeeAliceTrx=await balance(alice);
+const beforeATokenFeeBobTokens=await tokenBalance(bob);
+const beforeATokenFeeEscrowTokens=await tokenBalance(contract);
+await call(alice,contract,"deposit",[16,1,tokenAddress,60n,"0x"+secretA.toString("hex")],135,9312,50_000_000n);
+await call(bob,contract,"deposit",[16,2,zero,120_000_000n,"0x"+secretB.toString("hex")],136,9315,120_000_000n);
+assert.equal(await balance(manager),beforeATokenFeeManager,"A token payer fee must remain escrowed before final approval");
+await call(manager,contract,"finalize",[16],137,9318);
+assert.equal((await tokenBalance(bob))-beforeATokenFeeBobTokens,60n,"B receives A's full TRC20 amount");
+assert.equal(await tokenBalance(contract),beforeATokenFeeEscrowTokens,"No residual A-side token principal");
+assert.equal((await balance(manager))-beforeATokenFeeManager,50_000_000n,"Manager gets one A-side token payer fee");
+assert.equal((await balance(alice))-beforeATokenFeeAliceTrx,70_000_000n,"A receives B's 120 TRX less separate 50 TRX fee");
+assert.equal((await call(manager,contract,"getDeal",[16],138,9321))[0].completed,true);
+
+// If the manager misses the five-minute deadline, BOTH deposits and A's
+// separate native fee must return in full; no commission can be retained.
+await call(manager,contract,"create",[1,50_000_000n,sha(secretA),sha(secretB)],139,9324);
+await tokenCall(manager,"mint",[alice.toString(),35n],140,9327);
+await tokenCall(alice,"approve",[contract.toString(),35n],141,9330);
+await call(alice,contract,"commitRole",[17,1,commitment(secretA,alice)],142,9333);
+await call(bob,contract,"commitRole",[17,2,commitment(secretB,bob)],142,9333);
+const beforeARefundTokens=await tokenBalance(alice);
+const beforeARefundTrx=await balance(alice);
+const beforeBRefundTrx=await balance(bob);
+const beforeARefundManager=await balance(manager);
+await call(alice,contract,"deposit",[17,1,tokenAddress,35n,"0x"+secretA.toString("hex")],143,9336,50_000_000n);
+await call(bob,contract,"deposit",[17,2,zero,120_000_000n,"0x"+secretB.toString("hex")],144,9339,120_000_000n);
+await call(alice,contract,"refund",[17],145,9640);
+await call(bob,contract,"refund",[17],146,9643);
+const afterARefund=(await call(manager,contract,"getDeal",[17],147,9646))[0];
+assert.equal(afterARefund.refundedA,true);
+assert.equal(afterARefund.refundedB,true);
+assert.equal(afterARefund.completed,false);
+assert.equal(await tokenBalance(alice),beforeARefundTokens,"A receives full TRC20 refund");
+assert.equal(await balance(alice),beforeARefundTrx,"A recovers all 50 TRX fee collateral");
+assert.equal(await balance(bob),beforeBRefundTrx,"B recovers all 120 TRX principal");
+assert.equal(await balance(manager),beforeARefundManager,"Expired A token payer fee never reaches manager");
+console.log("Local Nile TVM A-side TRC20 fee finalize and two-party timeout refund OK.");
+
 // Measure local execution Energy for each successful path. Values are not
 // Nile fee quotes: real bandwidth, account resources and node execution vary.
 const energySummary=Object.fromEntries([...energySamples].sort(([a],[b])=>a.localeCompare(b)).map(([kind,values])=>{
