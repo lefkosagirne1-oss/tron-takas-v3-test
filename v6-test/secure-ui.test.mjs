@@ -42,7 +42,7 @@ async function make(page,secret=secretA,amount="100",useFragment=false){
  };
  const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:page==="manager"?owner:user},isAddress:()=>true,address:{fromHex:hex=>hex.endsWith("1".repeat(40))?owner:user,toHex:addr=>"41"+(addr===owner?"1":"2").repeat(40)},contract:async(_abi,addr)=>addr==="TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a"?c:tokenContract,trx:{getBalance:async()=>1000000000,getTransactionInfo:async()=>({receipt:{result:"SUCCESS"},blockNumber:100}),getCurrentBlock:async()=>({block_header:{raw_data:{timestamp:1000000,number:101}}})}};
  const store=new Map(),historyCalls=[],intervals=[];
- const ctx={history:{state:null,replaceState:(_state,_title,url)=>historyCalls.push(url)},crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,setInterval:fn=>{intervals.push(fn);return intervals.length;},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},navigator:{clipboard:{writeText:async()=>{}}}};
+ const ctx={history:{state:null,replaceState:(_state,_title,url)=>historyCalls.push(url)},crypto:webcrypto,window:{tronWeb:tw},document:{getElementById:get},location:{search:"?secure=1&contract=TE9jxbtjX4GczdpLfvmPnQ8YbDf6LZPB6a&id=1&role=1&secret="+encodeURIComponent(useFragment?secretB:secret),hash:useFragment?"#secret="+encodeURIComponent(secret):"",href:"https://example.com/takas-"+(page==="manager"?"yonetici":"katilimci")+".html"},URL,URLSearchParams,BigInt,Number,String,console,setTimeout,clearTimeout,setInterval:fn=>{intervals.push(fn);return intervals.length;},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},navigator:{clipboard:{writeText:async()=>{}}}};
  ctx.fetch=async url=>({
   ok:true,
   json:async()=>String(url).includes("TakasV8Invite.json")
@@ -110,6 +110,37 @@ test("pending V8 invitation record blocks duplicate creation without replacing s
  assert.equal(x.ctx.loadInvite("1",x.tw).b,secretB);
  assert.throws(()=>x.ctx.saveInvite("1","0x"+"33".repeat(32),secretB,x.tw),/üzerlerine yazılmadı/);
  assert.equal(x.ctx.loadInvite("1",x.tw).a,secretA,"Existing private invitation must remain recoverable");
+});
+test("manager can safely retry create after explicit TronLink signature rejection",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ x.ctx.saveInvite("5",secretA,secretB,x.tw); // An unrelated older link remains intact.
+ const originalCreate=x.c.create;
+ x.c.create=()=>({send:async()=>{const e=new Error("User rejected");e.code=4001;throw e;}});
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/User rejected/);
+ assert.equal(x.ctx.loadInvite("1",x.tw),null,"Rejected signature must not leave an unusable pending invite");
+ assert.equal(x.ctx.restoreLinks(x.tw),"5","Previous invitation index must survive rejection");
+ assert.equal(x.ctx.loadInvite("5",x.tw).a,secretA);
+ x.c.create=originalCreate;
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/bağlantıları hazır/,"Retry must succeed without manually clearing storage");
+ assert.ok(x.ctx.loadInvite("1",x.tw));
+});
+test("manager preserves invitation secrets after a broadcast with uncertain Nile receipt",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ let signed=0;
+ x.c.create=()=>({send:async()=>{signed++;return "a".repeat(64);}});
+ x.tw.trx.getTransactionInfo=async()=>{throw Error("Nile RPC unavailable");};
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/Nile RPC unavailable/);
+ const saved=x.ctx.loadInvite("1",x.tw);
+ assert.ok(saved&&saved.a&&saved.b,"Uncertain broadcast must retain both private keys");
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/önceki davet kaydı/);
+ assert.equal(signed,1,"Uncertain transaction must not be signed a second time");
+ assert.deepEqual(x.ctx.loadInvite("1",x.tw),saved);
 });
 test("valid A invite deposits 100 TRX with 50 TRX fee",async()=>{
  const x=await make("participant");
