@@ -17,7 +17,7 @@ button{cursor:pointer}button:disabled{cursor:wait}input[readonly]{font-size:.86r
 <button id="final">Takası son onayla</button>
 <small>Yalnızca her iki taraf yatırdıysa, miktarları kontrol ettikten sonra onaylayın. İşlem TronLink imzası gerektirir.</small></section>
 <p id="status" role="status"></p></main><script src="takas-common.js"></script><script>
-let busy=false;
+let busy=false,shownWallet="";
 async function run(button,fn){
  if(busy)return;
  busy=true;button.disabled=true;
@@ -34,20 +34,24 @@ function idValue(){
  return id;
 }
 async function showLinks(id,tw,{force=false}={}){
+ const expectedWallet=tw.defaultAddress?.base58;
+ ensureWallet(tw,expectedWallet);
  const v=loadInvite(id,tw);
  if(!v)throw Error("Bu cihazda bu takasın özel davet anahtarları yok. Daha önce kopyaladığınız bağlantıları kullanın.");
  const d=await(await contract()).getDeal(id).call();
  if(!sameHash(d.inviteHashA,await hashSecret(v.a))||!sameHash(d.inviteHashB,await hashSecret(v.b)))throw Error("Davet anahtarları sözleşmeyle uyuşmuyor.");
+ ensureWallet(tw,expectedWallet);
  // A read-only refresh may finish after the manager starts entering another deal.
  // Never overwrite the new selection with stale links from an earlier request.
  if(!force&&$("id").value.trim()!==String(id))return;
+ shownWallet=expectedWallet;
  $("id").value=String(id);$("a").value=link(1,id,v.a);$("b").value=link(2,id,v.b);
 }
 function updateFeeHint(){
  const payer=Number($("payer").value),fee=$("fee").value.trim();
  $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırırsa miktardan kesilir; token yatırırsa ayrıca TRX teminatı gönderir. Komisyon yalnız takas tamamlanırsa kesilir.";
 }
-$("id").oninput=()=>{$("a").value="";$("b").value="";$("details").textContent="Yeni takas numarasını kontrol edin.";};
+$("id").oninput=()=>{shownWallet="";$("a").value="";$("b").value="";$("details").textContent="Yeni takas numarasını kontrol edin.";};
 $("payer").onchange=updateFeeHint;$("fee").oninput=updateFeeHint;updateFeeHint();
 $("create").onclick=()=>run($("create"),async()=>{
  if(!fixedReady())throw Error("Güvenli takas sözleşme bağlantısı gerekli.");
@@ -92,6 +96,7 @@ $("create").onclick=()=>run($("create"),async()=>{
  if(after!==next+1n)throw Error("Birden fazla takas oluşturulmuş olabilir. Takas numarasını kontrol edin.");
  const d=await c.getDeal(next.toString()).call();
  if(Number(d.feePayer)!==payer||BigInt(d.feeAmount.toString())!==BigInt(fee))throw Error("Zincirde komisyon uyuşmuyor; bağlantılar gösterilmedi.");
+ ensureWallet(tw,expectedWallet);
  await showLinks(next.toString(),tw,{force:true});
  status("Takas #"+next+" doğrulandı. A ve B bağlantıları hazır.");
 });
@@ -101,8 +106,15 @@ $("recover").onclick=()=>run($("recover"),async()=>{
  await c.getDeal(id).call();
  await showLinks(id,tw);status("Takas #"+id+" bağlantıları hazır.");
 });
-$("copyA").onclick=()=>copy($("a").value);
-$("copyB").onclick=()=>copy($("b").value);
+function copyManagerLink(role){
+ try{
+  if(!shownWallet)throw Error("Önce bu cüzdanın takas bağlantılarını doğrulayın.");
+  ensureWallet(window.tronWeb,shownWallet);
+  copy($(role===1?"a":"b").value);
+ }catch(e){shownWallet="";$("a").value="";$("b").value="";status("Hata: "+e.message);}
+}
+$("copyA").onclick=()=>copyManagerLink(1);
+$("copyB").onclick=()=>copyManagerLink(2);
 async function formatAsset(raw,amount,tw){
  if(!BigInt(amount.toString()))return "—";
  const token=readableAddress(raw,tw);
@@ -117,6 +129,7 @@ async function formatAsset(raw,amount,tw){
 }
 async function showDeal(){
  const {tw,c}=await assertManager();
+ const expectedWallet=tw.defaultAddress.base58;
  const id=idValue(),d=await c.getDeal(id).call();
  const a=d.depositedA?"Yatırdı":"Bekleniyor",b=d.depositedB?"Yatırdı":"Bekleniyor";
  const fee=BigInt(d.feeAmount.toString()),payer=Number(d.feePayer);
@@ -136,6 +149,7 @@ async function showDeal(){
  const chainNow=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
  const deadline=finalAt||depositAt;
  const timeText=deadline&&chainNow?(" · "+(chainNow>=deadline?"Süre doldu; iade aşaması":"Kalan süre: "+Math.ceil((deadline-chainNow)/60)+" dk")):"";
+ ensureWallet(tw,expectedWallet);
  if(idValue()!==id)throw Error("Takas numarası okuma sırasında değişti; eski takas bilgileri gösterilmedi.");
  $("details").textContent="A: "+a+" · "+readableAddress(d.partyA,tw)+" · yatırdı: "+assetA+" · B'ye gidecek: "+receiveB+
  " | B: "+b+" · "+readableAddress(d.partyB,tw)+" · yatırdı: "+assetB+" · A'ya gidecek: "+receiveA+
