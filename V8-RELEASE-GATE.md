@@ -333,3 +333,12 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - [GitHub Actions #41171811987](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41171811987): **142/142 test başarılı, 0 hata**; sabit SHA'lı resmi TRON derleyicisi/artifact üretimi tamamlandı. Nile salt-okunur blok **72.295.819**, Energy fiyatı **100 SUN**. [GitHub Pages #41171811661](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41171811661) başarılı.
 - `95f10acf` ile `01b75651` karşılaştırmasında yalnız kurulum HTML'i ve UI test dosyası değişti; **silinen dosya yok**. `d5ef0841` temel sürümüne göre de silinen dosya yok. V8 Solidity sözleşmesi, resmi bytecode ve eski V6/V7 iade sayfaları değiştirilmedi.
 - **YAYIN ENGELİ:** V8 hâlâ gerçek Nile'a kurulmadı; gerçek zincirde takas, finalize veya iade yapılmadı. Değiştirilebilir TRC20 tokenların iade kilidi riski ve yaklaşık 150 TRX'lik imzasız kurulum Energy tahmini sürüyor. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi; sistem hazır değildir.
+
+
+## 31 Ekim 2026, 09:20 TRT: kurulum Energy tahmininin resmi artifact'e sabitlenmesi
+
+- V8 Nile kurulum sayfasında ücretsiz Energy tahmini artık **seçili cüzdan + beş dakikalık süre + birebir resmi bytecode** ile eşleştiriliyor. Resmi artifact tahmin ile kurulum arasında değişirse eski maliyet tahmini kullanılarak işlem imzalanması engelleniyor; yeniden ücretsiz tahmin gerekiyor.
+- Eşzamanlı Nile getchainparameters / getaccountresource okumaları sırasında başka bir prepare() çağrısı resmi derlemeyi değiştirirse de tahmin iptal ediliyor. HTTP Energy tahmini ve TronWeb deployConstantContract isteği, işlem başında yakalanan aynı bytecode'a sabitlendi.
+- Kod commit'leri: bd2e6642, e4dc6008. Regresyon test commit'leri: 092f9f57, 35225e80. Önceki beş dakikalık ve cüzdan değiştirme testleri yeni bytecode bağına göre güncellendi; üç yeni yürütülebilir regresyon eklendi.
+- [Pages #41176148023](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41176148023) **başarılı**. [Yerel test CI #41176148563](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41176148563) bu kaydın yazıldığı anda **bekliyor**; başarılı test sayısı henüz iddia edilemez. 5d198f6d..35225e80 karşılaştırmasında yalnız kurulum HTML ve güvenli UI testleri değişti, silinen dosya yok. Solidity V8, resmi artifact ve eski V6/V7 iade sayfaları değiştirilmedi.
+- **YAYIN ENGELİ:** Gerçek Nile V8 deploy, iki taraf yatırımı, finalize ve iade kanıtı yok. Kullanıcıdan imza veya TRX istenmedi. Sistem hazır ilan edilmez.
