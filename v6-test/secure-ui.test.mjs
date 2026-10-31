@@ -163,6 +163,8 @@ test("uncertain create is recoverable only after its own tx is confirmed failed"
  const original=x.c.create;
  let sent=0;
  x.c.create=()=>({send:async()=>{sent++;return "b".repeat(64);}});
+ // Exhaust the retry budget without real-time sleeps; preserve RPC semantics.
+ x.ctx.setTimeout=fn=>{fn();return 0;};
  x.tw.trx.getTransactionInfo=async()=>{throw Error("RPC offline");};
  await x.get("create").onclick();
  assert.ok(x.ctx.loadInvite("1",x.tw));
