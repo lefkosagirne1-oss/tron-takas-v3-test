@@ -94,7 +94,7 @@ function v8RevertMessage(info){
   return candidate.messageTr;
  if(!data.startsWith("08c379a0")||data.length<8+128)return "";
  const body=data.slice(8);
- if(!/^0{63}20$/.test(body.slice(0,64)))return "";
+ if(!/^0{62}20$/.test(body.slice(0,64)))return "";
  const lengthHex=body.slice(64,128);
  if(!/^[0-9a-f]{64}$/.test(lengthHex))return "";
  const length=Number(BigInt("0x"+lengthHex));
