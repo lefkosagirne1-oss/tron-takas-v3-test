@@ -852,3 +852,37 @@ test("V8 recovery keeps both wallet records if account changes during transactio
  assert.equal(store.has("secure-takas-v8-contract:"+walletB),false,"No contract may be assigned to wallet B");
  assert.match(get("status").textContent,/Cüzdan değişti/);
 });
+
+test("V8 participant locks amount and asset during a pending TronLink operation",async()=>{
+ const x=await make("participant");
+ x.get("token").disabled=true; // A previously disabled input must stay disabled.
+ let release;
+ const waiting=new Promise(resolve=>{release=resolve;});
+ const operation=x.ctx.run(x.get("deposit"),()=>waiting);
+ for(const id of ["asset","token","amount"])assert.equal(x.get(id).disabled,true,id+" must be locked");
+ assert.equal(x.get("deposit").disabled,true);
+ release();await operation;
+ assert.equal(x.get("asset").disabled,false);
+ assert.equal(x.get("amount").disabled,false);
+ assert.equal(x.get("token").disabled,true,"Prior disabled state must be preserved");
+ assert.equal(x.get("deposit").disabled,false);
+});
+
+test("V8 manager locks fee during create and deal id during final approval",async()=>{
+ const x=await make("manager");
+ let releaseCreate;
+ const waitingCreate=new Promise(resolve=>{releaseCreate=resolve;});
+ const createJob=x.ctx.run(x.get("create"),()=>waitingCreate);
+ assert.equal(x.get("payer").disabled,true);
+ assert.equal(x.get("fee").disabled,true);
+ releaseCreate();await createJob;
+ assert.equal(x.get("payer").disabled,false);
+ assert.equal(x.get("fee").disabled,false);
+ let rejectFinal;
+ const waitingFinal=new Promise((_,reject)=>{rejectFinal=reject;});
+ const finalJob=x.ctx.run(x.get("final"),()=>waitingFinal);
+ assert.equal(x.get("id").disabled,true);
+ rejectFinal(new Error("simulated wallet rejection"));await finalJob;
+ assert.equal(x.get("id").disabled,false,"Even a failed signature must unlock the deal field");
+ assert.match(x.get("status").textContent,/simulated wallet rejection/);
+});
