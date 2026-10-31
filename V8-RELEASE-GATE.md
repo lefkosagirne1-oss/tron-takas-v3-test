@@ -360,3 +360,13 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - [GitHub Actions #41183689059](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41183689059): **149/149 test geçti**, resmi sabit SHA'lı tron-solc 0.8.31 artifact üretimi başarılı; imzasız Nile blok **72.299.376**, Energy fiyatı **100 SUN**. [GitHub Pages #41183688972](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41183688972) başarılı.
 - `9af129a8` → `e87a39e6` karşılaştırmasında yalnız ortak V8 JS ve UI testleri değişti; **silinen dosya yok**. Solidity V8, resmi artifact, eski V6/V7 iade sayfaları değiştirilmedi.
 - **YAYIN ENGELİ:** V8 gerçek Nile'a kurulmadı; gerçek zincirde A/B yatırımı, yönetici son onayı ve iade kanıtı yok. Yerel testler, CI ve Pages bunun yerine geçmez. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi; **hazır değildir**.
+
+
+## 31 Ekim 2026, 12:21 TRT: Nile receipt RPC kesintilerinde ikinci imzayı önleme
+
+- V8 ortak `waitTx` fonksiyonu, `getTransactionInfo` çağrısındaki **geçici Nile RPC hatasını** zincirde başarısız işlem gibi değerlendirmek yerine **aynı işlem kimliğiyle** sorgulamayı sürdürüyor. Kesin `REVERT` veya başka başarısız makbuz hâlâ hata veriyor; başarı yalnız `SUCCESS` makbuzuyla kabul ediliyor.
+- Bütün denemelerde RPC başarısızsa mesaj, **işlem kimliğini ve yeniden imzalamama uyarısını** içeriyor. Böylece katılımcı ve yöneticinin aynı işlemi tekrar imzalayarak masraf yapma riski azaltılıyor.
+- Kod commit'i `e20ca52514c4cdd8fdcecf2e5856059b14a2691b`; üç yürütülebilir regresyon testi `13ca32c43590276f445ebb204860bdaad3295d32`.
+- [GitHub Actions test #41188197178](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41188197178) **152/152 başarılı, 0 hata**; resmi sabit SHA'lı TRON derleyicisi ve artifact üretimi başarılı. [GitHub Pages #41188197051](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41188197051) başarılı.
+- `2584b24f` → `13ca32c4` GitHub karşılaştırmasında yalnız V8 ortak JS ve UI testleri değişti; silinen dosya yok. Solidity V8 sözleşmesi, yayımlanan artifact ve eski V6/V7 iade akışları değiştirilmedi.
+- **YAYIN ENGELİ DEVAM EDİYOR:** V8 gerçek Nile'a kurulmadı, gerçek A/B yatırımı, yönetici finalize ve iade kanıtı yok. Yerel TVM/CI ve Pages uçtan uca Nile takası değildir. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi; **hazır değildir**.
