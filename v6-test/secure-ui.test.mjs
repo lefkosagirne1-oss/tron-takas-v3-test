@@ -638,7 +638,7 @@ test("V8 setup expires stale deployment estimates and blocks signing or broadcas
   return elements.get(id);
  }},localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},console};
  vm.createContext(ctx);vm.runInContext(script,ctx);
- vm.runInContext("estimated=true;estimatedWallet=selectedWallet();estimatedAt=Date.now()",ctx);
+ vm.runInContext('artifact={bytecode:"aabb"};estimatedBytecode=artifact.bytecode;estimated=true;estimatedWallet=selectedWallet();estimatedAt=Date.now()',ctx);
  assert.equal(vm.runInContext("estimateFresh()",ctx),true);
  now+=299_999;
  assert.equal(vm.runInContext("estimateFresh()",ctx),true);
@@ -1075,4 +1075,50 @@ test("V8 setup shows only current wallet pending tx and does not enable stale En
  await get("connect").onclick();
  assert.equal(get("txid").value,"","Wallet B must not see wallet A pending transaction");
  assert.equal(get("deploy").disabled,true,"Wallet A estimate cannot enable wallet B deployment");
+});
+
+test("V8 setup invalidates Energy estimate if the official deployment bytecode changes",()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33);
+ const tw={defaultAddress:{base58:walletA}};
+ const els=new Map(),get=id=>{
+  if(!els.has(id))els.set(id,{value:"",textContent:"",disabled:false,hidden:false,checked:false});
+  return els.get(id);
+ };
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},console,Date,
+  localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ vm.runInContext('artifact={bytecode:"aabb"};estimatedBytecode="aabb";estimated=true;estimatedWallet=selectedWallet();estimatedAt=Date.now()',ctx);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),true);
+ vm.runInContext('artifact={bytecode:"ccdd"}',ctx);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),false,
+  "A different official bytecode must invalidate the previous unsigned Energy estimate");
+ vm.runInContext('artifact={bytecode:"aabb"}',ctx);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),true,"Original artifact remains valid within the time limit");
+});
+
+test("V8 setup does not sign if the published compiler artifact changes between estimate and deploy",async()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33);
+ let signAttempts=0;
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},
+  defaultAddress:{base58:walletA},
+  transactionBuilder:{createSmartContract:async()=>{signAttempts++;throw Error("MUST NOT SIGN");}}};
+ const els=new Map(),get=id=>{
+  if(!els.has(id))els.set(id,{value:"",textContent:"",disabled:false,hidden:false,checked:false,href:""});
+  return els.get(id);
+ };
+ get("ack").checked=true;
+ const updatedArtifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"ccdd"};
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},Date,console,
+  localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},
+  fetch:async()=>({ok:true,json:async()=>updatedArtifact})};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ vm.runInContext('artifact={bytecode:"aabb"};estimatedBytecode="aabb";estimated=true;estimatedWallet=selectedWallet();estimatedAt=Date.now()',ctx);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),true);
+ await get("deploy").onclick();
+ assert.equal(signAttempts,0,"No transaction may be built after the deployment bytecode changes");
+ assert.match(get("status").textContent,/Energy tahmini eskidi/);
+ assert.equal(get("deploy").disabled,true,"A new free Energy estimate is required");
 });
