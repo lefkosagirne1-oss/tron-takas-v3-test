@@ -1122,3 +1122,34 @@ test("V8 setup does not sign if the published compiler artifact changes between 
  assert.match(get("status").textContent,/Energy tahmini eskidi/);
  assert.equal(get("deploy").disabled,true,"A new free Energy estimate is required");
 });
+
+test("V8 setup rejects an artifact replacement during the asynchronous Energy RPC",async()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33);
+ let balanceReads=0,resourceReads=0;
+ const artifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"aabb"};
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},
+  defaultAddress:{base58:walletA},address:{toHex:()=>"41"+"1".repeat(40)},
+  trx:{getBalance:async()=>{balanceReads++;return 1000000000;}}};
+ const els=new Map(),get=id=>{
+  if(!els.has(id))els.set(id,{value:"",textContent:"",disabled:false,hidden:false,checked:false});
+  return els.get(id);
+ };
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},Date,console,
+  localStorage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},
+  fetch:async url=>{
+   if(String(url).includes("TakasV8Invite.json"))return {ok:true,json:async()=>artifact};
+   if(String(url).includes("getaccountresource"))return {ok:true,json:async()=>{
+    resourceReads++;artifact.bytecode="ccdd";return {EnergyLimit:0,EnergyUsed:0};
+   }};
+   return {ok:true,json:async()=>({chainParameter:[{key:"getEnergyFee",value:100}]})};
+  }};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ await get("estimate").onclick();
+ assert.equal(resourceReads,1,"Unsigned resource request must run");
+ assert.equal(balanceReads,0,"A changed compiler artifact must abort before balance and signing");
+ assert.match(get("status").textContent,/Resmi derleme değişti; Energy tahmini iptal edildi/);
+ assert.equal(vm.runInContext("estimateFresh()",ctx),false);
+ assert.equal(get("deploy").disabled,true);
+});
