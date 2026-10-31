@@ -47,6 +47,21 @@ async function showLinks(id,tw,{force=false}={}){
  shownWallet=expectedWallet;
  $("id").value=String(id);$("a").value=link(1,id,v.a);$("b").value=link(2,id,v.b);
 }
+// A reverted create does not consume nextId. Keep invitation secrets during
+// uncertain RPC outcomes, but permit a safe retry once Nile confirms failure.
+async function clearFailedPendingCreate(c,tw,expectedWallet,next){
+ const key=linksKey(tw,next.toString()),raw=localStorage.getItem(key);
+ const txKey=key+":txid",txid=localStorage.getItem(txKey);
+ if(!raw||!/^[0-9a-f]{64}$/i.test(txid||""))return false;
+ const info=await tw.trx.getTransactionInfo(txid);
+ if(!info?.receipt?.result||info.receipt.result==="SUCCESS")return false;
+ if(BigInt((await c.nextId().call()).toString())!==next)return false;
+ ensureWallet(tw,expectedWallet);
+ if(localStorage.getItem(key)!==raw||localStorage.getItem(txKey)!==txid)return false;
+ localStorage.removeItem(key);localStorage.removeItem(txKey);
+ if(localStorage.getItem(lastKey(tw))===next.toString())localStorage.removeItem(lastKey(tw));
+ return true;
+}
 function updateFeeHint(){
  const payer=Number($("payer").value),fee=$("fee").value.trim();
  $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırırsa miktardan kesilir; token yatırırsa ayrıca TRX teminatı gönderir. Komisyon yalnız takas tamamlanırsa kesilir.";
@@ -63,8 +78,11 @@ $("create").onclick=()=>run($("create"),async()=>{
  const next=BigInt((await c.nextId().call()).toString());
  // Never replace secrets from an earlier, possibly still pending create tx.
  // Losing those secrets would make previously issued private links unrecoverable.
- if(localStorage.getItem(linksKey(tw,next.toString()))!==null)
-  throw Error("Bu takas numarası için önceki davet kaydı var. Önceki işlemin sonucunu kontrol edin; bağlantı anahtarları korunuyor, yeni imza gönderilmedi.");
+ if(localStorage.getItem(linksKey(tw,next.toString()))!==null){
+  let cleared=false;
+  try{cleared=await clearFailedPendingCreate(c,tw,expectedWallet,next);}catch(_){/* An uncertain receipt must retain secrets. */}
+  if(!cleared)throw Error("Bu takas numarası için önceki davet kaydı var. Önceki işlemin sonucunu kontrol edin; bağlantı anahtarları korunuyor, yeni imza gönderilmedi.");
+ }
  const secretA=randomSecret(),secretB=randomSecret();
  const [hashA,hashB]=await Promise.all([hashSecret(secretA),hashSecret(secretB)]);
  ensureWallet(tw,expectedWallet);
@@ -78,9 +96,17 @@ $("create").onclick=()=>run($("create"),async()=>{
  let broadcasted=false;
  try{
   await send(c.create(payer,fee,hashA,hashB),{
-   expectedWallet,onHash:()=>{broadcasted=true;}
+   expectedWallet,onHash:hash=>{broadcasted=true;localStorage.setItem(savedKey+":txid",hash);}
   });
  }catch(e){
+  // A terminal reverted receipt proves this create did not use the deal ID.
+  // Never discard secrets on timeouts, unknown results, or RPC errors.
+  let failed=false;
+  if(broadcasted){
+   try{failed=await clearFailedPendingCreate(c,tw,expectedWallet,next);}catch(_){}
+  }
+  if(failed&&previousLast!==null&&localStorage.getItem(savedLastKey)===null)
+   localStorage.setItem(savedLastKey,previousLast);
   const explicitReject=String(e?.code)==="4001"||
    /user (?:rejected|denied|cancelled|canceled|declined)|(?:rejected|denied|declined) by user/i.test(String(e?.message||e));
   if(!broadcasted&&explicitReject&&localStorage.getItem(savedKey)===savedValue){
