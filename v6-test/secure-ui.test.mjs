@@ -1230,3 +1230,53 @@ test("confirmed reverted receipt remains a terminal failure rather than a transi
  x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"}});
  await assert.rejects(x.ctx.waitTx("c".repeat(64),x.tw,1),/Zincir işlemi başarısız/);
 });
+
+test("Nile commitment height recovers from a transient receipt RPC error without re-signing",async()=>{
+ const x=await make("participant");
+ x.ctx.setTimeout=fn=>{fn();return 0;};
+ let attempts=0;
+ x.tw.trx.getTransactionInfo=async()=>{
+  if(++attempts===1)throw Error("temporary Nile receipt timeout");
+  return {receipt:{result:"SUCCESS"},blockNumber:100};
+ };
+ await x.ctx.waitNextBlock(x.tw,"d".repeat(64));
+ assert.equal(attempts,2);
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+});
+
+test("Nile commitment waits through a transient latest-block RPC failure",async()=>{
+ const x=await make("participant");
+ x.ctx.setTimeout=fn=>{fn();return 0;};
+ let reads=0;
+ x.tw.trx.getCurrentBlock=async()=>{
+  if(++reads===1)throw Error("temporary Nile block timeout");
+  return {block_header:{raw_data:{number:101}}};
+ };
+ await x.ctx.waitNextBlock(x.tw,"e".repeat(64));
+ assert.equal(reads,2);
+ assert.equal(x.commits.length,0);
+ assert.equal(x.sent.length,0);
+});
+
+test("missing commitment block height fails closed with original tx hash",async()=>{
+ const x=await make("participant");
+ x.ctx.setTimeout=fn=>{fn();return 0;};
+ let attempts=0;
+ x.tw.trx.getTransactionInfo=async()=>{attempts++;return {receipt:{result:"SUCCESS"}};};
+ await assert.rejects(x.ctx.waitNextBlock(x.tw,"f".repeat(64)),e=>{
+  assert.match(e.message,/Yatırım gönderilmedi/);
+  assert.match(e.message,/tekrar imzalamayın/);
+  assert.match(e.message,/f{64}/);
+  return true;
+ });
+ assert.equal(attempts,4);
+ assert.equal(x.sent.length,0);
+});
+
+test("confirmed failed commitment cannot be mistaken for a safe deposit",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"},blockNumber:100});
+ await assert.rejects(x.ctx.waitNextBlock(x.tw,"a".repeat(64)),/Güvenlik kaydı başarısız/);
+ assert.equal(x.sent.length,0);
+});
