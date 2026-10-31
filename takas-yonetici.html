@@ -33,17 +33,21 @@ function idValue(){
  if(!/^[1-9]\d*$/.test(id))throw Error("Geçerli takas numarası girin.");
  return id;
 }
-async function showLinks(id,tw){
+async function showLinks(id,tw,{force=false}={}){
  const v=loadInvite(id,tw);
  if(!v)throw Error("Bu cihazda bu takasın özel davet anahtarları yok. Daha önce kopyaladığınız bağlantıları kullanın.");
  const d=await(await contract()).getDeal(id).call();
  if(!sameHash(d.inviteHashA,await hashSecret(v.a))||!sameHash(d.inviteHashB,await hashSecret(v.b)))throw Error("Davet anahtarları sözleşmeyle uyuşmuyor.");
+ // A read-only refresh may finish after the manager starts entering another deal.
+ // Never overwrite the new selection with stale links from an earlier request.
+ if(!force&&$("id").value.trim()!==String(id))return;
  $("id").value=String(id);$("a").value=link(1,id,v.a);$("b").value=link(2,id,v.b);
 }
 function updateFeeHint(){
  const payer=Number($("payer").value),fee=$("fee").value.trim();
  $("feeHint").textContent=payer===0?"Komisyon yok.":"Komisyon "+(fee||"0")+" TRX · "+(payer===1?"A":"B")+" tarafı TRX yatırırsa miktardan kesilir; token yatırırsa ayrıca TRX teminatı gönderir. Komisyon yalnız takas tamamlanırsa kesilir.";
 }
+$("id").oninput=()=>{$("a").value="";$("b").value="";$("details").textContent="Yeni takas numarasını kontrol edin.";};
 $("payer").onchange=updateFeeHint;$("fee").oninput=updateFeeHint;updateFeeHint();
 $("create").onclick=()=>run($("create"),async()=>{
  if(!fixedReady())throw Error("Güvenli takas sözleşme bağlantısı gerekli.");
@@ -66,7 +70,7 @@ $("create").onclick=()=>run($("create"),async()=>{
  if(after!==next+1n)throw Error("Birden fazla takas oluşturulmuş olabilir. Takas numarasını kontrol edin.");
  const d=await c.getDeal(next.toString()).call();
  if(Number(d.feePayer)!==payer||BigInt(d.feeAmount.toString())!==BigInt(fee))throw Error("Zincirde komisyon uyuşmuyor; bağlantılar gösterilmedi.");
- await showLinks(next.toString(),tw);
+ await showLinks(next.toString(),tw,{force:true});
  status("Takas #"+next+" doğrulandı. A ve B bağlantıları hazır.");
 });
 $("recover").onclick=()=>run($("recover"),async()=>{
@@ -110,6 +114,7 @@ async function showDeal(){
  const chainNow=Number(block?.block_header?.raw_data?.timestamp||0)/1000;
  const deadline=finalAt||depositAt;
  const timeText=deadline&&chainNow?(" · "+(chainNow>=deadline?"Süre doldu; iade aşaması":"Kalan süre: "+Math.ceil((deadline-chainNow)/60)+" dk")):"";
+ if(idValue()!==id)throw Error("Takas numarası okuma sırasında değişti; eski takas bilgileri gösterilmedi.");
  $("details").textContent="A: "+a+" · "+readableAddress(d.partyA,tw)+" · yatırdı: "+assetA+" · B'ye gidecek: "+receiveB+
  " | B: "+b+" · "+readableAddress(d.partyB,tw)+" · yatırdı: "+assetB+" · A'ya gidecek: "+receiveA+
  " | "+feeText+" | Durum: "+state+timeText;
