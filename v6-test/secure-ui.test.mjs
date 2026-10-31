@@ -142,6 +142,40 @@ test("manager preserves invitation secrets after a broadcast with uncertain Nile
  assert.equal(signed,1,"Uncertain transaction must not be signed a second time");
  assert.deepEqual(x.ctx.loadInvite("1",x.tw),saved);
 });
+test("confirmed reverted create frees only its own pending invite and permits retry",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ const original=x.c.create;
+ x.c.create=()=>({send:async()=> "a".repeat(64)});
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"}});
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/Zincir işlemi başarısız: REVERT/);
+ assert.equal(x.ctx.loadInvite("1",x.tw),null,"Confirmed failed create cannot permanently block the ID");
+ x.c.create=original;
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"SUCCESS"},blockNumber:100});
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/bağlantıları hazır/);
+ assert.ok(x.ctx.loadInvite("1",x.tw));
+});
+test("uncertain create is recoverable only after its own tx is confirmed failed",async()=>{
+ const x=await make("manager");
+ x.get("payer").value="1";x.get("fee").value="50";
+ const original=x.c.create;
+ let sent=0;
+ x.c.create=()=>({send:async()=>{sent++;return "b".repeat(64);}});
+ x.tw.trx.getTransactionInfo=async()=>{throw Error("RPC offline");};
+ await x.get("create").onclick();
+ assert.ok(x.ctx.loadInvite("1",x.tw));
+ assert.equal(sent,1);
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/önceki davet kaydı/);
+ assert.equal(sent,1,"Unknown outcome must not sign again");
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"}});
+ x.c.create=original;
+ await x.get("create").onclick();
+ assert.match(x.get("status").textContent,/bağlantıları hazır/);
+ assert.equal((await x.c.nextId().call()),"2");
+});
 test("valid A invite deposits 100 TRX with 50 TRX fee",async()=>{
  const x=await make("participant");
  await x.get("deposit").onclick();
