@@ -101,7 +101,7 @@ function v8RevertMessage(info){
  if(!Number.isSafeInteger(length)||length<1||length>240||body.length<128+length*2)return "";
  const bytes=body.slice(128,128+length*2).match(/../g);
  const reason=bytes.map(h=>String.fromCharCode(parseInt(h,16))).join("");
- if(!/^[\\x20-\\x7e]+$/.test(reason))return "";
+ if(!/^[\x20-\x7e]+$/.test(reason))return "";
  return REVERT_MESSAGES_TR[reason]||reason;
 }
 function sameV8Runtime(expected,actual,refs){
