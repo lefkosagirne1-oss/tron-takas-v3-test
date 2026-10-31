@@ -1199,3 +1199,34 @@ test("V8 Nile successful receipt remains successful with unrelated return bytes"
  x.tw.trx.getTransactionInfo=async()=>receipt;
  assert.equal(await x.ctx.waitTx("a".repeat(64),x.tw,1),receipt);
 });
+
+test("Nile receipt polling survives a transient RPC error without another signature",async()=>{
+ const x=await make("participant");
+ let attempts=0;
+ x.ctx.setTimeout=fn=>{fn();return 0;};
+ x.tw.trx.getTransactionInfo=async()=>{
+  attempts++;
+  if(attempts===1)throw Error("temporary Nile RPC timeout");
+  return {receipt:{result:"SUCCESS"},blockNumber:100};
+ };
+ const receipt=await x.ctx.waitTx("a".repeat(64),x.tw,2);
+ assert.equal(receipt.receipt.result,"SUCCESS");
+ assert.equal(attempts,2,"Retry the same transaction hash after a transient RPC failure");
+ assert.equal(x.sent.length,0,"Polling never signs or sends a second transaction");
+});
+test("persistent Nile receipt RPC failure retains transaction hash and no re-sign advice",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getTransactionInfo=async()=>{throw Error("Nile RPC unavailable");};
+ await assert.rejects(x.ctx.waitTx("b".repeat(64),x.tw,1),e=>{
+  assert.match(e.message,/Yeniden imzalamayın/);
+  assert.match(e.message,/b{64}/);
+  assert.match(e.message,/Nile RPC unavailable/);
+  return true;
+ });
+ assert.equal(x.sent.length,0);
+});
+test("confirmed reverted receipt remains a terminal failure rather than a transient RPC error",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"}});
+ await assert.rejects(x.ctx.waitTx("c".repeat(64),x.tw,1),/Zincir işlemi başarısız/);
+});
