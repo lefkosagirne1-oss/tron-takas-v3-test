@@ -308,7 +308,8 @@ test("Nile deployment Energy check uses official read-only deploy simulation bef
  const estimate=setup.match(/\$\("estimate"\)\.onclick=async\(\)=>\{([\s\S]*?)\};\$\("deploy"\)/)?.[1];
  assert.ok(estimate,"Energy estimate handler missing");
  assert.match(estimate,/transactionBuilder\?\.deployConstantContract/);
- assert.match(estimate,/ownerAddress:selectedWallet\(\),input:"0x"\+artifact\.bytecode,callValue:0,confirmed:false/);
+ assert.match(estimate,/const estimateWallet=selectedWallet\(\),estimateBytecode=String\(artifact\.bytecode\)/);
+ assert.match(estimate,/ownerAddress:selectedWallet\(\),input:"0x"\+estimateBytecode,callValue:0,confirmed:false/);
  assert.match(estimate,/e\?\.result\?\.result===true/);
  assert.doesNotMatch(estimate,/\.sign\(|sendRawTransaction|broadcasttransaction/);
  assert.match(estimate,/if\(!estimatedEnergy\)throw Error/);
