@@ -64,8 +64,30 @@ $("create").onclick=()=>run($("create"),async()=>{
  const secretA=randomSecret(),secretB=randomSecret();
  const [hashA,hashB]=await Promise.all([hashSecret(secretA),hashSecret(secretB)]);
  ensureWallet(tw,expectedWallet);
+ // Save before signing so an uncertain broadcast cannot orphan invitation
+ // secrets. Only a DEFINITIVE wallet rejection before any tx hash is returned
+ // permits deleting this particular new record and trying again.
+ const savedKey=linksKey(tw,next.toString()),savedLastKey=lastKey(tw);
+ const previousLast=localStorage.getItem(savedLastKey);
+ const savedValue=JSON.stringify({id:next.toString(),a:secretA,b:secretB});
  saveInvite(next.toString(),secretA,secretB,tw);
- await send(c.create(payer,fee,hashA,hashB),{expectedWallet});
+ let broadcasted=false;
+ try{
+  await send(c.create(payer,fee,hashA,hashB),{
+   expectedWallet,onHash:()=>{broadcasted=true;}
+  });
+ }catch(e){
+  const explicitReject=String(e?.code)==="4001"||
+   /user (?:rejected|denied|cancelled|canceled|declined)|(?:rejected|denied|declined) by user/i.test(String(e?.message||e));
+  if(!broadcasted&&explicitReject&&localStorage.getItem(savedKey)===savedValue){
+   localStorage.removeItem(savedKey);
+   if(localStorage.getItem(savedLastKey)===next.toString()){
+    if(previousLast===null)localStorage.removeItem(savedLastKey);
+    else localStorage.setItem(savedLastKey,previousLast);
+   }
+  }
+  throw e;
+ }
  const after=BigInt((await c.nextId().call()).toString());
  if(after!==next+1n)throw Error("Birden fazla takas oluşturulmuş olabilir. Takas numarasını kontrol edin.");
  const d=await c.getDeal(next.toString()).call();
