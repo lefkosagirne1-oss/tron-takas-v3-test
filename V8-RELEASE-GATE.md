@@ -287,3 +287,12 @@ CI testlerinin ve GitHub Pages'in başarılı olduğunu doğrula; resmi artifact
 - [GitHub Actions #41144049934](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41144049934) **130/130 test başarılı**, 0 hata. Resmi sabitlenmiş TRON derleyicisi indirildi ve V8 artifact yeniden üretildi. Nile salt-okunur blok **72.288.789**, Energy fiyatı **100 SUN**; hiçbir işlem imzalanmadı veya yayınlanmadı.
 - [GitHub Pages #41144048999](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41144048999) başarılı. dcda114f ile 9d42dc2e karşılaştırmasında yalnız takas-kurulum.html ve v6-test/secure-ui.test.mjs değişti; silinen dosya yok. V8 Solidity kaynağı, resmi artifact bytecode'u, eski V6/V7 iade sayfaları değiştirilmedi.
 - **YAYIN ENGELİ:** V8 hâlâ gerçek Nile'a kurulmadı, zincirde gerçek takas/finalize/iade yok. Yerel testler ve imzasız RPC gerçek dağıtım yerine geçmez; sistem hazır değildir. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi.
+
+
+## 31 Ekim 2026, 03:22 TRT: imza sırasında değişen miktar/komisyon önlendi
+
+- V8 katılımcı arayüzünde `Onayla ve yatır` işlemi boyunca varlık türü, token adresi ve miktar alanları geçici olarak kilitleniyor. Yönetici yeni takas oluştururken komisyon tarafı/tutarı, son onay verirken takas numarası aynı şekilde kilitleniyor. Böylece TronLink imzası beklenirken ekrandaki tutar değiştirilip farklı bir önceki tutarın imzalanmasıyla oluşabilecek kullanıcı yanılgısı önleniyor.
+- Önceden devre dışı olan alanların durumu işlem sonrasında aynen geri yükleniyor; hata veya cüzdan reddi de alanları yeniden açıyor. İki yürütülen regresyon testi eklendi.
+- Kod commit'leri `26c57c13`, `e79a7d49`; test commit'i `d0ac68bb`. [GitHub Actions #41149580183](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41149580183): **132/132 test başarılı, 0 hata**; sabitlenmiş resmi TRON compiler ile artifact derlemesi başarılı. Salt-okunur Nile blok **72.289.959**, Energy fiyatı **100 SUN**. [GitHub Pages #41149580365](https://github.com/lefkosagirne1-oss/tron-takas-v3-test/actions/runs/41149580365) başarılı.
+- `20f8cc22` ile `d0ac68bb` arasındaki karşılaştırmada yalnız V8 katılımcı/yönetici arayüzleri ve regresyon testleri değişti, **silinen dosya yok**. V8 Solidity, resmi artifact ve eski V6/V7 iade akışları değiştirilmedi.
+- **YAYIN ENGELİ:** V8 hâlâ gerçek Nile'a dağıtılmadı, gerçek zincir takası/finalize/iade kanıtı yok. Yerel testler gerçek zincir doğrulaması değildir; hazır ilan etme. Kullanıcıdan imza, TRX veya ekran görüntüsü istenmedi.
