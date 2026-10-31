@@ -184,18 +184,29 @@ async function waitTx(hash,tw,tries=24){
   throw Error("İşlem gönderildi ancak kesinleşmesi doğrulanamadı. Yeniden imzalamayın; önce işlem kimliğini kontrol edin: "+hash+(lastRpcError?" · Son Nile RPC hatası: "+lastRpcError:""));
 }
 async function waitNextBlock(tw,txid){
-  // commitRole must be mined in an earlier block than deposit; otherwise
-  // the contract reverts and the participant wastes TRX on the failed call.
-  const receipt=await tw.trx.getTransactionInfo(txid);
-  const committedAt=Number(receipt?.blockNumber);
-  if(!Number.isSafeInteger(committedAt)||committedAt<=0)throw Error("Güvenlik kaydının blok numarası okunamadı. Yatırım gönderilmedi; daha sonra tekrar deneyin.");
-  for(let i=0;i<12;i++){
-    const block=await tw.trx.getCurrentBlock();
-    const now=Number(block?.block_header?.raw_data?.number);
-    if(Number.isSafeInteger(now)&&now>committedAt)return;
-    await new Promise(resolve=>setTimeout(resolve,2500));
+  // commitRole must be mined in an earlier block than deposit. A transient
+  // Nile RPC failure must not trigger a second commitment or deposit signature.
+  let committedAt=0,lastRpcError="";
+  for(let i=0;i<4;i++){
+    let receipt;
+    try{receipt=await tw.trx.getTransactionInfo(txid);}
+    catch(e){lastRpcError=String(e?.message||e);}
+    if(receipt?.receipt?.result&&receipt.receipt.result!=="SUCCESS")
+      throw Error("Güvenlik kaydı başarısız. Yatırım gönderilmedi: "+txid);
+    const height=Number(receipt?.blockNumber);
+    if(Number.isSafeInteger(height)&&height>0){committedAt=height;break;}
+    if(i<3)await new Promise(resolve=>setTimeout(resolve,2000));
   }
-  throw Error("Güvenlik kaydı sonraki blokta henüz doğrulanmadı. Yatırım gönderilmedi; daha sonra tekrar deneyin.");
+  if(!committedAt)throw Error("Güvenlik kaydının blok numarası okunamadı. Yatırım gönderilmedi; aynı güvenlik kaydını tekrar imzalamayın. İşlem: "+txid+(lastRpcError?" · Nile: "+lastRpcError:""));
+  for(let i=0;i<12;i++){
+    try{
+      const block=await tw.trx.getCurrentBlock();
+      const now=Number(block?.block_header?.raw_data?.number);
+      if(Number.isSafeInteger(now)&&now>committedAt)return;
+    }catch(e){lastRpcError=String(e?.message||e);}
+    if(i<11)await new Promise(resolve=>setTimeout(resolve,2500));
+  }
+  throw Error("Güvenlik kaydından sonraki Nile bloğu doğrulanamadı. Yatırım gönderilmedi; aynı güvenlik kaydını tekrar imzalamayın. İşlem: "+txid+(lastRpcError?" · Nile: "+lastRpcError:""));
 }
 function ensureWallet(tw,expected){
   if(expected&&tw.defaultAddress?.base58!==expected)throw Error("Cüzdan değişti. İşlem imzalanmadı; yeniden kontrol edin.");
