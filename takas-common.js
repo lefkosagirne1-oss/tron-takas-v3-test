@@ -165,14 +165,23 @@ async function assertManager(){
   return {tw,c};
 }
 async function waitTx(hash,tw,tries=24){
+  let lastRpcError="";
   for(let i=0;i<tries;i++){
-    const info=await tw.trx.getTransactionInfo(hash);
+    let info;
+    try{
+      info=await tw.trx.getTransactionInfo(hash);
+      lastRpcError="";
+    }catch(e){
+      // An RPC timeout is not a failed transaction. Poll the SAME hash
+      // instead of encouraging a second signature or duplicate deposit.
+      lastRpcError=String(e?.message||e);
+    }
     if(info?.receipt?.result==="SUCCESS")return info;
     if(info?.receipt?.result&&info.receipt.result!=="SUCCESS")
       throw Error("Zincir işlemi başarısız: "+(v8RevertMessage(info)||info.receipt.result)+" · "+hash);
-    await new Promise(resolve=>setTimeout(resolve,2500));
+    if(i+1<tries)await new Promise(resolve=>setTimeout(resolve,2500));
   }
-  throw Error("İşlem gönderildi ancak henüz kesinleşmedi. Yeniden imzalamayın; önce işlem kimliğini kontrol edin: "+hash);
+  throw Error("İşlem gönderildi ancak kesinleşmesi doğrulanamadı. Yeniden imzalamayın; önce işlem kimliğini kontrol edin: "+hash+(lastRpcError?" · Son Nile RPC hatası: "+lastRpcError:""));
 }
 async function waitNextBlock(tw,txid){
   // commitRole must be mined in an earlier block than deposit; otherwise
