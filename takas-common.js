@@ -161,6 +161,9 @@ async function send(method,opts={}){
   const callValue=safeCallValue(opts.value);
   const hash=await method.send({feeLimit:150000000,callValue,shouldPollResponse:false});
   if(!/^[0-9a-f]{64}$/i.test(String(hash)))throw Error("İşlem kimliği alınamadı.");
+  // The caller may need to retain private invitation keys once a transaction
+  // was broadcast, even when receipt polling later fails or times out.
+  if(opts.onHash)opts.onHash(hash);
   status("Zincir onayı bekleniyor: "+hash);
   await waitTx(hash,tw);
   status("İşlem zincirde doğrulandı: "+hash);
