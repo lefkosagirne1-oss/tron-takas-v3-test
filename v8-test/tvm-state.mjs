@@ -569,7 +569,7 @@ const beforeARefundTrx=await balance(alice);
 const beforeBRefundTrx=await balance(bob);
 const beforeARefundManager=await balance(manager);
 await call(alice,contract,"deposit",[17,1,tokenAddress,35n,"0x"+secretA.toString("hex")],143,9336,50_000_000n);
-await call(bob,contract,"deposit",[17,2,zero,120_000_000n,"0x"+secretB.toString("hex")],144,9339,120_000_000n);
+await call(bob,contract,"deposit",[17,2,zero,20_000_000n,"0x"+secretB.toString("hex")],144,9339,20_000_000n);
 await call(alice,contract,"refund",[17],145,9640);
 await call(bob,contract,"refund",[17],146,9643);
 const afterARefund=(await call(manager,contract,"getDeal",[17],147,9646))[0];
@@ -578,7 +578,7 @@ assert.equal(afterARefund.refundedB,true);
 assert.equal(afterARefund.completed,false);
 assert.equal(await tokenBalance(alice),beforeARefundTokens,"A receives full TRC20 refund");
 assert.equal(await balance(alice),beforeARefundTrx,"A recovers all 50 TRX fee collateral");
-assert.equal(await balance(bob),beforeBRefundTrx,"B recovers all 120 TRX principal");
+assert.equal(await balance(bob),beforeBRefundTrx,"B recovers all 20 TRX principal");
 assert.equal(await balance(manager),beforeARefundManager,"Expired A token payer fee never reaches manager");
 console.log("Local Nile TVM A-side TRC20 fee finalize and two-party timeout refund OK.");
 
