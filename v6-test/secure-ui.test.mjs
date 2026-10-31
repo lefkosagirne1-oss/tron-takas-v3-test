@@ -886,3 +886,38 @@ test("V8 manager locks fee during create and deal id during final approval",asyn
  assert.equal(x.get("id").disabled,false,"Even a failed signature must unlock the deal field");
  assert.match(x.get("status").textContent,/simulated wallet rejection/);
 });
+
+
+test("V8 manager never replaces a newly selected deal with links from an older async read",async()=>{
+ const x=await make("manager");
+ x.ctx.saveInvite("1",secretA,secretB,x.tw);
+ x.get("id").value="1";
+ let release,entered;
+ const called=new Promise(resolve=>{entered=resolve;});
+ x.c.getDeal=()=>({call:async()=>{entered();return new Promise(resolve=>{release=resolve;});}});
+ const pending=x.ctx.showLinks("1",x.tw);
+ await called;
+ x.get("id").value="2";
+ x.get("id").oninput();
+ release(x.deal);
+ await pending;
+ assert.equal(x.get("id").value,"2","Late response must not reset the selected deal");
+ assert.equal(x.get("a").value,"","Stale A invitation must not be copied for the new deal");
+ assert.equal(x.get("b").value,"","Stale B invitation must not be copied for the new deal");
+});
+
+test("V8 manager discards stale deal details when selection changes during a Nile block read",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ let release,entered;
+ const called=new Promise(resolve=>{entered=resolve;});
+ x.tw.trx.getCurrentBlock=async()=>{entered();return new Promise(resolve=>{release=resolve;});};
+ const pending=x.ctx.showDeal();
+ await called;
+ x.get("id").value="2";
+ x.get("id").oninput();
+ release({block_header:{raw_data:{timestamp:1000000,number:101}}});
+ await assert.rejects(pending,/Takas numarası okuma sırasında değişti/);
+ assert.equal(x.get("id").value,"2");
+ assert.match(x.get("details").textContent,/Yeni takas numarasını kontrol edin/);
+});
