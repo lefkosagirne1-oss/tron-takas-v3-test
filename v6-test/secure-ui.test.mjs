@@ -952,3 +952,47 @@ test("V8 manager discards stale deal details when selection changes during a Nil
  assert.equal(x.get("id").value,"2");
  assert.match(x.get("details").textContent,/Yeni takas numarasını kontrol edin/);
 });
+
+
+test("V8 manager never reveals stored invitation links after wallet switches during read",async()=>{
+ const x=await make("manager");
+ x.ctx.saveInvite("1",secretA,secretB,x.tw);
+ x.get("id").value="1";
+ let release,entered;
+ const started=new Promise(resolve=>{entered=resolve;});
+ x.c.getDeal=()=>({call:async()=>{entered();return new Promise(resolve=>{release=resolve;});}});
+ const pending=x.ctx.showLinks("1",x.tw);
+ await started;
+ x.tw.defaultAddress.base58="T"+"b".repeat(33);
+ release(x.deal);
+ await assert.rejects(pending,/Cüzdan değişti/);
+ assert.equal(x.get("a").value,"","Do not expose manager A's private invite on wallet B");
+ assert.equal(x.get("b").value,"");
+});
+
+test("V8 manager clears already displayed invitations before copying with a different wallet",async()=>{
+ const x=await make("manager");
+ x.ctx.saveInvite("1",secretA,secretB,x.tw);
+ x.get("id").value="1";
+ await x.ctx.showLinks("1",x.tw);
+ assert.match(x.get("a").value,/secret=/);
+ x.tw.defaultAddress.base58="T"+"b".repeat(33);
+ x.get("copyA").onclick();
+ assert.equal(x.get("a").value,"");
+ assert.equal(x.get("b").value,"");
+ assert.match(x.get("status").textContent,/Cüzdan değişti/);
+});
+
+test("V8 manager discards chain details when wallet changes during a delayed block read",async()=>{
+ const x=await make("manager");
+ x.get("id").value="1";
+ let release,entered;
+ const started=new Promise(resolve=>{entered=resolve;});
+ x.tw.trx.getCurrentBlock=async()=>{entered();return new Promise(resolve=>{release=resolve;});};
+ const pending=x.ctx.showDeal();
+ await started;
+ x.tw.defaultAddress.base58="T"+"b".repeat(33);
+ release({block_header:{raw_data:{timestamp:1000000,number:101}}});
+ await assert.rejects(pending,/Cüzdan değişti/);
+ assert.equal(x.get("details").textContent,"","Do not display old manager's deal on the new wallet");
+});
