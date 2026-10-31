@@ -996,3 +996,84 @@ test("V8 manager discards chain details when wallet changes during a delayed blo
  await assert.rejects(pending,/Cüzdan değişti/);
  assert.equal(x.get("details").textContent,"","Do not display old manager's deal on the new wallet");
 });
+
+
+test("V8 setup rejects wallet switch while loading official compiler artifact",async()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:walletA}};
+ const elements=new Map(),get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false,href:""});
+  return elements.get(id);
+ };
+ const store=new Map([["secure-takas-deploy-pending:"+walletA,"a".repeat(64)]]);
+ const artifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"aabb"};
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:key=>store.get(key)||null},
+  fetch:async()=>({ok:true,json:async()=>{tw.defaultAddress.base58=walletB;return artifact;}}),
+  console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ get("done").hidden=false;get("address").value="previous-wallet-contract";
+ await get("connect").onclick();
+ assert.match(get("status").textContent,/Cüzdan değişti; kurulum kontrolü iptal edildi/);
+ assert.equal(get("done").hidden,true,"Old manager contract link must be hidden");
+ assert.equal(get("address").value,"","Old contract address must be cleared");
+ assert.equal(get("txid").value,"","Do not show wallet A pending transaction under wallet B");
+ assert.equal(get("deploy").disabled,false,"No stale signing is initiated by a read-only connect");
+});
+
+test("V8 setup never displays installed wallet A contract if wallet changes during manager RPC",async()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const installed="T"+"c".repeat(33);
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},
+  defaultAddress:{base58:walletA},isAddress:()=>true,
+  contract:async()=>({
+   inviteVersion:()=>({call:async()=>8}),
+   manager:()=>({call:async()=>{tw.defaultAddress.base58=walletB;return walletA;}})
+  })};
+ const elements=new Map(),get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false,href:""});
+  return elements.get(id);
+ };
+ const store=new Map([["secure-takas-v8-contract:"+walletA,installed]]);
+ const artifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"aabb"};
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:key=>store.get(key)||null},
+  fetch:async()=>({ok:true,json:async()=>artifact}),console};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ await get("connect").onclick();
+ assert.match(get("status").textContent,/Cüzdan değişti; kurulum kontrolü iptal edildi/);
+ assert.equal(get("done").hidden,true);
+ assert.equal(get("address").value,"");
+ assert.equal(get("manager").href,"");
+ assert.equal(store.get("secure-takas-v8-contract:"+walletA),installed,"Original wallet record must survive");
+});
+
+test("V8 setup shows only current wallet pending tx and does not enable stale Energy estimate",async()=>{
+ const script=read("takas-kurulum.html").split("<script>")[1]?.split("</script>")[0];
+ const walletA="T"+"a".repeat(33),walletB="T"+"b".repeat(33);
+ const tw={ready:true,fullNode:{host:"https://nile.trongrid.io"},defaultAddress:{base58:walletA}};
+ const elements=new Map(),get=id=>{
+  if(!elements.has(id))elements.set(id,{value:"",textContent:"",disabled:false,hidden:false,href:""});
+  return elements.get(id);
+ };
+ const store=new Map([["secure-takas-deploy-pending:"+walletA,"a".repeat(64)]]);
+ const artifact={contractName:"TakasV8Invite",compiler:"tron-solc 0.8.31",
+  abi:[{name:"commitRole"},{name:"committedHash"}],bytecode:"aabb"};
+ const ctx={window:{tronWeb:tw},document:{getElementById:get},
+  localStorage:{getItem:key=>store.get(key)||null},
+  fetch:async()=>({ok:true,json:async()=>artifact}),console,Date};
+ vm.createContext(ctx);vm.runInContext(script,ctx);
+ await get("connect").onclick();
+ assert.equal(get("txid").value,"a".repeat(64));
+ assert.equal(get("deploy").disabled,true);
+ tw.defaultAddress.base58=walletB;
+ get("txid").value="";
+ vm.runInContext("estimated=true;estimatedWallet="+JSON.stringify(walletA)+";estimatedAt=Date.now()",ctx);
+ await get("connect").onclick();
+ assert.equal(get("txid").value,"","Wallet B must not see wallet A pending transaction");
+ assert.equal(get("deploy").disabled,true,"Wallet A estimate cannot enable wallet B deployment");
+});
