@@ -146,8 +146,11 @@ $("deposit").onclick=()=>run($("deposit"),async()=>{
   if(BigInt(allowanceNow.toString())<BigInt(amount))throw Error("Yatırım öncesi token izni yetersiz. Yatırım imzalanmadı.");
  }
  await ensureDepositStillOpen(c,tw,expectedWallet,15);
- await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee,expectedWallet});
- await check();
+ const confirmedTx=await send(c.deposit(id,role,token,amount,secret),{value:type==="TRX"?amount:extraFee,expectedWallet});
+ // Receipt SUCCESS is authoritative; a later read-only refresh failure must
+ // not turn a confirmed deposit into a misleading failure or invite re-signing.
+ try{await check();}
+ catch(_){status("Yatırım zincirde doğrulandı ("+confirmedTx+"). Durum ekranı yenilenemedi; tekrar yatırmayın, biraz sonra durumu kontrol edin.");return;}
  status("Yatırım zincirde doğrulandı. Diğer taraf ve yönetici bekleniyor.");
 });
 $("refund").onclick=()=>run($("refund"),async()=>{
@@ -162,7 +165,11 @@ $("refund").onclick=()=>run($("refund"),async()=>{
  const block=await tw.trx.getCurrentBlock(),now=Number(block?.block_header?.raw_data?.timestamp)/1000;
  if(!Number.isFinite(now)||now<=0)throw Error("Nile blok saati okunamadı; iade imzalanmadı.");
  if(now<deadline)throw Error("İade süresi henüz gelmedi.");
- await send(c.refund(id),{expectedWallet});await check(false);status("İade işlemi zincirde doğrulandı.");
+ const confirmedTx=await send(c.refund(id),{expectedWallet});
+ // A failed status refresh cannot undo a successful on-chain refund receipt.
+ try{await check(false);}
+ catch(_){status("İade zincirde doğrulandı ("+confirmedTx+"). Durum ekranı yenilenemedi; tekrar iade göndermeyin.");return;}
+ status("İade işlemi zincirde doğrulandı.");
 });
 // Read-only refresh; no wallet signature or transaction. A/B need not press
 // "Durumu görüntüle" repeatedly while waiting for the other party or manager.
