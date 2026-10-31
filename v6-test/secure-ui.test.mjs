@@ -1154,3 +1154,48 @@ test("V8 setup rejects an artifact replacement during the asynchronous Energy RP
  assert.equal(vm.runInContext("estimateFresh()",ctx),false);
  assert.equal(get("deploy").disabled,true);
 });
+
+function encodedRevertString(reason){
+ const bytes=Buffer.from(reason,"utf8").toString("hex");
+ const offset="20".padStart(64,"0");
+ const length=(bytes.length/2).toString(16).padStart(64,"0");
+ return "08c379a0"+offset+length+bytes.padEnd(Math.ceil(bytes.length/64)*64,"0");
+}
+
+test("V8 Nile receipt decodes the published fee error without accepting a failed transaction",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getTransactionInfo=async()=>({
+  receipt:{result:"REVERT"},contractResult:[encodedRevertString("Fee exceeds amount")]
+ });
+ await assert.rejects(x.ctx.waitTx("a".repeat(64),x.tw,1),
+  /Zincir işlemi başarısız: Komisyon yatırılan TRX miktarından küçük olmalı/);
+});
+
+test("V8 Nile receipt translates a verified candidate custom-error selector",async()=>{
+ const x=await make("participant");
+ const artifact={...officialArtifact,errorSelectorsTr:{
+  "0xdeadbeef":{name:"E01",reason:"Invalid invitation",messageTr:"Davet anahtarı geçersiz."}
+ }};
+ x.ctx.fetch=async url=>({ok:true,json:async()=>String(url).includes("TakasV8Invite.json")
+  ?artifact:{runtimecode:mockRuntime}});
+ await x.ctx.verifyV8Code();
+ x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"},contractResult:["deadbeef"]});
+ await assert.rejects(x.ctx.waitTx("a".repeat(64),x.tw,1),
+  /Zincir işlemi başarısız: Davet anahtarı geçersiz/);
+});
+
+test("V8 Nile receipt does not invent a reason from malformed revert bytes",async()=>{
+ const x=await make("participant");
+ x.tw.trx.getTransactionInfo=async()=>({
+  receipt:{result:"REVERT"},contractResult:["08c379a0"+"0".repeat(128)]
+ });
+ await assert.rejects(x.ctx.waitTx("a".repeat(64),x.tw,1),
+  /Zincir işlemi başarısız: REVERT/);
+});
+
+test("V8 Nile successful receipt remains successful with unrelated return bytes",async()=>{
+ const x=await make("participant");
+ const receipt={receipt:{result:"SUCCESS"},contractResult:["deadbeef"]};
+ x.tw.trx.getTransactionInfo=async()=>receipt;
+ assert.equal(await x.ctx.waitTx("a".repeat(64),x.tw,1),receipt);
+});
