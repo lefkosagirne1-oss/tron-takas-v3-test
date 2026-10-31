@@ -172,7 +172,9 @@ test("uncertain create is recoverable only after its own tx is confirmed failed"
  await x.get("create").onclick();
  assert.match(x.get("status").textContent,/önceki davet kaydı/);
  assert.equal(sent,1,"Unknown outcome must not sign again");
- x.tw.trx.getTransactionInfo=async()=>({receipt:{result:"REVERT"}});
+ x.tw.trx.getTransactionInfo=async hash=>({
+  receipt:{result:hash==="b".repeat(64)?"REVERT":"SUCCESS"},blockNumber:100
+ });
  x.c.create=original;
  await x.get("create").onclick();
  assert.match(x.get("status").textContent,/bağlantıları hazır/);
