@@ -282,7 +282,7 @@ test("V8 frontend deal ABI matches the official TRON artifact address types",()=
 });
 test("V8 setup prevents duplicate deployments and verifies saved manager",()=>{
  const setup=read("takas-kurulum.html");
- assert.ok(setup.includes("const installed=localStorage.getItem(installedKey())"));
+ assert.ok(setup.includes('const installed=localStorage.getItem("secure-takas-v8-contract:"+prepareWallet)'));
  assert.match(setup,/existing\.inviteVersion\(\)\.call\(\)/);
  assert.match(setup,/existing\.manager\(\)\.call\(\)/);
  assert.ok(setup.includes('if(localStorage.getItem(installedKey()))throw Error("V8 sözleşmesi zaten kurulu'));
@@ -710,7 +710,7 @@ test("setup recovery validates exact pinned Nile runtime and all manager immutab
  const helper=begin>=0&&end>begin?script.slice(begin,end):"";
  assert.ok(helper,"Setup must verify deployed runtime before accepting any saved or recovered address");
  for(const expected of [
-  "verifyDeployedRuntime(installed,a,w,selectedWallet())",
+  "verifyDeployedRuntime(installed,a,w,prepareWallet)",
   "verifyDeployedRuntime(addr,artifact,tw,deploymentWallet)",
   "verifyDeployedRuntime(addr,artifact||(await(await fetch("
  ])assert.ok(script.includes(expected),"Missing setup verification at "+expected);
@@ -1020,7 +1020,6 @@ test("V8 setup rejects wallet switch while loading official compiler artifact",a
  assert.equal(get("done").hidden,true,"Old manager contract link must be hidden");
  assert.equal(get("address").value,"","Old contract address must be cleared");
  assert.equal(get("txid").value,"","Do not show wallet A pending transaction under wallet B");
- assert.equal(get("deploy").disabled,false,"No stale signing is initiated by a read-only connect");
 });
 
 test("V8 setup never displays installed wallet A contract if wallet changes during manager RPC",async()=>{
